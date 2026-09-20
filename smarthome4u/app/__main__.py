@@ -113,6 +113,8 @@ async def main() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(asyncio.run(main()))
+        exit_code = asyncio.run(main())
     except KeyboardInterrupt:
-        raise SystemExit(0)
+        exit_code = 0
+
+    raise SystemExit(exit_code)
