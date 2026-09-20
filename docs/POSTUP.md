@@ -4,8 +4,8 @@ Tento soubor je zdroj pravdy o stavu projektu. Aktualizuje se po každé dokonč
 části, aby se dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 9. 2026
-**Aktuální verze:** 0.1.0
-**Aktuální fáze:** v0.1 spike - hotový kód, čeká na ověření na reálném HA
+**Aktuální verze:** 0.2.0
+**Aktuální fáze:** v0.2 rozhraní - hotový kód, čeká na ověření na reálném HA
 
 ---
 
@@ -21,81 +21,90 @@ Tento soubor je zdroj pravdy o stavu projektu. Aktualizuje se po každé dokonč
 
 ---
 
+## Důležité upřesnění zadání (20. 9. 2026)
+
+Verze 0.1 uměla jen jinak zobrazit entity. To bylo špatné pochopení zadání.
+
+**Jednoduchost znamená jednoduché ovládání, ne málo funkcí.** Smarthome4u musí
+umět všechno, co uživatel od domu potřebuje. Rozdíl oproti Home Assistantu je
+v tom, že se to dá udělat bez znalosti pojmů entita, integrace nebo YAML.
+
+Závazný seznam je v `docs/ZADANI.md` kapitola 1.2. Nic z něj se nesmí vynechat.
+
+---
+
 ## Hotovo
 
-### Repozitář a dokumentace
+### Základ (v0.1)
 
-- [x] Struktura repozitáře, který je zároveň App repository i zdrojový kód
-- [x] `repository.yaml` - Home Assistant pozná repozitář jako obchod
-- [x] Zjednodušené zadání `docs/ZADANI.md` (z 83 kapitol na 29)
-- [x] Pravidla pro vývoj `CLAUDE.md`
-- [x] Evidence HA commandů `docs/HA_COMPATIBILITY.md`
-- [x] Licence, README, CHANGELOG, dokumentace aplikace `smarthome4u/DOCS.md`
+- [x] Repozitář je zároveň App repository i zdrojový kód
+- [x] Manifest bez otevřeného portu a bez privilegovaných oprávnění
+- [x] Home Assistant Adapter s reconnectem a version gate
+- [x] Načtení pater, místností, zařízení, entit a config entries
+- [x] Realtime subscription a přenos změn do prohlížeče
+- [x] Normalizovaný model s identitou přes registry ID
+- [x] Kontrola v GitHub Actions - syntaxe, importy, ruff, manifest
 
-### Aplikace
+### Rozhraní (v0.2)
 
-- [x] Manifest `config.yaml` - Ingress zapnutý, žádný otevřený port,
-      žádné privilegované oprávnění
-- [x] Dockerfile, spouštěcí skript, AppArmor profil
-- [x] Home Assistant Adapter (`app/ha/client.py`) - WebSocket klient,
-      přihlášení Supervisor tokenem, automatický reconnect s narůstající prodlevou
-- [x] Version gate (`app/ha/version.py`) - neznámá verze HA neblokuje čtení
-      ani ovládání, jen označí zápisy jako neověřené
-- [x] Načtení pater, místností, zařízení a entit
-- [x] Selhání jednoho registru neshodí aplikaci, každý má fallback
-- [x] Realtime subscription na `state_changed`
-- [x] Capability Engine (`app/capability.py`) - light, switch, sensor,
-      binary_sensor, rozhoduje podle domain a device_class
-- [x] Normalizovaný model (`app/model.py`) - persistentní identita přes
-      registry ID, entity_id jen jako měnitelný atribut
-- [x] Entity bez záznamu v registru se neztratí
-- [x] Diagnostické a konfigurační entity skryté běžnému uživateli
-- [x] Interní API (`app/server.py`) - frontend nemluví přímo s HA
-- [x] Allowlist akcí - frontend nemůže zavolat libovolnou HA službu
-- [x] Realtime přenos do prohlížeče (`app/broadcast.py`) se slučováním do dávek
-- [x] Frontend bez build kroku - dark-first, dotykové cíle 44 px,
-      více sloupců podle místa, zvětšení pro nástěnný panel
-- [x] Překlady oddělené od kódu (`app/web/i18n.js`), čeština ve vykání
-- [x] Design tokeny na jednom místě, barvy označené jako dočasné
-
-### Kontrola
-
-- [x] GitHub Actions - syntaxe, načtení všech modulů, ruff, kontrola manifestu
-- [x] Kontrola zakázaných oprávnění v manifestu je součástí CI
-- [x] Poslední běh: zelený
+- [x] Navigace s pěti sekcemi, spodní lišta na telefonu, levý panel od 900 px
+- [x] Domů - souhrn domu, upozornění, zhasnutí všech světel, místnosti
+- [x] Místnosti - ovládání po místnostech
+- [x] Správa místností a pater: vytvořit, přejmenovat, přesunout, smazat
+- [x] Zařízení - seznam po místnostech, detail, přejmenování, přiřazení
+- [x] Přidání zařízení - nalezená zařízení a osm nejčastějších integrací
+- [x] Scény a skripty - seznam, spuštění, mazání
+- [x] Uložení aktuálního stavu místnosti jako scény
+- [x] Automatizace - seznam, zapnutí, vypnutí, ruční spuštění, mazání
+- [x] Šest šablon automatizací s průvodcem výběru zařízení
+- [x] Nastavení aplikace
+- [x] Ovládací panel: stmívání, teplota bílé, barva, poloha a natočení žaluzie,
+      termostat, zámek, rychlost ventilátoru, hlasitost, číselné vstupy, výběry
+- [x] Hluboké odkazy do HA přes `target="_top"` (aplikace běží v iframe)
+- [x] Vlastní sada linkových ikon
+- [x] Capability Engine na 20 doménách
+- [x] Allowlist akcí s kontrolou typu a rozsahu hodnoty
 
 ---
 
 ## Neověřeno - čeká na reálný Home Assistant
 
-Kód je napsaný a projde statickou kontrolou, ale **nikdy neběžel**.
-Tohle se musí projít ručně po instalaci:
+Kód projde statickou kontrolou, ale funkce v0.2 nikdy neběžely.
 
-- [ ] Aplikace se nainstaluje z repozitáře a sestaví se
-- [ ] Ingress funguje, aplikace je v postranním panelu
-- [ ] Načtou se místnosti a zařízení
-- [ ] Světlo ovládané ve Smarthome4u se okamžitě změní i v HA
-- [ ] Změna v HA se realtime projeví ve Smarthome4u
-- [ ] Fyzický vypínač na zdi se projeví v rozhraní
-- [ ] Restart aplikace neovlivní HA automatizace
-- [ ] Reconnect po restartu Home Assistantu funguje
-- [ ] AppArmor profil aplikaci neblokuje
-- [ ] Base image tagy v `build.yaml` existují
+- [ ] Navigace a přepínání sekcí
+- [ ] Ovládací panel u světla, žaluzie, termostatu a zámku
+- [ ] Vytvoření a přejmenování místnosti
+- [ ] Přejmenování zařízení a přiřazení do místnosti
+- [ ] Uložení scény ze stavu místnosti
+- [ ] Vytvoření automatizace ze šablony
+- [ ] Smazání automatizace a scény
+- [ ] Hluboké odkazy do HA z iframe
+- [ ] Nalezená zařízení v dialogu Přidat zařízení
+
+### Nejpravděpodobnější místa problémů
+
+1. **Config API pro automatizace a scény** - `POST /api/config/automation/config/{id}`
+   není veřejně dokumentované. Pokud Supervisor token nemá dost práv, vrátí
+   401 nebo 403 a vytváření automatizací nepůjde.
+2. **Zápisy do registrů** - `config/area_registry/create` a spol. mohou mít
+   jiný tvar parametrů.
+3. **Odkazy z iframe** - `target="_top"` musí projít přes Ingress.
+
+Všechna tři místa mají fallback a nemohou shodit aplikaci.
 
 ---
 
-## Vědomě neuděláno v v0.1
-
-Není to opomenutí, je to rozsah.
+## Vědomě neuděláno
 
 | Co chybí | Kdy |
 |---|---|
 | `icon.png` a `logo.png` aplikace | až dodá Pavel |
-| SQLite datastore a migrace | v1.0, v0.1 nemá co ukládat |
+| Editor KDYŽ / POKUD / UDĚLEJ | v1.0 |
+| Úprava existující automatizace | vede do HA, vlastní editor až v1.0 |
+| Čtyři šablony dashboardu a oblíbené | v1.0 |
+| SQLite datastore a migrace | v1.0 |
 | Technický režim a role | v1.0, chybí ověření admin práv |
-| Žaluzie, termostaty, zámky, scény | v1.0 |
-| Tři šablony dashboardu | v1.0, teď je jen seznam místností |
-| Šablony automatizací | v1.0 |
+| Odebrání zařízení | vede do HA |
 | Automatizované testy proti HA | v1.0 |
 | Předpřipravené GHCR image | před v1.0 |
 | Finální brand barvy | po auditu webu |
@@ -109,28 +118,29 @@ Není to opomenutí, je to rozsah.
 | Jeden repozitář místo dvou | Zákazník přidává jediný odkaz, méně údržby |
 | Repozitář je veřejný | Supervisor ho klonuje bez přihlášení, jinak to nejde |
 | Lokální build v HA místo GHCR | Do v1.0 odpadá CI, registry i podepisování |
-| Python + aiohttp na backendu | Stejný stack jako HA Core, ověřené WebSocket chování |
-| Čistý HTML/CSS/JS frontend | Žádný build krok, malý image, rychlé na levném tabletu |
-| Žádný `image:` v config.yaml | Bez něj Supervisor staví lokálně z Dockerfile |
+| Python + aiohttp na backendu | Stejný stack jako HA Core |
+| Čistý HTML/CSS/JS frontend | Žádný build krok, rychlé na levném tabletu |
 | Bez průvodce po instalaci | Dashboard se generuje sám z místností |
 | WebSocket do prohlížeče | Polling by zatěžoval slabé nástěnné tablety |
-| Blokový editor automatizací odložen | HA Automation API není stabilní smlouva |
-| 3 šablony dashboardu místo 13 | Pokryjí většinu zákazníků, násobně méně údržby |
+| Automatizace jen ze šablon | HA Automation API není stabilní smlouva |
+| Úprava automatizace vede do HA | Nešlo by to udělat bezpečně a jednoduše zároveň |
+| Odebrání zařízení vede do HA | Nevratná operace patří tam, kde je celý kontext |
 
 ---
 
 ## Co se čeká na Pavlovi
 
-- [ ] Nainstalovat aplikaci na testovací Home Assistant a projít seznam výše
+- [ ] Aktualizovat aplikaci v HA na 0.2.0 a projít seznam "Neověřeno"
+- [ ] Poslat log ze záložky Log, pokud něco selže
 - [ ] Ověřit kontaktní e-mail v `repository.yaml` (teď `info@smarthome4u.cz`)
 - [ ] Dodat logo a ikonu (`logo.png` 250×100, `icon.png` 128×128)
-- [ ] Sdělit verzi Home Assistantu, na které se testuje
 
 ---
 
 ## Další krok
 
-Instalace na reálný Home Assistant a projití seznamu "Neověřeno" výše.
+Ověřit v0.2 na reálném Home Assistantu. Podle výsledku opravit config API
+a zápisy do registrů.
 
-Teprve po úspěšném spike se staví design systém a další moduly. Před designem
-je povinný audit webu smarthome4u.cz podle `docs/ZADANI.md` kap. 20.
+Pak v1.0: editor KDYŽ / POKUD / UDĚLEJ, šablony dashboardu s oblíbenými,
+technický režim, datastore a audit webu smarthome4u.cz pro finální barvy.
