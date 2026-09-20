@@ -2,6 +2,28 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.4.4]
+
+### Opraveno
+
+- Spuštění integrace selhávalo a v rozhraní se ukázalo jen "Nastavení se
+  nezdařilo". Každý krok je teď v try/except a do logu píše přesný důvod.
+- Registrace panelu se opakovaně nezhroutí. Kdyby po neúspěšném pokusu zůstal
+  panel viset, nejdřív se odebere a pak zaregistruje znovu.
+- Starší Home Assistant bez StaticPathConfig použije původní způsob
+  servírování souborů.
+
+### Změněno
+
+- Když se nepodaří schovat lištu Home Assistantu, rozhraní se už kvůli tomu
+  nevypne. Jen se do logu zapíše varování.
+
+### Přidáno
+
+- Testy volají panel_custom doopravdy a odchytávají až poslední krok
+  v Home Assistantu. Dřív mock zakrýval, že registrace panelu nefunguje.
+- Test, že znovunačtení integrace nespadne
+
 ## [0.4.3]
 
 ### Opraveno

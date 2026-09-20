@@ -1,11 +1,13 @@
 """Ověření, že integraci jde vůbec přidat a spustit.
 
-Tenhle test pokrývá chybu "Invalid handler specified", kterou Home Assistant
-hlásí, když se nepodaří načíst config_flow. Pouhý import modulů ji neodhalí.
-
 Testovací prostředí neumí spustit celý frontend Home Assistantu - má desítky
-vlastních závislostí. Označíme ho tedy za spuštěný a naše volání do něj
-odchytíme. Testuje se naše logika, ne cizí kód.
+vlastních závislostí. Označíme ho tedy za spuštěný.
+
+Důležité: odchytává se až `frontend.async_register_built_in_panel`, tedy to
+poslední, co Home Assistant sám dělá. Naše volání do `panel_custom` proběhne
+doopravdy, takže test odhalí i špatné parametry. Kdyby se mockoval rovnou
+`panel_custom`, testy by prošly i s nefunkční integrací - přesně to se stalo
+u verze 0.4.3.
 """
 
 from unittest.mock import patch
@@ -27,12 +29,12 @@ def frontend_je_pripraveny(hass: HomeAssistant):
 
     with (
         patch(
-            "homeassistant.components.panel_custom.async_register_panel"
-        ) as registrace,
-        patch("homeassistant.components.frontend.add_extra_js_url") as vlozeni,
+            "homeassistant.components.frontend.async_register_built_in_panel"
+        ) as panel,
+        patch("homeassistant.components.frontend.add_extra_js_url") as takeover,
         patch("homeassistant.components.frontend.async_remove_panel"),
     ):
-        yield {"panel": registrace, "takeover": vlozeni}
+        yield {"panel": panel, "takeover": takeover}
 
 
 async def test_pruvodce_se_otevre(
@@ -65,13 +67,15 @@ async def test_pridani_a_spusteni(
 
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
-    assert entries[0].state is config_entries.ConfigEntryState.LOADED
+    assert entries[0].state is config_entries.ConfigEntryState.LOADED, (
+        f"Spuštění selhalo: {entries[0].reason}"
+    )
 
 
 async def test_panel_a_prevzeti(
     hass: HomeAssistant, frontend_je_pripraveny
 ) -> None:
-    """Panel se registruje a takeover.js se vkládá do frontendu."""
+    """Panel se registruje se správnými parametry a vkládá se takeover.js."""
     assert await async_setup_component(hass, "http", {})
 
     entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
@@ -79,12 +83,36 @@ async def test_panel_a_prevzeti(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    registrace = frontend_je_pripraveny["panel"]
-    assert registrace.called, "Panel se nezaregistroval"
-    assert registrace.call_args.kwargs["frontend_url_path"] == PANEL_URL
-    assert registrace.call_args.kwargs["module_url"] == f"{STATIC_URL}/panel.js"
+    panel = frontend_je_pripraveny["panel"]
+    assert panel.called, "Panel se nezaregistroval"
+
+    kwargs = panel.call_args.kwargs
+    assert kwargs.get("frontend_url_path") == PANEL_URL
+    assert kwargs.get("sidebar_title") == "Smarthome4u"
+
+    # panel_custom zabalí naše nastavení do _panel_custom.
+    vlastni = (kwargs.get("config") or {}).get("_panel_custom", {})
+    assert vlastni.get("module_url") == f"{STATIC_URL}/panel.js"
 
     assert frontend_je_pripraveny["takeover"].called, "takeover.js se nevložil"
+
+
+async def test_druhe_spusteni_nespadne(
+    hass: HomeAssistant, frontend_je_pripraveny
+) -> None:
+    """Znovunačtení nesmí selhat na tom, že panel už existuje."""
+    assert await async_setup_component(hass, "http", {})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is config_entries.ConfigEntryState.LOADED
 
 
 async def test_api_odpovida(
