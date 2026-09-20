@@ -962,6 +962,44 @@ select.input {
   margin: 0;
 }
 
+.form-error {
+  display: block;
+  color: var(--sh-error);
+  font-size: var(--sh-size-sm);
+}
+
+.field__hint {
+  font-size: var(--sh-size-xs);
+  color: var(--sh-text-faint);
+}
+
+.progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sh-surface-raised);
+  overflow: hidden;
+}
+
+.progress__bar {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--sh-accent);
+  animation: sh-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes sh-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.switch {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--sh-accent);
+}
+
 .muted {
   margin: 0;
   color: var(--sh-text-muted);

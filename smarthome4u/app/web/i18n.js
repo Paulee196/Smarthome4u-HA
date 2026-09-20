@@ -43,7 +43,6 @@ export const t = {
     back: "Zpět",
     run: "Spustit",
     activate: "Spustit",
-    openInHa: "Otevřít v Home Assistantu",
     confirmDelete: "Opravdu smazat?",
   },
 
@@ -73,9 +72,9 @@ export const t = {
     text:
       "Tady ovládáte celý dům. Dole najdete místnosti, scény, automatizace " +
       "a zařízení.",
-    step1: "Zařízení → Přidat zařízení, pokud chcete něco nového.",
-    step2: "Místnosti → Spravovat, pokud chcete uklidit, co kde je.",
-    step3: "Automatizace → Nová, pokud má dům něco dělat sám.",
+    step1: "Zařízení → Integrace, když chcete připojit nová zařízení.",
+    step2: "Místnosti → Spravovat, když chcete uklidit, co kde je.",
+    step3: "Automatizace → Nová, když má dům něco dělat sám.",
     dismiss: "Rozumím",
   },
 
@@ -121,8 +120,7 @@ export const t = {
     never: "Zatím nikdy",
     pickTemplate: "Co má automatizace dělat?",
     name: "Název automatizace",
-    advancedHint:
-      "Složitější automatizace s větvením a čekáním vytvoříte v Home Assistantu.",
+    readOnly: "Složitou automatizaci zatím neumíme upravit, jen zapnout a spustit.",
   },
 
   templates: {
@@ -165,19 +163,54 @@ export const t = {
     },
   },
 
+  integrations: {
+    title: "Integrace",
+    tabDevices: "Zařízení",
+    tabIntegrations: "Integrace",
+    configured: "Připojené systémy",
+    discovered: "Nalezeno ve vaší síti",
+    discoveredHint:
+      "Tohle se našlo samo. Klepnutím dokončíte nastavení, zabere to chvilku.",
+    finishSetup: "Klepnutím dokončíte",
+    empty: "Zatím nemáte připojený žádný systém.",
+    add: "Připojit nový systém",
+    addHint:
+      "Vyberte, co chcete připojit. Vyplníte pár údajů a zařízení se " +
+      "objeví sama.",
+    search: "Hledat…",
+    loading: "Načítám seznam…",
+    noMatch: "Nic takového jsme nenašli.",
+    remove: "Odebrat",
+    removeHint:
+      "Odebráním zmizí i všechna zařízení, která tenhle systém přinesl. " +
+      "Opravdu pokračovat?",
+    problem: "Nefunguje správně",
+  },
+
+  flow: {
+    next: "Pokračovat",
+    done: "Hotovo",
+    working: "Pracuji na tom…",
+    addedTitle: "Přidáno",
+    addedHint: "Zařízení najdete v sekci Zařízení. Můžete jim přiřadit místnost.",
+    stopped: "Nastavení se nedokončilo",
+    stoppedHint: "Zkuste to prosím znovu.",
+    fillRequired: "Vyplňte prosím všechna povinná pole.",
+    externalHint:
+      "Přihlaste se u poskytovatele služby. Až budete hotovi, vraťte se sem " +
+      "a klepněte na Hotovo.",
+    openProvider: "Přihlásit se u poskytovatele",
+    unsupported:
+      "Tenhle krok zatím neumíme zobrazit. Napište nám prosím, o jaký " +
+      "systém jde, a doplníme ho.",
+    unsupportedField:
+      "Část nastavení jsme nedokázali zobrazit. Zkuste pokračovat, obvykle " +
+      "stačí výchozí hodnoty.",
+  },
+
   devices: {
     title: "Zařízení",
     empty: "Zatím nemáte žádná zařízení.",
-    add: "Přidat zařízení",
-    addTitle: "Přidat zařízení",
-    discovered: "Nalezená zařízení",
-    discoveredHint:
-      "Tahle zařízení Home Assistant našel sám. Klepnutím dokončíte nastavení.",
-    noDiscovered: "Teď nic nového nenašel.",
-    manualHint:
-      "Zařízení se přidává přes integraci, která ho umí. Vyberte si, co " +
-      "přidáváte, a Home Assistant vás provede.",
-    detailTitle: "Detail zařízení",
     manufacturer: "Výrobce",
     model: "Model",
     integration: "Integrace",
@@ -185,29 +218,19 @@ export const t = {
     functions: "Funkce zařízení",
     deviceName: "Název zařízení",
     renameHint: "Název uvidíte všude, kde se zařízení objeví.",
-    removeHint: "Zařízení se odebírá v Home Assistantu u jeho integrace.",
-  },
-
-  addDevice: {
-    zha: "Zigbee",
-    matter: "Matter",
-    mqtt: "MQTT",
-    esphome: "ESPHome",
-    shelly: "Shelly",
-    hue: "Philips Hue",
-    tuya: "Tuya",
-    knx: "KNX",
-    browse: "Procházet všechny integrace",
+    removeHint:
+      "Zařízení odeberete v záložce Integrace - odebráním systému, který ho přinesl.",
   },
 
   settings: {
     title: "Nastavení",
     account: "Přihlášený uživatel",
     system: "Systém",
-    haVersion: "Home Assistant",
+    haVersion: "Jádro Home Assistant",
     appVersion: "Smarthome4u",
-    structure: "Patra a místnosti",
-    openHaSettings: "Nastavení Home Assistantu",
+    devices: "Zařízení celkem",
+    manage: "Správa",
+    manageHint: "Všechno se nastavuje přímo tady v aplikaci.",
     unknownUser: "Neznámý uživatel",
   },
 

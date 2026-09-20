@@ -11,7 +11,6 @@ import {
   dialog,
   emptyState,
   field,
-  haLink,
   section,
   selectInput,
   textInput,
@@ -133,8 +132,4 @@ async function openCreate(ctx) {
       }),
     ]),
   );
-}
-
-export function scenesFooter() {
-  return haLink("/config/scene/dashboard", t.action.openInHa);
 }

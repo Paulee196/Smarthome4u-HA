@@ -30,7 +30,9 @@ nesmí znát konkrétní HA API.
 | `config/area_registry/list` | Seznam místností | **interní** | 2026.9 | prázdný seznam, vše do "Nezařazeno" |
 | `config/device_registry/list` | Seznam zařízení | **interní** | 2026.9 | entity se berou bez zařízení |
 | `config/entity_registry/list` | Registr entit, persistentní ID | **interní** | 2026.9 | jen `get_states`, bez stabilní identity |
-| `config_entries/get` | Názvy integrací pro detail zařízení | **interní** | 2026.9 | detail zařízení neukáže integraci |
+| `config_entries/get` | Seznam připojených integrací | **interní** | 2026.9 | detail zařízení neukáže integraci |
+| `manifest/list` | Názvy a typy všech integrací | **interní** | 2026.9 | zobrazí se doména místo názvu |
+| `frontend/get_translations` | České popisky polí v průvodci | **interní** | 2026.9 | zobrazí se strojové názvy polí |
 
 Čtecí commandy označené jako interní procházejí přes `_send_optional`. Jejich
 selhání zapíše varování do logu a aplikace pokračuje.
@@ -41,7 +43,7 @@ selhání zapíše varování do logu a aplikace pokračuje.
 
 | Command | Účel | Typ | Ověřeno od | Fallback |
 |---|---|---|---|---|
-| `call_service` | Všechny ovládací akce | veřejné | 2026.9 | odkaz do HA |
+| `call_service` | Všechny ovládací akce | veřejné | 2026.9 | hláška v aplikaci |
 
 Frontend nesmí volat libovolnou službu. Povolené dvojice schopnost - akce jsou
 v `app/capability.py` v tabulce `_ACTIONS` a hodnoty se ověřují na typ i rozsah.
@@ -51,7 +53,7 @@ v `app/capability.py` v tabulce `_ACTIONS` a hodnoty se ověřují na typ i rozs
 ## Zápisy do registrů - WebSocket
 
 Všechno jsou **interní** commandy. Selhání se hlásí uživateli srozumitelnou
-větou a nabídne se "Otevřít v Home Assistantu".
+větou přímo v aplikaci.
 
 | Command | Účel | Ověřeno od |
 |---|---|---|
@@ -70,17 +72,26 @@ Smazání místnosti nemaže zařízení. Zařízení jen zůstanou nezařazená
 
 ## Config API - REST přes Supervisor proxy
 
-Základ je `http://supervisor/core/api`. Tyhle endpointy používá editor
-automatizací a scén v Home Assistantu. **Nejsou součástí veřejné REST
-dokumentace** a jsou nejrizikovější částí celé aplikace.
+Základ je `http://supervisor/core/api`. Tyhle endpointy používá frontend
+Home Assistantu pro editory a pro přidávání integrací. **Nejsou součástí veřejné
+REST dokumentace** a jsou nejrizikovější částí celé aplikace.
 
-| Endpoint | Metoda | Účel | Fallback |
-|---|---|---|---|
-| `/config/automation/config/{id}` | POST | Uložení automatizace ze šablony | odkaz na editor v HA |
-| `/config/automation/config/{id}` | DELETE | Smazání automatizace | odkaz na editor v HA |
-| `/config/scene/config/{id}` | POST | Uložení scény ze stavu místnosti | odkaz na editor v HA |
-| `/config/scene/config/{id}` | DELETE | Smazání scény | odkaz na editor v HA |
-| `/config/config_entries/flow` | GET | Nalezená zařízení čekající na nastavení | prázdný seznam |
+| Endpoint | Metoda | Účel |
+|---|---|---|
+| `/config/automation/config/{id}` | POST | Uložení automatizace ze šablony |
+| `/config/automation/config/{id}` | DELETE | Smazání automatizace |
+| `/config/scene/config/{id}` | POST | Uložení scény ze stavu místnosti |
+| `/config/scene/config/{id}` | DELETE | Smazání scény |
+| `/config/config_entries/flow` | GET | Nalezená zařízení čekající na nastavení |
+| `/config/config_entries/flow_handlers` | GET | Integrace, které jdou přidat průvodcem |
+| `/config/config_entries/flow` | POST | Zahájení přidání integrace |
+| `/config/config_entries/flow/{id}` | GET | Aktuální krok průvodce |
+| `/config/config_entries/flow/{id}` | POST | Odeslání vyplněného kroku |
+| `/config/config_entries/flow/{id}` | DELETE | Zrušení průvodce |
+| `/config/config_entries/entry/{id}` | DELETE | Odebrání integrace i s jejími zařízeními |
+
+Selhání kteréhokoliv z nich skončí srozumitelnou hláškou v aplikaci. Nikdy se
+uživatel neposílá do Home Assistantu.
 
 ---
 
@@ -94,19 +105,14 @@ dokumentace** a jsou nejrizikovější částí celé aplikace.
 
 ---
 
-## Hluboké odkazy do Home Assistantu
+## Žádné odkazy do Home Assistantu
 
-Aplikace běží v iframe, proto všechny odkazy používají `target="_top"`.
+Smarthome4u uživatele nikdy nepřesouvá do rozhraní Home Assistantu. Dřívější
+odkazy s `target="_top"` byly odstraněny včetně pomocné funkce `haLink`, která
+je vytvářela.
 
-| Cesta | Kam vede |
-|---|---|
-| `/config/integrations/dashboard` | Integrace a nalezená zařízení |
-| `/config/integrations/dashboard/add?domain=...` | Přidání konkrétní integrace |
-| `/config/devices/device/{id}` | Detail zařízení |
-| `/config/automation/dashboard` | Editor automatizací |
-| `/config/scene/dashboard` | Editor scén |
-| `/config/areas/dashboard` | Patra a místnosti |
-| `/history?entity_id=...` | Historie entity |
+Jediný odkaz ven vede na **poskytovatele služby** při přihlášení přes jeho účet
+(krok `external_step`). Otevírá se v nové záložce a s Home Assistantem nesouvisí.
 
 ---
 
@@ -118,7 +124,20 @@ Aplikace běží v iframe, proto všechny odkazy používají `target="_top"`.
 změnit bez ohlášení v changelogu.
 
 **Opatření:** volají se jen z `app/ha/client.py`, čtení má definovaný fallback,
-zápis hlásí srozumitelnou chybu a nabízí fallback do HA.
+zápis hlásí srozumitelnou chybu přímo v aplikaci.
+
+### Config Flow ve vlastním UI
+
+Tvar `data_schema` není veřejná smlouva. Pole se serializují ze schématu, které
+si každá integrace definuje sama, a novější integrace používají selektory.
+
+**Opatření:** `app/integrations.py` umí text, heslo, číslo, přepínač, výběr
+a vícenásobný výběr, ve starém i selektorovém tvaru. Pole, které nerozpozná, se
+přeskočí a uživateli se řekne, že část nastavení nešla zobrazit. Neznámý typ
+kroku aplikaci nikdy nezhroutí - skončí hláškou a nabídkou zrušení.
+
+Podporované typy kroků: `form`, `menu`, `external_step`, `progress`,
+`create_entry`, `abort`.
 
 ### Config API pro automatizace a scény
 
@@ -126,7 +145,8 @@ Developerské Automation API je označené jako aktivně vyvíjené a není dopo
 pro integrace. Proto Smarthome4u **negeneruje automatizace volně** - jen ze
 šesti pevných šablon, jejichž výstup je známý a testovatelný.
 
-Editace existujících automatizací se nedělá vůbec. Ta vede do HA.
+Editace existující automatizace se zatím nedělá. Složitá automatizace se
+zobrazuje jen ke čtení, se zapnutím, vypnutím a ručním spuštěním.
 
 ### Device Registry 2026
 

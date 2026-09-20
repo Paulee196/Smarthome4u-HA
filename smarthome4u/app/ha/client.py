@@ -356,3 +356,63 @@ class HaClient:
             return await self.rest("GET", "/config/config_entries/flow")
         except HaCommandError:
             return []
+
+    # ------------------------------------------------------------------
+    # Config Flow
+    #
+    # Tímhle si Home Assistant sám přidává integrace a zařízení.
+    # Smarthome4u kroky vykresluje ve vlastním UI, uživatele nikam neposílá.
+    # ------------------------------------------------------------------
+
+    async def list_manifests(self) -> list[dict]:
+        """HA_COMPATIBILITY: manifest/list - INTERNÍ command.
+
+        Názvy a vlastnosti všech integrací, které Home Assistant zná.
+        """
+        return await self._send_optional([], type="manifest/list")
+
+    async def flow_handlers(self) -> list[str]:
+        """Integrace, které jdou přidat průvodcem."""
+        try:
+            return await self.rest("GET", "/config/config_entries/flow_handlers")
+        except HaCommandError:
+            return []
+
+    async def start_flow(self, handler: str) -> dict:
+        """Zahájí přidání integrace."""
+        return await self.rest(
+            "POST",
+            "/config/config_entries/flow",
+            {"handler": handler, "show_advanced_options": False},
+        )
+
+    async def get_flow(self, flow_id: str) -> dict:
+        """Aktuální krok rozpracovaného průvodce."""
+        return await self.rest("GET", f"/config/config_entries/flow/{flow_id}")
+
+    async def submit_flow(self, flow_id: str, data: dict) -> dict:
+        """Odešle vyplněný krok a vrátí další."""
+        return await self.rest("POST", f"/config/config_entries/flow/{flow_id}", data)
+
+    async def abort_flow(self, flow_id: str) -> Any:
+        """Zruší rozpracovaného průvodce."""
+        return await self.rest("DELETE", f"/config/config_entries/flow/{flow_id}")
+
+    async def delete_entry(self, entry_id: str) -> Any:
+        """Odebere integraci i s jejími zařízeními."""
+        return await self.rest("DELETE", f"/config/config_entries/entry/{entry_id}")
+
+    async def translations(self, language: str, integrations: list[str]) -> dict:
+        """HA_COMPATIBILITY: frontend/get_translations - INTERNÍ command.
+
+        Popisky polí v průvodci. Bez nich by uživatel viděl `host` místo
+        "Adresa". Když selže, zůstanou strojové názvy.
+        """
+        result = await self._send_optional(
+            {},
+            type="frontend/get_translations",
+            language=language,
+            category="config",
+            integration=integrations,
+        )
+        return (result or {}).get("resources", {}) if isinstance(result, dict) else {}

@@ -27,17 +27,6 @@ export function h(tag, props = {}, children = []) {
   return node;
 }
 
-/** Odkaz do Home Assistantu. Musí opustit iframe, proto target _top. */
-export function haLink(path, label, extraClass = "") {
-  return h("a", {
-    class: `button button--ghost ${extraClass}`.trim(),
-    href: path,
-    target: "_top",
-    rel: "noopener",
-    text: label || t.action.openInHa,
-  });
-}
-
 export function button(label, onClick, variant = "") {
   return h(
     "button",

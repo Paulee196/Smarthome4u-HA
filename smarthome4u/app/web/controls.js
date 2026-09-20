@@ -12,7 +12,6 @@ import {
   button,
   dialog,
   field,
-  haLink,
   numberInput,
   selectInput,
   slider,
@@ -216,7 +215,7 @@ export function row(entity, extras = []) {
 
 export function openControls(entity) {
   const body = h("div", { class: "controls" });
-  const handle = dialog(entity.name, body, historyLink(entity));
+  const handle = dialog(entity.name, body);
 
   function render(current) {
     body.replaceChildren(...buildControls(current));
@@ -226,13 +225,6 @@ export function openControls(entity) {
   watch(entity.id, (next) => {
     if (handle.panel.isConnected) render(next);
   });
-}
-
-function historyLink(entity) {
-  return haLink(
-    `/history?entity_id=${encodeURIComponent(entity.id)}`,
-    t.action.openInHa,
-  );
 }
 
 function buildControls(entity) {

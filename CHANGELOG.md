@@ -2,7 +2,45 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
-## [0.2.0] - ve vývoji
+## [0.3.0] - ve vývoji
+
+Smarthome4u přestal být rozcestník. Uživatel se už nikdy nepřesune do
+rozhraní Home Assistantu.
+
+### Přidáno
+
+- Vlastní sekce Integrace se seznamem připojených systémů
+- Vlastní průvodce přidáním integrace - formuláře, nabídky, chyby i průběh
+  se vykreslují ve Smarthome4u z dat Home Assistantu
+- Vyhledávání v katalogu integrací, nejčastější nahoře
+- Nalezená zařízení jdou dokončit přímo v aplikaci
+- Odebrání integrace i s jejími zařízeními
+- Popisky polí průvodce se berou z českých překladů Home Assistantu
+- Záložky Zařízení / Integrace v sekci Zařízení
+
+### Odebráno
+
+- Všechna tlačítka "Otevřít v Home Assistantu"
+- Odkaz na historii entity, na editor automatizací, scén a na nastavení HA
+- Pomocná funkce haLink, aby se odkazy nemohly vrátit
+
+## [0.2.1]
+
+### Opraveno
+
+- Prohlížeč si držel staré skripty, chyběla hlavička no-store
+- Při selhání načtení dat se nevykreslila navigace
+- Verze nebyla nikde vidět, teď je v hlavičce a hlídá ji CI
+
+### Změněno
+
+- Dlaždice v mřížce místo seznamu řádků
+- 30 vlastních linkových ikon podle schopnosti a device_class
+- Proužek úrovně pod dlaždicí
+- Přepínač Podle místností / Podle funkcí
+- Uvítací karta pro první spuštění
+
+## [0.2.0]
 
 Z prohlížečky se stalo rozhraní. Přibyla navigace a všechno, co uživatel
 potřebuje, aby nemusel otevírat Home Assistant.

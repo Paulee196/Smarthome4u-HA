@@ -1,5 +1,5 @@
 name: Smarthome4u
-version: "0.2.1"
+version: "0.3.0"
 slug: smarthome4u
 description: >-
   Jednoduché rozhraní pro Home Assistant. Dashboard se vytvoří sám

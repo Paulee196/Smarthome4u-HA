@@ -67,9 +67,33 @@ Tohle je minimální seznam. Bez něj to není rozhraní, ale prohlížečka.
 | Dashboard | Vybrat šablonu, změnit pořadí, skrýt prvek, přidat do oblíbených |
 | Nastavení | Účet, jazyk, režim zobrazení, informace o systému |
 
-Cokoliv z toho, co Smarthome4u neumí bezpečně dokončit, musí mít viditelné
-tlačítko **"Otevřít v Home Assistantu"**, které uživatele dovede přesně na
-odpovídající obrazovku - ne na úvodní stránku.
+### 1.3 Žádné předávání do Home Assistantu
+
+**Smarthome4u nikdy nepřesune uživatele do rozhraní Home Assistantu.**
+Žádné tlačítko "Otevřít v Home Assistantu", žádný odkaz do nastavení HA,
+žádné vyskočení z aplikace.
+
+Týká se to i přidávání integrací a zařízení. Průvodce config flow se vykresluje
+ve Smarthome4u z dat, která Home Assistant posílá - formuláře, nabídky, chyby
+i průběh.
+
+Jediná povolená výjimka je odkaz na **poskytovatele služby** při přihlášení přes
+jeho účet (například Google nebo Spotify). To není Home Assistant.
+
+Když Smarthome4u nějaký krok neumí zobrazit, řekne to srozumitelně a nabídne
+zrušení. Nikdy nepošle uživatele jinam.
+
+### 1.4 Nadstavba, ne doplněk
+
+Smarthome4u je nad Home Assistantem to, co je One UI nad Androidem u Samsungu
+nebo HyperOS u Xiaomi. Uživatel vidí Smarthome4u, ne hostitele.
+
+Z toho plyne:
+
+- Po přihlášení uživatel přistane rovnou ve Smarthome4u.
+- Postranní lišta a hlavička Home Assistantu se schovají.
+- Home Assistant zůstává plně funkční pod povrchem a jde se k němu dostat,
+  ale není to výchozí ani navrhovaná cesta.
 
 ---
 
@@ -379,10 +403,11 @@ Uživatel musí ze Smarthome4u umět:
 - vytvořit novou z šablony,
 - vytvořit jednoduchou vlastní v modelu **KDYŽ / POKUD / UDĚLEJ**,
 - smazat ji,
-- otevřít pokročilou v Home Assistantu.
+- u pokročilé, které editor nerozumí, ji alespoň zapnout, vypnout a spustit.
 
 Jednoduchý editor KDYŽ / POKUD / UDĚLEJ je **povinný**. Vizuální blokový editor
-pro větvení, čekání a smyčky je odložený - pro ten je fallback do HA.
+pro větvení, čekání a smyčky je odložený. Do té doby se složitá automatizace
+zobrazuje jen ke čtení, nikam se neodkazuje.
 
 Protože HA Automation API není stabilní smlouva, veškeré vytváření a editace
 automatizací je izolované v Home Assistant Adapteru, má vlastní testy a při
@@ -400,8 +425,8 @@ s požadovanými schopnostmi a uživatel mapuje reálná zařízení.
 
 ### 12.4 Automatizace, které editor nerozumí
 
-Označit jako **"Pokročilá - upravit v Home Assistantu"**. Nikdy ji destruktivně
-nezjednodušovat.
+Označit jako **"Pokročilá"** a nabídnout jen zapnutí, vypnutí a ruční spuštění.
+Nikdy ji destruktivně nezjednodušovat a nikdy kvůli ní neposílat uživatele pryč.
 
 ---
 
@@ -560,8 +585,8 @@ error, info, offline, disabled. Jejich význam se nemění podle šablony dashbo
 Uživatel nikdy nevidí raw stack trace.
 
 Chybová zpráva obsahuje: co se nepovedlo, zda domácnost dál funguje, tlačítko
-Zkusit znovu, tlačítko Otevřít v Home Assistantu a skrytý technický detail
-s error ID pro log.
+Zkusit znovu a skrytý technický detail s error ID pro log. Nikdy odkaz pryč
+z aplikace.
 
 Při nekompatibilitě HA API zablokovat pouze postiženou funkci, ne celý dashboard.
 
@@ -613,6 +638,8 @@ s potvrzením.
 13. Genericky hádat neznámé kroky Config Flow.
 14. Automaticky mazat HA objekty kvůli změně dashboardu.
 15. Záviset na HACS.
+16. Přesunout uživatele do rozhraní Home Assistantu.
+17. Nechat viditelnou postranní lištu Home Assistantu, když aplikace běží.
 
 ---
 
@@ -642,7 +669,7 @@ seznam z kapitoly 1.2.
 - Šablony automatizací
 - Dashboard: výběr šablony, oblíbené, pořadí, skrytí
 - Nastavení aplikace
-- Hluboké odkazy "Otevřít v Home Assistantu" všude, kde je fallback
+- Vlastní průvodce přidáním integrace, žádné odkazy do Home Assistantu
 
 **Kritéria přijetí:**
 

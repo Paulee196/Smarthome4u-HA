@@ -11,9 +11,7 @@ import {
   dialog,
   emptyState,
   field,
-  haLink,
   numberInput,
-  section,
   selectInput,
   textInput,
   timeInput,
@@ -47,11 +45,6 @@ export async function renderAutomations(root, ctx) {
     );
   }
 
-  root.append(
-    section(t.automations.advancedHint, [
-      haLink("/config/automation/dashboard", t.action.openInHa),
-    ]),
-  );
 }
 
 function automationRow(ctx, automation) {

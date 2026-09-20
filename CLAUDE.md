@@ -25,7 +25,9 @@ nad Home Assistantem. Home Assistant je jediný zdroj pravdy a výkonné jádro.
 8. **Responzivita je součást hotové funkce**, ne závěrečné QA. Mobil, tablet,
    desktop a nástěnný panel.
 9. **Žádné hardcoded texty.** Vše přes i18n, první jazyk čeština.
-10. **Žádné barvy mimo `app/web/tokens.css`.** Finální brand barvy se doplní
+10. **Žádný odkaz ven z aplikace.** Uživatel nikdy neskončí v rozhraní
+    Home Assistantu. Viz sekce níže.
+11. **Žádné barvy mimo `app/web/tokens.css`.** Finální brand barvy se doplní
     až po auditu webu smarthome4u.cz. Do té doby jsou označené jako dočasné.
 
 ## Bezpečnost aplikace
@@ -35,12 +37,21 @@ Zakázáno bez prokazatelné potřeby: `full_access`, `privileged`, `docker_api`
 zapnutý. Backend validuje všechny vstupy. Do logu nikdy nejdou tokeny, hesla
 ani API klíče.
 
-## Když něco nejde bezpečně udělat
+## Nikdy neposílej uživatele do Home Assistantu
 
-Nabídni tlačítko **"Otevřít v Home Assistantu"**. Fallback není chyba produktu,
-je to záměrný způsob, jak využít celý HA ekosystém. Nikdy negeneruj naslepo
-neznámý Config Flow a nikdy destruktivně nezjednodušuj automatizaci, které
-editor nerozumí.
+Smarthome4u je nadstavba, ne rozcestník. Žádné tlačítko "Otevřít v Home
+Assistantu", žádný odkaz do nastavení HA, žádné vyskočení z aplikace ani
+z iframe přes target=_top.
+
+Config flow pro přidání integrace se vykresluje ve Smarthome4u z dat, která
+Home Assistant posílá. Když nějaký krok neumíme zobrazit, řekneme to
+srozumitelně a nabídneme zrušení.
+
+Jediná výjimka je odkaz na poskytovatele služby při přihlášení přes jeho účet.
+To není Home Assistant.
+
+Automatizaci, které editor nerozumí, nikdy destruktivně nezjednodušuj - nabídni
+u ní jen zapnutí, vypnutí a ruční spuštění.
 
 ## Rozhodovací pravidlo
 

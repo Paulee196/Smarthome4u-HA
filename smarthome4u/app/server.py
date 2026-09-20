@@ -14,7 +14,7 @@ from typing import Any, Awaitable, Callable
 
 from aiohttp import web
 
-from . import capability, templates
+from . import capability, integrations, templates
 from .broadcast import Broadcaster
 from .ha.client import HaClient, HaCommandError
 from .model import HomeModel
@@ -67,6 +67,13 @@ def create_app(
     app.router.add_post("/api/structure/floors/{floor_id}", _update_floor)
     app.router.add_post("/api/structure/floors/{floor_id}/delete", _delete_floor)
     app.router.add_get("/api/discovered", _get_discovered)
+    app.router.add_get("/api/integrations", _get_integrations)
+    app.router.add_get("/api/integrations/available", _get_available)
+    app.router.add_post("/api/integrations/flow", _flow_start)
+    app.router.add_get("/api/integrations/flow/{flow_id}", _flow_read)
+    app.router.add_post("/api/integrations/flow/{flow_id}", _flow_submit)
+    app.router.add_post("/api/integrations/flow/{flow_id}/abort", _flow_abort)
+    app.router.add_post("/api/integrations/{entry_id}/delete", _delete_entry)
     app.router.add_get("/api/templates", _get_templates)
     app.router.add_post("/api/automations", _create_automation)
     app.router.add_post("/api/automations/{automation_id}/delete", _delete_automation)
@@ -526,6 +533,160 @@ async def _delete_automation(request: web.Request) -> web.Response:
 
     _require_connection(client)
     await client.delete_automation(automation_id)
+    await _refresh(request)
+    return web.json_response({"ok": True})
+
+
+# ----------------------------------------------------------------------
+# Integrace
+#
+# Celý průvodce přidáním běží ve Smarthome4u. Uživatel se nikdy nepřesune
+# do Home Assistantu.
+# ----------------------------------------------------------------------
+
+
+async def _names(request: web.Request) -> dict[str, str]:
+    """Názvy integrací. Manifestů jsou stovky, načítají se jednou."""
+    cached = request.app.get("integration_names")
+    if cached:
+        return cached
+
+    client: HaClient = request.app["client"]
+    manifests = await client.list_manifests()
+    request.app["manifests"] = manifests
+    names = integrations.integration_names(manifests)
+    request.app["integration_names"] = names
+    return names
+
+
+@guard
+async def _get_integrations(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    model: HomeModel = request.app["model"]
+    _require_connection(client)
+
+    names = await _names(request)
+    entries = await client.list_config_entries()
+
+    devices_per_entry: dict[str, int] = {}
+    for device in model.devices.values():
+        if device.config_entry_id:
+            devices_per_entry[device.config_entry_id] = (
+                devices_per_entry.get(device.config_entry_id, 0) + 1
+            )
+
+    configured = [
+        {
+            "entryId": entry.get("entry_id"),
+            "domain": entry.get("domain"),
+            "title": entry.get("title") or names.get(entry.get("domain", ""), ""),
+            "name": names.get(entry.get("domain", ""), entry.get("domain", "")),
+            "state": entry.get("state"),
+            "deviceCount": devices_per_entry.get(entry.get("entry_id", ""), 0),
+        }
+        for entry in entries
+    ]
+    configured.sort(key=lambda item: (item["name"] or "").lower())
+
+    flows = await client.discovered_flows()
+    discovered = [
+        {
+            "flowId": flow.get("flow_id"),
+            "handler": flow.get("handler"),
+            "name": names.get(flow.get("handler", ""), flow.get("handler", "")),
+            "title": (flow.get("context") or {})
+            .get("title_placeholders", {})
+            .get("name"),
+        }
+        for flow in flows
+        if isinstance(flow, dict)
+    ]
+
+    return web.json_response({"configured": configured, "discovered": discovered})
+
+
+@guard
+async def _get_available(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    _require_connection(client)
+
+    await _names(request)
+    handlers = await client.flow_handlers()
+    manifests = request.app.get("manifests") or []
+
+    return web.json_response(
+        {"available": integrations.addable(manifests, handlers)}
+    )
+
+
+async def _render_flow(request: web.Request, step: dict) -> web.Response:
+    """Doplní ke kroku překlady a pošle ho frontendu."""
+    client: HaClient = request.app["client"]
+    names = await _names(request)
+    domain = step.get("handler") or ""
+
+    resources = await client.translations(integrations.LANGUAGE, [domain])
+    payload = integrations.normalize_step(
+        step, resources, names.get(domain, domain)
+    )
+    payload["domain"] = domain
+
+    if payload["type"] == "done":
+        await _refresh(request)
+
+    return web.json_response(payload)
+
+
+@guard
+async def _flow_start(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    payload = await _body(request)
+
+    handler = payload.get("handler")
+    if not isinstance(handler, str) or not handler:
+        raise _Invalid("Vyberte prosím, co chcete přidat.")
+
+    _require_connection(client)
+    step = await client.start_flow(handler)
+    return await _render_flow(request, step)
+
+
+@guard
+async def _flow_read(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    _require_connection(client)
+    step = await client.get_flow(request.match_info["flow_id"])
+    return await _render_flow(request, step)
+
+
+@guard
+async def _flow_submit(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    payload = await _body(request)
+
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise _Invalid("Neplatný požadavek.")
+
+    _require_connection(client)
+    step = await client.submit_flow(request.match_info["flow_id"], data)
+    return await _render_flow(request, step)
+
+
+@guard
+async def _flow_abort(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    _require_connection(client)
+    await client.abort_flow(request.match_info["flow_id"])
+    return web.json_response({"ok": True})
+
+
+@guard
+async def _delete_entry(request: web.Request) -> web.Response:
+    client: HaClient = request.app["client"]
+    _require_connection(client)
+    # Odebráním integrace zmizí i její zařízení. Potvrzení řeší frontend.
+    await client.delete_entry(request.match_info["entry_id"])
     await _refresh(request)
     return web.json_response({"ok": True})
 

@@ -48,6 +48,17 @@ export const api = {
   deleteFloor: (id) =>
     request("POST", `api/structure/floors/${encodeURIComponent(id)}/delete`, {}),
   discovered: () => request("GET", "api/discovered"),
+  integrations: () => request("GET", "api/integrations"),
+  availableIntegrations: () => request("GET", "api/integrations/available"),
+  flowStart: (handler) => request("POST", "api/integrations/flow", { handler }),
+  flowRead: (id) =>
+    request("GET", `api/integrations/flow/${encodeURIComponent(id)}`),
+  flowSubmit: (id, data) =>
+    request("POST", `api/integrations/flow/${encodeURIComponent(id)}`, { data }),
+  flowAbort: (id) =>
+    request("POST", `api/integrations/flow/${encodeURIComponent(id)}/abort`, {}),
+  deleteIntegration: (id) =>
+    request("POST", `api/integrations/${encodeURIComponent(id)}/delete`, {}),
   templates: () => request("GET", "api/templates"),
   createAutomation: (body) => request("POST", "api/automations", body),
   deleteAutomation: (id) =>

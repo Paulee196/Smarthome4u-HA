@@ -1,7 +1,10 @@
-/* Nastavení aplikace. */
+/* Nastavení aplikace.
+ *
+ * Nikde tu není odkaz do Home Assistantu. Všechno se spravuje odsud.
+ */
 
 import { t } from "./i18n.js";
-import { h, haLink, section } from "./ui.js";
+import { h, button, section } from "./ui.js";
 import { APP_VERSION } from "./version.js";
 
 export function renderSettings(root, ctx) {
@@ -23,22 +26,19 @@ export function renderSettings(root, ctx) {
         h("dd", { text: APP_VERSION }),
         h("dt", { text: t.settings.haVersion }),
         h("dd", { text: model.haVersion || "-" }),
+        h("dt", { text: t.settings.devices }),
+        h("dd", { text: String(model.summary?.deviceCount ?? 0) }),
       ]),
     ),
   );
 
   root.append(
-    section(t.settings.openHaSettings, [
-      h("p", {
-        class: "muted",
-        text:
-          "Pokročilá nastavení, uživatele, zálohy a integrace spravujete " +
-          "v Home Assistantu.",
-      }),
+    section(t.settings.manage, [
+      h("p", { class: "muted", text: t.settings.manageHint }),
       h("div", { class: "grid-buttons" }, [
-        haLink("/config/dashboard", t.settings.openHaSettings),
-        haLink("/config/integrations/dashboard", t.devices.integration),
-        haLink("/config/areas/dashboard", t.settings.structure),
+        button(t.nav.rooms, () => ctx.navigate("rooms"), "button--ghost"),
+        button(t.nav.devices, () => ctx.navigate("devices"), "button--ghost"),
+        button(t.nav.automations, () => ctx.navigate("automations"), "button--ghost"),
       ]),
     ]),
   );
