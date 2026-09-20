@@ -54,5 +54,10 @@ jobs:
           assert 'ports' not in cfg, 'aplikace nesmí otevírat port'
           for zakazane in ('full_access', 'privileged', 'docker_api', 'host_network'):
               assert zakazane not in cfg, f'zakázané oprávnění: {zakazane}'
+          import re
+          q = chr(34)
+          js = open('smarthome4u/app/web/version.js', encoding='utf-8').read()
+          ui = re.search('APP_VERSION = ' + q + '([^' + q + ']+)' + q, js).group(1)
+          assert ui == cfg['version'], 'verze v UI (' + ui + ') neodpovida config.yaml (' + cfg['version'] + ')'
           print('Manifest v pořádku, verze', cfg['version'])
           "

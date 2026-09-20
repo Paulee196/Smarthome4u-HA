@@ -2,7 +2,7 @@
 
 import { api } from "./api.js";
 import { t } from "./i18n.js";
-import { tile } from "./controls.js";
+import { row } from "./controls.js";
 import {
   h,
   button,
@@ -53,7 +53,7 @@ export async function renderScenes(root, ctx) {
         h(
           "div",
           { class: "stack" },
-          data.scripts.map((script) => tile(script)),
+          data.scripts.map((script) => row(script)),
         ),
       ),
     );
@@ -61,17 +61,17 @@ export async function renderScenes(root, ctx) {
 }
 
 function sceneRow(ctx, scene) {
-  const row = tile(scene);
   const sceneId = scene.capability?.sceneId;
+  const extras = [];
 
   // Smazat jde jen scéna vytvořená přes editor. Scény z YAML patří do HA.
   if (sceneId) {
-    row.append(
+    extras.push(
       h("button", {
         class: "tile__more tile__more--danger",
         type: "button",
         "aria-label": t.action.delete,
-        text: "🗑",
+        text: "✕",
         onclick: () =>
           confirmDialog(scene.name, t.action.confirmDelete, async () => {
             try {
@@ -85,7 +85,8 @@ function sceneRow(ctx, scene) {
       }),
     );
   }
-  return row;
+
+  return row(scene, extras);
 }
 
 async function openCreate(ctx) {

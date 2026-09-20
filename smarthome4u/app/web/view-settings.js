@@ -2,8 +2,7 @@
 
 import { t } from "./i18n.js";
 import { h, haLink, section } from "./ui.js";
-
-const APP_VERSION = "0.2.0";
+import { APP_VERSION } from "./version.js";
 
 export function renderSettings(root, ctx) {
   const model = ctx.model;

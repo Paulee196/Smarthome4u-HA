@@ -2,7 +2,7 @@
 
 import { api } from "./api.js";
 import { t } from "./i18n.js";
-import { tile } from "./controls.js";
+import { row } from "./controls.js";
 import {
   h,
   button,
@@ -55,10 +55,8 @@ export async function renderAutomations(root, ctx) {
 }
 
 function automationRow(ctx, automation) {
-  const row = tile(automation);
   const id = automation.capability?.automationId;
-
-  row.append(
+  const extras = [
     h("button", {
       class: "tile__more",
       type: "button",
@@ -73,15 +71,15 @@ function automationRow(ctx, automation) {
         }
       },
     }),
-  );
+  ];
 
   if (id) {
-    row.append(
+    extras.push(
       h("button", {
         class: "tile__more tile__more--danger",
         type: "button",
         "aria-label": t.action.delete,
-        text: "🗑",
+        text: "✕",
         onclick: () =>
           confirmDialog(automation.name, t.action.confirmDelete, async () => {
             try {
@@ -96,7 +94,7 @@ function automationRow(ctx, automation) {
     );
   }
 
-  return row;
+  return row(automation, extras);
 }
 
 /* ------------------------------------------------------------------ */

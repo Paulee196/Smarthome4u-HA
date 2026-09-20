@@ -6,6 +6,7 @@
 
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
+import { iconFor } from "./icons.js";
 import {
   h,
   button,
@@ -86,23 +87,39 @@ async function send(entity, action, value) {
 /* Dlaždice                                                            */
 /* ------------------------------------------------------------------ */
 
-export function tile(entity) {
+/** Kolik procent ukázat na proužku pod dlaždicí. Null = bez proužku. */
+function levelOf(entity) {
+  const c = entity.capability || {};
+  const a = entity.attributes || {};
+
+  if (c.kind === "light" && c.dimmable && entity.state === "on") {
+    return a.brightness ? Math.round((a.brightness / 255) * 100) : 100;
+  }
+  if (c.kind === "cover" && typeof a.current_position === "number") {
+    return a.current_position;
+  }
+  if (c.kind === "fan" && typeof a.percentage === "number") return a.percentage;
+  return null;
+}
+
+/** Dlaždice do mřížky. Ikona, název, stav a případný proužek úrovně. */
+export function card(entity) {
   const kind = entity.capability?.kind;
   const primary = PRIMARY[kind];
   const detail = hasExtraControls(entity);
   const interactive = Boolean(primary) || detail;
 
-  const mark = h("span", { class: "tile__mark" });
-  const name = h("span", { class: "tile__name", text: entity.name });
-  const state = h("span", { class: "tile__state" });
-  const body = h("span", { class: "tile__body" }, [name, state]);
+  const glyph = h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg"));
+  const name = h("span", { class: "card__name", text: entity.name });
+  const state = h("span", { class: "card__state" });
+  const level = h("span", { class: "card__level" });
 
   let current = entity;
 
-  const main = h(
+  const hit = h(
     interactive ? "button" : "div",
     {
-      class: "tile__main",
+      class: "card__hit",
       type: interactive ? "button" : null,
       onclick: interactive
         ? () => {
@@ -111,24 +128,72 @@ export function tile(entity) {
           }
         : null,
     },
-    [mark, body],
+    [glyph, name, state],
   );
 
-  const children = [main];
+  const children = [hit, level];
 
   if (detail && primary) {
     children.push(
       h("button", {
-        class: "tile__more",
+        class: "card__more",
         type: "button",
-        "aria-label": `${entity.name} - ${t.control.value}`,
+        "aria-label": `${entity.name} – ${t.control.value}`,
         text: "⋯",
         onclick: () => openControls(current),
       }),
     );
   }
 
-  const root = h("div", { class: "tile" }, children);
+  const root = h("div", { class: "card" }, children);
+
+  function paint(next) {
+    current = next;
+    const { text, tone } = describeState(next);
+
+    name.textContent = next.name;
+    state.textContent = text;
+    root.className = `card card--${tone}`;
+
+    const pct = levelOf(next);
+    level.style.width = pct === null ? "0" : `${pct}%`;
+    level.hidden = pct === null;
+
+    if (hit.tagName === "BUTTON") {
+      hit.disabled = !next.available;
+      if (primary) hit.setAttribute("aria-pressed", String(next.state === "on"));
+    }
+  }
+
+  paint(entity);
+  watch(entity.id, paint);
+  return root;
+}
+
+/** Řádek do seznamu. Používají ho scény, automatizace a správa. */
+export function row(entity, extras = []) {
+  const kind = entity.capability?.kind;
+  const primary = PRIMARY[kind];
+
+  const name = h("span", { class: "tile__name", text: entity.name });
+  const state = h("span", { class: "tile__state" });
+
+  let current = entity;
+
+  const main = h(
+    primary ? "button" : "div",
+    {
+      class: "tile__main",
+      type: primary ? "button" : null,
+      onclick: primary ? () => send(current, ...primary(current)) : null,
+    },
+    [
+      h("span", { class: "tile__glyph" }, iconFor(entity)),
+      h("span", { class: "tile__body" }, [name, state]),
+    ],
+  );
+
+  const root = h("div", { class: "tile" }, [main, ...extras]);
 
   function paint(next) {
     current = next;
@@ -136,14 +201,8 @@ export function tile(entity) {
     name.textContent = next.name;
     state.textContent = text;
     state.className = `tile__state tile__state--${tone}`;
-    mark.className = `tile__mark${
-      tone === "on" || tone === "alert" ? ` tile__mark--${tone}` : ""
-    }`;
     root.classList.toggle("tile--active", tone === "on");
-    if (main.tagName === "BUTTON") {
-      main.disabled = !next.available;
-      if (primary) main.setAttribute("aria-pressed", String(next.state === "on"));
-    }
+    if (main.tagName === "BUTTON") main.disabled = !next.available;
   }
 
   paint(entity);

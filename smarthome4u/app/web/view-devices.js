@@ -2,7 +2,7 @@
 
 import { api } from "./api.js";
 import { t } from "./i18n.js";
-import { tile } from "./controls.js";
+import { card } from "./controls.js";
 import {
   h,
   button,
@@ -144,8 +144,8 @@ async function openDetail(ctx, deviceId) {
         t.devices.functions,
         h(
           "div",
-          { class: "stack" },
-          detail.entities.map((entity) => tile(entity)),
+          { class: "cards" },
+          detail.entities.map((entity) => card(entity)),
         ),
       ),
 

@@ -35,6 +35,7 @@
   /* --- Stav zařízení --- */
   --sh-on: #fbbf24;
   --sh-on-glow: rgba(251, 191, 36, 0.18);
+  --sh-alert-glow: rgba(248, 113, 113, 0.15);
 
   /* --- Typografie --- */
   --sh-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",

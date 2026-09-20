@@ -49,12 +49,34 @@ export const t = {
 
   home: {
     title: "Domů",
-    lightsOn: "Rozsvícená světla",
+    lightsOn: "Svítí",
     devices: "Zařízení",
     rooms: "Místnosti",
     allQuiet: "Vše je v pořádku",
     alerts: "Vyžaduje pozornost",
-    allLightsOff: "Zhasnout všechna světla",
+    allLightsOff: "Zhasnout vše",
+  },
+
+  functions: {
+    byRooms: "Podle místností",
+    byFunctions: "Podle funkcí",
+    lighting: "Osvětlení",
+    shading: "Stínění",
+    comfort: "Klima",
+    security: "Bezpečnost",
+    sockets: "Zásuvky",
+    media: "Média",
+  },
+
+  intro: {
+    title: "Vítejte ve Smarthome4u",
+    text:
+      "Tady ovládáte celý dům. Dole najdete místnosti, scény, automatizace " +
+      "a zařízení.",
+    step1: "Zařízení → Přidat zařízení, pokud chcete něco nového.",
+    step2: "Místnosti → Spravovat, pokud chcete uklidit, co kde je.",
+    step3: "Automatizace → Nová, pokud má dům něco dělat sám.",
+    dismiss: "Rozumím",
   },
 
   rooms: {

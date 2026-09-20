@@ -26,13 +26,26 @@ PORT = 8099
 MAX_NAME = 80
 
 
+@web.middleware
+async def _no_cache(request: web.Request, handler):
+    """Prohlížeč si nesmí nechat starou verzi rozhraní.
+
+    Aplikace běží v iframe a ten drží skripty v cache velmi tvrdě. Bez tohohle
+    zůstane po aktualizaci doplňku viset staré UI.
+    """
+    response = await handler(request)
+    if not isinstance(response, web.WebSocketResponse):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
 def create_app(
     client: HaClient,
     model: HomeModel,
     broadcaster: Broadcaster,
     reload_home: Callable[[], Awaitable[None]],
 ) -> web.Application:
-    app = web.Application()
+    app = web.Application(middlewares=[_no_cache])
     app["client"] = client
     app["model"] = model
     app["broadcaster"] = broadcaster

@@ -2,7 +2,7 @@
 
 import { api } from "./api.js";
 import { t } from "./i18n.js";
-import { tile } from "./controls.js";
+import { card } from "./controls.js";
 import {
   h,
   button,
@@ -32,18 +32,18 @@ export function renderRooms(root, ctx) {
     return;
   }
 
-  const grid = h("div", { class: "rooms" });
+  const grid = h("div", { class: "view" });
   for (const room of model.rooms) {
     grid.append(
-      h("section", { class: "room" }, [
-        h("div", { class: "room__head" }, [
-          h("h2", { class: "room__name", text: room.name || t.rooms.unassigned }),
-          room.floorName && h("span", { class: "room__floor", text: room.floorName }),
+      h("section", { class: "panel" }, [
+        h("div", { class: "panel__head" }, [
+          h("h2", { class: "panel__title", text: room.name || t.rooms.unassigned }),
+          room.floorName && h("span", { class: "panel__sub", text: room.floorName }),
         ]),
         h(
           "div",
-          { class: "stack" },
-          room.entities.map((entity) => tile(entity)),
+          { class: "cards" },
+          room.entities.map((entity) => card(entity)),
         ),
       ]),
     );

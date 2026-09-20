@@ -9,6 +9,7 @@ import { t } from "./i18n.js";
 import { icon } from "./icons.js";
 import { applyStates, clearWatchers } from "./controls.js";
 import { closeDialog, h } from "./ui.js";
+import { APP_VERSION } from "./version.js";
 import { renderHome } from "./view-home.js";
 import { renderRooms } from "./view-rooms.js";
 import { renderScenes } from "./view-scenes.js";
@@ -32,6 +33,7 @@ const el = {
   view: document.getElementById("view"),
   title: document.getElementById("view-title"),
   nav: document.getElementById("nav"),
+  version: document.getElementById("app-version"),
   settings: document.getElementById("settings-button"),
 };
 
@@ -56,9 +58,12 @@ async function loadModel() {
     setStatus(state.model.connected);
     updateNotice();
     await draw();
-  } catch (error) {
+  } catch {
     setStatus(false);
     showNotice(t.notice.offline, true);
+    // Navigace musí zůstat i když se data nenačtou. Jinak uživatel
+    // kouká na prázdnou stránku a nemá kam klepnout.
+    paintNav();
   }
 }
 
@@ -146,12 +151,17 @@ function hideNotice() {
 /* Start                                                               */
 /* ------------------------------------------------------------------ */
 
+el.version.textContent = APP_VERSION;
 el.settings.textContent = t.nav.settings;
 el.settings.addEventListener("click", () => navigate("settings"));
 el.statusText.textContent = t.status.connecting;
 
 state.route = location.hash.replace(/^#\//, "") || "home";
 if (!ROUTES[state.route]) state.route = "home";
+
+// Navigace se vykreslí hned, ještě než dorazí data.
+paintNav();
+el.title.textContent = ROUTES[state.route].label;
 
 loadModel();
 
