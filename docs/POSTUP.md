@@ -76,10 +76,15 @@ z iframu by to nešlo.
 
 ## Vyřešené potíže
 
-**Invalid handler specified (0.4.0)** - Home Assistant importuje 
-dřív než . Když import spadne, uživatel vidí jen tuhle hlášku
-bez vysvětlení. Opraveno v 0.4.1: oba soubory teď na začátku importují jen
-jistoty a zbytek se načítá až za běhu. Testy v CI tenhle scénář ověřují.
+**Invalid handler specified (0.4.0)** - Home Assistant importuje `__init__.py`
+dřív než `config_flow.py`. Když import spadne, uživatel vidí jen tuhle hlášku
+bez vysvětlení a v logu nemusí být nic užitečného.
+
+Opraveno v 0.4.1: oba soubory na začátku importují jen jistoty, zbytek se
+načítá až za běhu v `async_setup_entry`. Chybějící složka `frontend/` se hlásí
+srozumitelně místo pádu. Každý krok spuštění píše do logu.
+
+Testy v CI od té doby tenhle scénář ověřují na skutečném Home Assistantu.
 
 ## Neověřeno - čeká na reálný Home Assistant
 
@@ -124,7 +129,7 @@ v0.4 nikdy neběžela.
 | Odebrání jednotlivého zařízení | v1.0, teď jen celá integrace |
 | Logo a ikona | až dodá Pavel |
 | Finální brand barvy | po auditu webu smarthome4u.cz |
-| Automatizované testy proti HA | v1.0 |
+| Testy ovládání a průvodce integracemi | v1.0, teď je pokryté spuštění a API |
 
 ---
 
