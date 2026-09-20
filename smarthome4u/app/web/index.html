@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Smarthome4u</title>
+    <link rel="stylesheet" href="static/tokens.css" />
+    <link rel="stylesheet" href="static/style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="header">
+        <h1 class="header__title">Smarthome<span>4u</span></h1>
+        <div class="status" id="status">
+          <span class="status__dot" aria-hidden="true"></span>
+          <span id="status-text" role="status">Připojuji se</span>
+        </div>
+      </header>
+
+      <p class="notice" id="notice" hidden></p>
+
+      <main class="rooms" id="rooms"></main>
+
+      <footer class="footer">
+        <span id="version"></span>
+      </footer>
+    </div>
+
+    <script type="module" src="static/app.js"></script>
+  </body>
+</html>

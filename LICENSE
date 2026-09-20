@@ -1,0 +1,20 @@
+Copyright (c) 2026 Smarthome4u
+
+Všechna práva vyhrazena.
+
+Tento software a jeho zdrojový kód jsou vlastnictvím Smarthome4u.
+Zdrojový kód je veřejně čitelný, protože Home Assistant vyžaduje
+veřejný repozitář pro instalaci aplikace.
+
+Bez předchozího písemného souhlasu držitele práv NENÍ dovoleno:
+
+- kopírovat nebo rozmnožovat zdrojový kód či jeho části,
+- upravovat, odvozovat nebo dále rozvíjet tento software,
+- distribuovat, prodávat, pronajímat nebo poskytovat jako službu,
+- používat kód nebo jeho části v jiných projektech,
+- odstraňovat nebo měnit označení autorství a značku Smarthome4u.
+
+Koncový uživatel smí software nainstalovat a používat ve vlastní
+instalaci Home Assistant.
+
+Software je poskytován "tak, jak je", bez jakékoliv záruky.

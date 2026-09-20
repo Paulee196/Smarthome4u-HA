@@ -1,0 +1,58 @@
+name: Kontrola
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalace závislostí
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r smarthome4u/requirements.txt ruff
+
+      - name: Kontrola syntaxe
+        run: python -m compileall -q smarthome4u/app
+
+      - name: Kontrola importů
+        working-directory: smarthome4u
+        run: |
+          python -c "
+          import app.broadcast, app.capability, app.model, app.server
+          import app.ha.client, app.ha.version
+          print('Všechny moduly se načetly')
+          "
+
+      - name: Ruff
+        run: ruff check --select E9,F,B smarthome4u/app
+
+  addon:
+    name: Manifest aplikace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kontrola repository.yaml a config.yaml
+        run: |
+          python -c "
+          import yaml
+          repo = yaml.safe_load(open('repository.yaml'))
+          cfg = yaml.safe_load(open('smarthome4u/config.yaml'))
+          assert repo['name'], 'repository.yaml nemá název'
+          assert cfg['slug'] == 'smarthome4u', 'slug se neshoduje se složkou'
+          assert cfg['ingress'] is True, 'ingress musí být zapnutý'
+          assert 'ports' not in cfg, 'aplikace nesmí otevírat port'
+          for zakazane in ('full_access', 'privileged', 'docker_api', 'host_network'):
+              assert zakazane not in cfg, f'zakázané oprávnění: {zakazane}'
+          print('Manifest v pořádku, verze', cfg['version'])
+          "

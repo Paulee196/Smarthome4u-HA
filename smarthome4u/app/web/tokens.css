@@ -1,0 +1,68 @@
+/* Design tokeny Smarthome4u.
+ *
+ * JEDINÉ místo, kde smí být barva, font nebo rozměr. Nikde jinde v CSS
+ * nesmí být hodnota napsaná napřímo.
+ *
+ * POZOR: barvy níže jsou DOČASNÉ. Finální hodnoty se doplní až po auditu
+ * webu smarthome4u.cz podle docs/ZADANI.md kap. 20. Do té doby se
+ * nepoužívají v marketingových materiálech ani v release buildu.
+ */
+
+:root {
+  /* --- Plochy (dark-first) --- */
+  --sh-bg: #0b0c10;
+  --sh-surface: #15171e;
+  --sh-surface-raised: #1d2029;
+  --sh-border: #272b36;
+
+  /* --- Text --- */
+  --sh-text: #ffffff;
+  --sh-text-muted: #9aa1b1;
+  --sh-text-faint: #6b7280;
+
+  /* --- Brand (DOČASNÉ) --- */
+  --sh-accent: #6c5ce7;
+  --sh-accent-hover: #7d6ff0;
+  --sh-accent-text: #ffffff;
+
+  /* --- Sémantické barvy. Význam se nikdy nemění podle šablony. --- */
+  --sh-success: #34d399;
+  --sh-warning: #fbbf24;
+  --sh-error: #f87171;
+  --sh-info: #60a5fa;
+  --sh-offline: #4b5563;
+
+  /* --- Stav zařízení --- */
+  --sh-on: #fbbf24;
+  --sh-on-glow: rgba(251, 191, 36, 0.18);
+
+  /* --- Typografie --- */
+  --sh-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --sh-size-xs: 0.75rem;
+  --sh-size-sm: 0.875rem;
+  --sh-size-md: 1rem;
+  --sh-size-lg: 1.25rem;
+  --sh-size-xl: 1.5rem;
+  --sh-weight-normal: 400;
+  --sh-weight-medium: 500;
+  --sh-weight-bold: 600;
+
+  /* --- Rozestupy --- */
+  --sh-gap-xs: 4px;
+  --sh-gap-sm: 8px;
+  --sh-gap-md: 16px;
+  --sh-gap-lg: 24px;
+  --sh-gap-xl: 32px;
+
+  /* --- Tvary --- */
+  --sh-radius-sm: 8px;
+  --sh-radius-md: 14px;
+  --sh-radius-lg: 20px;
+
+  /* --- Dotykové cíle. Nikdy nesnižovat pod 44 px. --- */
+  --sh-touch-target: 44px;
+
+  /* --- Čitelná šířka textu, aby se obsah neroztáhl na 4K --- */
+  --sh-max-width: 1600px;
+}

@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Smarthome4u ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+node_modules/
+*.db
+*.sqlite3

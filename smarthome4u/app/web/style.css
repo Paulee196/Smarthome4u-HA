@@ -1,0 +1,284 @@
+/* Smarthome4u - vzhled.
+ * Všechny hodnoty pocházejí z tokens.css. Žádná barva napsaná napřímo.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font-family: var(--sh-font);
+  font-size: var(--sh-size-md);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Nikdy horizontální scroll celé stránky. */
+body {
+  overflow-x: hidden;
+}
+
+.layout {
+  max-width: var(--sh-max-width);
+  margin: 0 auto;
+  padding: var(--sh-gap-md);
+  padding-bottom: calc(var(--sh-gap-xl) + env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------------ */
+/* Hlavička                                                            */
+/* ------------------------------------------------------------------ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sh-gap-sm);
+  padding: var(--sh-gap-sm) 0 var(--sh-gap-lg);
+}
+
+.header__title {
+  margin: 0;
+  font-size: var(--sh-size-xl);
+  font-weight: var(--sh-weight-bold);
+  letter-spacing: -0.02em;
+}
+
+.header__title span {
+  color: var(--sh-accent);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sh-gap-sm);
+  font-size: var(--sh-size-sm);
+  color: var(--sh-text-muted);
+}
+
+.status__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sh-offline);
+  flex: none;
+}
+
+.status--online .status__dot {
+  background: var(--sh-success);
+}
+
+.status--offline .status__dot {
+  background: var(--sh-error);
+}
+
+/* ------------------------------------------------------------------ */
+/* Zprávy                                                              */
+/* ------------------------------------------------------------------ */
+
+.notice {
+  border: 1px solid var(--sh-border);
+  border-left: 3px solid var(--sh-info);
+  background: var(--sh-surface);
+  border-radius: var(--sh-radius-sm);
+  padding: var(--sh-gap-md);
+  margin-bottom: var(--sh-gap-lg);
+  color: var(--sh-text-muted);
+  font-size: var(--sh-size-sm);
+}
+
+.notice--error {
+  border-left-color: var(--sh-error);
+  color: var(--sh-text);
+}
+
+.notice[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Místnosti                                                           */
+/* ------------------------------------------------------------------ */
+
+.rooms {
+  display: grid;
+  gap: var(--sh-gap-md);
+  grid-template-columns: 1fr;
+}
+
+/* Více sloupců podle dostupného místa, ne podle typu zařízení. */
+@media (min-width: 720px) {
+  .rooms {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+.room {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-lg);
+  padding: var(--sh-gap-md);
+}
+
+.room__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sh-gap-sm);
+  margin-bottom: var(--sh-gap-md);
+}
+
+.room__name {
+  margin: 0;
+  font-size: var(--sh-size-lg);
+  font-weight: var(--sh-weight-medium);
+}
+
+.room__floor {
+  font-size: var(--sh-size-xs);
+  color: var(--sh-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.room__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-sm);
+}
+
+/* ------------------------------------------------------------------ */
+/* Dlaždice zařízení                                                   */
+/* ------------------------------------------------------------------ */
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap-md);
+  min-height: var(--sh-touch-target);
+  padding: var(--sh-gap-sm) var(--sh-gap-md);
+  background: var(--sh-surface-raised);
+  border: 1px solid transparent;
+  border-radius: var(--sh-radius-md);
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+}
+
+button.tile {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+button.tile:hover {
+  border-color: var(--sh-border);
+}
+
+button.tile:focus-visible {
+  outline: 2px solid var(--sh-accent);
+  outline-offset: 2px;
+}
+
+button.tile[aria-pressed="true"] {
+  background: var(--sh-on-glow);
+  border-color: var(--sh-on);
+}
+
+.tile--busy {
+  opacity: 0.6;
+}
+
+.tile__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tile__name {
+  display: block;
+  font-size: var(--sh-size-md);
+  font-weight: var(--sh-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile__state {
+  display: block;
+  font-size: var(--sh-size-sm);
+  color: var(--sh-text-muted);
+}
+
+/* Stav nesmí být nesen jen barvou - vedle barvy je vždy slovo. */
+.tile__state--on {
+  color: var(--sh-on);
+}
+
+.tile__state--alert {
+  color: var(--sh-error);
+  font-weight: var(--sh-weight-medium);
+}
+
+.tile__state--offline {
+  color: var(--sh-offline);
+}
+
+.tile__mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sh-offline);
+}
+
+.tile__mark--on {
+  background: var(--sh-on);
+}
+
+.tile__mark--alert {
+  background: var(--sh-error);
+}
+
+/* ------------------------------------------------------------------ */
+/* Prázdný stav                                                        */
+/* ------------------------------------------------------------------ */
+
+.empty {
+  text-align: center;
+  padding: var(--sh-gap-xl) var(--sh-gap-md);
+  color: var(--sh-text-muted);
+}
+
+.footer {
+  padding-top: var(--sh-gap-xl);
+  font-size: var(--sh-size-xs);
+  color: var(--sh-text-faint);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Nástěnný panel - čitelnost ze vzdálenosti 1-3 metry                 */
+/* ------------------------------------------------------------------ */
+
+@media (min-width: 1400px) and (pointer: coarse) {
+  :root {
+    --sh-size-md: 1.125rem;
+    --sh-size-lg: 1.5rem;
+    --sh-touch-target: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
