@@ -2,7 +2,39 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
-## [0.4.0] - ve vývoji
+## [0.4.2]
+
+První vydaná verze integrace. Verze 0.4.0 a 0.4.1 se nikdy nevydaly.
+
+### Přidáno
+
+- Označení verze tagem vytvoří vydání na GitHubu automaticky, takže HACS
+  ukazuje skutečné číslo verze místo názvu větve
+- Kontrola, že se číslo v tagu shoduje s manifestem, const.py i rozhraním
+
+## [0.4.1]
+
+### Opraveno
+
+- Chyba "Invalid handler specified" při přidávání integrace. Home Assistant
+  importuje __init__.py dřív než config_flow.py, takže pád importu shodil
+  celou integraci ještě před tím, než se stihlo cokoliv zapsat do logu.
+  Oba soubory teď nahoře importují jen jistoty a zbytek se načítá za běhu.
+- Chybějící složka frontend se hlásí srozumitelně místo tichého pádu
+- Každý krok spuštění se zapisuje do logu
+
+### Změněno
+
+- websocket_api odebráno ze závislostí, už se nepoužívá
+- Minimální verze Home Assistantu snížena na 2024.8
+
+### Přidáno
+
+- Testy spouští skutečný Home Assistant: otevřou průvodce, přidají integraci,
+  ověří registraci panelu, zavolají API a zkusí zakázanou akci
+- Kontrola vypisuje skutečnou chybu místo pouhého návratového kódu
+
+## [0.4.0]
 
 Smarthome4u přestal být doplněk a stal se vlastní integrací. Tím se z něj
 stala skutečná nadstavba - žádný iframe, žádná lišta Home Assistantu.

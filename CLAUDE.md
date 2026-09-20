@@ -75,3 +75,9 @@ podle okolí souboru.
 3. Pokud se mění chování pro uživatele, aktualizuj `CHANGELOG.md` a verzi na
    všech třech místech: `manifest.json`, `const.py`, `frontend/version.js`.
 4. Commit a push, ať je postup dostupný z jiného počítače.
+5. Počkej, až je kontrola zelená. Teprve pak hlas hotovo.
+6. Označ verzi tagem `vX.Y.Z` a pošli ho. Vydání na GitHubu se vytvoří samo
+   a HACS podle něj nabídne aktualizaci.
+
+Bez tagu zákazník aktualizaci nedostane. HACS čte čísla verzí z vydání, ne
+z tagů ani z manifestu.

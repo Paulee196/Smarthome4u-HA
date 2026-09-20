@@ -1,0 +1,74 @@
+name: Vydání
+
+# Označení verze tagem vytvoří vydání na GitHubu. Teprve podle vydání pozná
+# HACS, jaká verze je k dispozici, a nabídne aktualizaci.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Vytvořit vydání
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verze v tagu musí sedět s manifestem
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          python - "$tag" <<'PY'
+          import json, re, sys
+
+          tag = sys.argv[1]
+          q = chr(34)
+          manifest = json.load(open("custom_components/smarthome4u/manifest.json"))
+          const = open("custom_components/smarthome4u/const.py", encoding="utf-8").read()
+          js = open("custom_components/smarthome4u/frontend/version.js", encoding="utf-8").read()
+
+          const_v = re.search("VERSION = " + q + "([^" + q + "]+)" + q, const).group(1)
+          ui_v = re.search("APP_VERSION = " + q + "([^" + q + "]+)" + q, js).group(1)
+
+          if not manifest["version"] == const_v == ui_v == tag:
+              raise SystemExit(
+                  "Verze se neshodují - tag " + tag
+                  + ", manifest " + manifest["version"]
+                  + ", const " + const_v
+                  + ", UI " + ui_v
+              )
+          print("Verze sedí:", tag)
+          PY
+
+      - name: Poznámky z CHANGELOG
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          python - "$tag" > /tmp/notes.md <<'PY'
+          import re, sys
+
+          tag = sys.argv[1]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+
+          # Vezme část od nadpisu s touhle verzí po další nadpis verze.
+          pattern = r"^## \[" + re.escape(tag) + r"\][^\n]*\n(.*?)(?=^## \[|\Z)"
+          found = re.search(pattern, text, re.S | re.M)
+
+          if found:
+              print(found.group(1).strip())
+          else:
+              print("Podrobnosti najdete v CHANGELOG.md.")
+          PY
+          cat /tmp/notes.md
+
+      - name: Vydat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Smarthome4u ${GITHUB_REF_NAME#v}" \
+            --notes-file /tmp/notes.md
