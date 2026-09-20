@@ -12,23 +12,34 @@
     <link rel="stylesheet" href="static/style.css" />
   </head>
   <body>
-    <div class="layout">
-      <header class="header">
-        <h1 class="header__title">Smarthome<span>4u</span></h1>
-        <div class="status" id="status">
-          <span class="status__dot" aria-hidden="true"></span>
-          <span id="status-text" role="status">Připojuji se</span>
-        </div>
-      </header>
+    <div class="shell">
+      <nav class="nav" id="nav" aria-label="Hlavní navigace"></nav>
 
-      <p class="notice" id="notice" hidden></p>
+      <div class="main">
+        <header class="header">
+          <div class="header__left">
+            <span class="header__brand">Smarthome<span>4u</span></span>
+            <h1 class="header__title" id="view-title">Domů</h1>
+          </div>
 
-      <main class="rooms" id="rooms"></main>
+          <div class="header__right">
+            <div class="status" id="status">
+              <span class="status__dot" aria-hidden="true"></span>
+              <span id="status-text" role="status">Připojuji se</span>
+            </div>
+            <button class="button button--ghost" type="button" id="settings-button">
+              Nastavení
+            </button>
+          </div>
+        </header>
 
-      <footer class="footer">
-        <span id="version"></span>
-      </footer>
+        <p class="notice" id="notice" hidden></p>
+
+        <main class="view" id="view"></main>
+      </div>
     </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script type="module" src="static/app.js"></script>
   </body>

@@ -20,6 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Supervisor proxy na Home Assistant Core. Vyžaduje homeassistant_api: true.
 WS_URL = "ws://supervisor/core/websocket"
+REST_BASE = "http://supervisor/core/api"
 
 COMMAND_TIMEOUT = 30
 MAX_BACKOFF = 60
@@ -240,14 +241,118 @@ class HaClient:
         self,
         domain: str,
         service: str,
-        entity_id: str,
+        entity_id: str | None = None,
         data: dict | None = None,
     ) -> Any:
         """HA_COMPATIBILITY: call_service - veřejné WebSocket API."""
+        payload: dict[str, Any] = {
+            "type": "call_service",
+            "domain": domain,
+            "service": service,
+            "service_data": data or {},
+        }
+        if entity_id:
+            payload["target"] = {"entity_id": entity_id}
+        return await self._send(**payload)
+
+    async def list_config_entries(self) -> list[dict]:
+        """HA_COMPATIBILITY: config_entries/get - INTERNÍ command."""
+        return await self._send_optional([], type="config_entries/get")
+
+    # ------------------------------------------------------------------
+    # Zápisy do registrů
+    #
+    # Všechno jsou INTERNÍ frontend commandy. Selhání se hlásí uživateli
+    # srozumitelnou větou a nabídne se fallback do Home Assistantu.
+    # ------------------------------------------------------------------
+
+    async def create_area(self, name: str, floor_id: str | None = None) -> dict:
+        """HA_COMPATIBILITY: config/area_registry/create - INTERNÍ command."""
+        payload: dict[str, Any] = {"type": "config/area_registry/create", "name": name}
+        if floor_id:
+            payload["floor_id"] = floor_id
+        return await self._send(**payload)
+
+    async def update_area(self, area_id: str, **changes: Any) -> dict:
+        """HA_COMPATIBILITY: config/area_registry/update - INTERNÍ command."""
         return await self._send(
-            type="call_service",
-            domain=domain,
-            service=service,
-            target={"entity_id": entity_id},
-            service_data=data or {},
+            type="config/area_registry/update", area_id=area_id, **changes
         )
+
+    async def delete_area(self, area_id: str) -> Any:
+        """HA_COMPATIBILITY: config/area_registry/delete - INTERNÍ command."""
+        return await self._send(type="config/area_registry/delete", area_id=area_id)
+
+    async def create_floor(self, name: str, level: int = 0) -> dict:
+        """HA_COMPATIBILITY: config/floor_registry/create - INTERNÍ command."""
+        return await self._send(
+            type="config/floor_registry/create", name=name, level=level
+        )
+
+    async def update_floor(self, floor_id: str, **changes: Any) -> dict:
+        """HA_COMPATIBILITY: config/floor_registry/update - INTERNÍ command."""
+        return await self._send(
+            type="config/floor_registry/update", floor_id=floor_id, **changes
+        )
+
+    async def delete_floor(self, floor_id: str) -> Any:
+        """HA_COMPATIBILITY: config/floor_registry/delete - INTERNÍ command."""
+        return await self._send(type="config/floor_registry/delete", floor_id=floor_id)
+
+    async def update_device(self, device_id: str, **changes: Any) -> dict:
+        """HA_COMPATIBILITY: config/device_registry/update - INTERNÍ command."""
+        return await self._send(
+            type="config/device_registry/update", device_id=device_id, **changes
+        )
+
+    async def update_entity(self, entity_id: str, **changes: Any) -> dict:
+        """HA_COMPATIBILITY: config/entity_registry/update - INTERNÍ command."""
+        return await self._send(
+            type="config/entity_registry/update", entity_id=entity_id, **changes
+        )
+
+    # ------------------------------------------------------------------
+    # Config API přes REST
+    #
+    # Endpointy /api/config/... používá frontend Home Assistantu pro editory
+    # automatizací a scén. Nejsou součástí veřejné REST dokumentace.
+    # ------------------------------------------------------------------
+
+    async def rest(
+        self, method: str, path: str, payload: dict | None = None
+    ) -> Any:
+        """HA_COMPATIBILITY: /api/config/... - INTERNÍ REST endpointy."""
+        async with self._session.request(
+            method,
+            f"{REST_BASE}{path}",
+            json=payload,
+            headers={"Authorization": f"Bearer {self._token}"},
+        ) as response:
+            if response.status >= 400:
+                raise HaCommandError(
+                    f"Home Assistant odmítl {method} {path} ({response.status})"
+                )
+            if response.content_type == "application/json":
+                return await response.json()
+            return await response.text()
+
+    async def save_automation(self, automation_id: str, config: dict) -> Any:
+        return await self.rest(
+            "POST", f"/config/automation/config/{automation_id}", config
+        )
+
+    async def delete_automation(self, automation_id: str) -> Any:
+        return await self.rest("DELETE", f"/config/automation/config/{automation_id}")
+
+    async def save_scene(self, scene_id: str, config: dict) -> Any:
+        return await self.rest("POST", f"/config/scene/config/{scene_id}", config)
+
+    async def delete_scene(self, scene_id: str) -> Any:
+        return await self.rest("DELETE", f"/config/scene/config/{scene_id}")
+
+    async def discovered_flows(self) -> list[dict]:
+        """Nalezená zařízení čekající na dokončení nastavení."""
+        try:
+            return await self.rest("GET", "/config/config_entries/flow")
+        except HaCommandError:
+            return []

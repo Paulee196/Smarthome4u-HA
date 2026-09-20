@@ -36,17 +36,40 @@ stejnou instalací.
 
 ### 1.1 Zásada jednoduchosti
 
-Toto je nejdůležitější produktový požadavek a má přednost před bohatostí funkcí.
+Jednoduchost znamená **jednoduché ovládání, ne málo funkcí.**
+
+Smarthome4u musí umět všechno, co uživatel od svého domu potřebuje - přidat
+zařízení, nastavit ho, vytvořit automatizaci, scénu, upravit dashboard, spravovat
+místnosti. Rozdíl oproti Home Assistantu není v rozsahu, ale v tom, že se to dá
+udělat bez znalosti pojmů entita, integrace, helper nebo YAML.
 
 - Instalace jsou **dva kroky**: přidat repozitář, dát Instalovat.
-- Po startu **není žádný průvodce ani nastavení**. Dashboard se vygeneruje sám.
+- Po startu **není žádný průvodce**. Dashboard se vygeneruje sám a hned funguje.
 - Uživatel nikdy nevytváří Long-Lived Access Token.
 - Uživatel nikdy nevidí `entity_id`, pokud si nezapne pokročilé informace.
-- Každá obrazovka, která by vyžadovala vysvětlení, patří do technického režimu
-  nebo do fallbacku "Otevřít v Home Assistantu".
+- Každá funkce má cestu na maximálně tři klepnutí z domovské obrazovky.
 
-Když je na výběr mezi funkcí navíc a menším počtem kroků, vyhrává menší počet
-kroků.
+Když je na výběr mezi funkcí navíc a menším počtem kroků k ní, vyhrává menší
+počet kroků. **Nikdy se nevyhrává vynecháním funkce.**
+
+### 1.2 Co musí jít udělat ze Smarthome4u
+
+Tohle je minimální seznam. Bez něj to není rozhraní, ale prohlížečka.
+
+| Oblast | Uživatel musí umět |
+|---|---|
+| Zařízení | Přidat nové, pojmenovat, přiřadit do místnosti, otevřít detail, odebrat |
+| Místnosti | Vytvořit, přejmenovat, smazat, přiřadit do patra |
+| Patra | Vytvořit, přejmenovat, smazat |
+| Ovládání | Zapnout, vypnout, stmívat, nastavit barvu, polohu žaluzie, teplotu |
+| Scény | Zobrazit, spustit, vytvořit z aktuálního stavu, upravit, smazat |
+| Automatizace | Zobrazit, zapnout, vypnout, spustit ručně, vytvořit, upravit, smazat |
+| Dashboard | Vybrat šablonu, změnit pořadí, skrýt prvek, přidat do oblíbených |
+| Nastavení | Účet, jazyk, režim zobrazení, informace o systému |
+
+Cokoliv z toho, co Smarthome4u neumí bezpečně dokončit, musí mít viditelné
+tlačítko **"Otevřít v Home Assistantu"**, které uživatele dovede přesně na
+odpovídající obrazovku - ne na úvodní stránku.
 
 ---
 
@@ -254,13 +277,13 @@ Disabled a hidden entity se uživateli nezobrazují.
 
 ## 10. Rozsah Capability Engine
 
-**v0.1:** `light`, `switch`, `sensor`, `binary_sensor`
-
-**v1.0:** navíc `cover`, `climate`, `lock`, `fan`, `scene`, `script`,
-`automation`, `media_player`, `button`, `input_boolean`
+**Povinné:** `light`, `switch`, `cover`, `climate`, `lock`, `fan`, `sensor`,
+`binary_sensor`, `scene`, `script`, `automation`, `button`, `input_boolean`,
+`input_number`, `input_select`, `media_player`, `number`, `select`, `person`,
+`device_tracker`
 
 **Později:** `valve`, `humidifier`, `water_heater`, `vacuum`, `lawn_mower`,
-`camera`, `alarm_control_panel`, `number`, `select`, `person`, `device_tracker`
+`camera`, `alarm_control_panel`, `text`, `date`, `time`, `datetime`
 
 Architektura nesmí rozšíření znemožnit. Každá doména je samostatný modul.
 
@@ -279,6 +302,26 @@ Entita, jejíž doménu Smarthome4u nezná, se zobrazí v technickém režimu v 
 
 ---
 
+## 10.3 Navigace aplikace
+
+Aplikace má pět stálých sekcí. Na telefonu spodní lišta, na tabletu a desktopu
+levá navigace. Každá funkce ze seznamu 1.2 patří právě do jedné z nich.
+
+| Sekce | Obsah |
+|---|---|
+| **Domů** | Vybraná šablona dashboardu, oblíbené, rychlé akce, upozornění |
+| **Místnosti** | Místnosti a patra, ovládání po místnostech, správa místností |
+| **Scény** | Seznam scén a skriptů, spuštění, vytvoření, úprava |
+| **Automatizace** | Seznam, zapnutí a vypnutí, ruční spuštění, vytvoření, úprava |
+| **Zařízení** | Seznam zařízení, detail, nastavení, přidání nového |
+
+Nastavení aplikace je dostupné z hlavičky, ne jako šestá záložka.
+
+Hlubší obrazovky se otevírají jako panel nebo dialog, ne jako nová stránka bez
+cesty zpět. Tlačítko zpět v prohlížeči i systému musí fungovat.
+
+---
+
 ## 11. Dashboard
 
 Dashboard **není** konfigurace domácnosti. Odstranění karty nesmí odstranit
@@ -292,18 +335,29 @@ schopností. Uživatel nemusí nic nastavovat, aby viděl funkční dům.
 Ruční úpravy layoutu se ukládají do Smarthome4u datastore a mají přednost před
 automatickým rozvržením.
 
-### 11.2 Šablony
+### 11.2 Úpravy uživatelem
 
-Jen tři, ostatní jsou odložené.
+Dashboard musí jít upravit bez editoru s plátnem a bez drag & drop na telefonu.
+Stačí:
 
-| Šablona | Pro koho |
-|---|---|
-| **Simple** | Stav domu, oblíbené, rychlé akce, upozornění |
-| **Rooms** | Seznam místností a jejich souhrnných stavů |
-| **Wall** | Nástěnný panel - velké cíle, čas, souhrn domu, scény |
+- vybrat šablonu,
+- označit prvek jako oblíbený,
+- změnit pořadí místností a karet,
+- skrýt prvek, který uživatel nechce vidět.
 
-Odložené: Functions, Mobile, Tablet, Energy, Security, Technical, Senior, Guest,
-2D a 3D půdorys.
+Odstranění karty nikdy nesmaže zařízení. Výchozí akce je vždy jen skrytí.
+
+### 11.3 Šablony
+
+| Šablona | Pro koho | Kdy |
+|---|---|---|
+| **Domů** | Souhrn domu, oblíbené, rychlé akce, upozornění | povinné |
+| **Místnosti** | Seznam místností a jejich souhrnných stavů | povinné |
+| **Funkce** | Osvětlení, klima, stínění, bezpečnost, média | povinné |
+| **Nástěnný panel** | Velké cíle, čas, souhrn, scény | povinné |
+| **Energie** | Energetický přehled nad HA daty | později |
+| **2D půdorys** | Interaktivní plán bytu | později |
+| **3D půdorys** | - | později |
 
 ---
 
@@ -317,11 +371,22 @@ běží dál.
 
 ### 12.2 Rozsah
 
-Knihovna hotových šablon a tlačítko **"Otevřít v Home Assistantu"**.
+Uživatel musí ze Smarthome4u umět:
 
-Vizuální blokový editor je **odložený**. Zadání 1.0 samo varuje, že HA Automation
-API není stabilní smlouva - vlastní editor je nejrizikovější část projektu
-a nejmenší přínos pro laika.
+- zobrazit seznam svých automatizací se srozumitelným popisem,
+- zapnout a vypnout automatizaci,
+- spustit ji ručně,
+- vytvořit novou z šablony,
+- vytvořit jednoduchou vlastní v modelu **KDYŽ / POKUD / UDĚLEJ**,
+- smazat ji,
+- otevřít pokročilou v Home Assistantu.
+
+Jednoduchý editor KDYŽ / POKUD / UDĚLEJ je **povinný**. Vizuální blokový editor
+pro větvení, čekání a smyčky je odložený - pro ten je fallback do HA.
+
+Protože HA Automation API není stabilní smlouva, veškeré vytváření a editace
+automatizací je izolované v Home Assistant Adapteru, má vlastní testy a při
+nekompatibilitě se zakáže jen ono - ne celá aplikace.
 
 ### 12.3 Šablony
 
@@ -553,36 +618,50 @@ s potvrzením.
 
 ## 25. Roadmapa
 
-### v0.1 - spike
+### v0.1 - základ (hotovo)
 
-Prokázat architekturu, ne stavět produkt.
+Instalace jako App, Ingress, spojení s HA Core, načtení registrů, realtime
+stavy, Capability Engine, přehled místností, ovládání světel a zásuvek.
 
-Aplikace se nainstaluje, běží přes Ingress, identifikuje přihlášeného HA
-uživatele, připojí se k HA Core, načte verzi, načte floor / area / device /
-entity registry, načte stavy, naváže realtime subscription, normalizuje data do
-interního modelu, zobrazí jednoduchou stránku místností a ovládá světla a
-zásuvky.
+Prokázalo, že architektura funguje. **Není to produkt** - jen jinak zobrazené
+entity.
+
+### v0.2 - rozhraní
+
+Tohle je verze, která z prohlížečky dělá rozhraní. Musí obsahovat celý
+seznam z kapitoly 1.2.
+
+- Navigace s pěti sekcemi podle kapitoly 10.3
+- Ovládání: stmívání, barva, teplota bílé, poloha žaluzie, termostat, zámek
+- Zařízení: seznam, detail, přejmenování, přiřazení do místnosti
+- Přidání zařízení: nalezená zařízení a seznam integrací
+- Místnosti a patra: vytvořit, přejmenovat, smazat, přesunout
+- Scény a skripty: seznam, spuštění, vytvoření z aktuálního stavu
+- Automatizace: seznam, zapnutí a vypnutí, ruční spuštění, mazání
+- Jednoduchý editor KDYŽ / POKUD / UDĚLEJ
+- Šablony automatizací
+- Dashboard: výběr šablony, oblíbené, pořadí, skrytí
+- Nastavení aplikace
+- Hluboké odkazy "Otevřít v Home Assistantu" všude, kde je fallback
 
 **Kritéria přijetí:**
 
-- Světlo ovládané ve Smarthome4u se okamžitě změní i v HA.
-- Změna v HA se realtime projeví ve Smarthome4u.
-- Restart Smarthome4u neovlivní HA automatizace.
-- Běžný uživatel nepotřebuje znát `entity_id`.
-- Všechny použité HA commandy jsou v `HA_COMPATIBILITY.md`.
+- Uživatel projde celý seznam 1.2, aniž by otevřel Home Assistant.
+- Kde to nejde, existuje odkaz na přesnou obrazovku v HA.
+- Žádná funkce nevyžaduje znalost `entity_id`.
+- Nic z toho nespustí Smarthome4u jako výkonné jádro - vše dělá HA.
 
-### v1.0 - použitelný produkt
+### v1.0 - produkt pro zákazníky
 
-Automaticky generovaný dashboard ve třech šablonách, klima, žaluzie, zámky,
-senzory, scény, šablony automatizací, technický inspektor, role, design systém
-podle auditu webu, kompletní čeština, SQLite datastore s migracemi, diagnostika,
-předpřipravené GHCR image.
+Čtyři šablony dashboardu, technický režim a role, SQLite datastore s migracemi,
+design systém podle auditu webu, kompletní čeština, diagnostika, předpřipravené
+GHCR image, otestovaná záloha a obnova.
 
 ### Později
 
-2D půdorys, blokový editor automatizací, Energy a Security šablony, KNX workflow,
-ZHA diagnostika, branding partnerů, import/export šablon, audit log,
-3D půdorys, samostatná PWA.
+2D půdorys, blokový editor automatizací, Energie a Bezpečnost jako šablony,
+KNX workflow, ZHA diagnostika, branding partnerů, import a export šablon,
+audit log, 3D půdorys, samostatná PWA.
 
 ---
 

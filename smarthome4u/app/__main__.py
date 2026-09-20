@@ -48,26 +48,26 @@ async def _load_home(
             gate["status"],
         )
 
-    floors = await client.list_floors()
-    areas = await client.list_areas()
-    devices = await client.list_devices()
-    entities = await client.list_entities()
-    states = await client.get_states()
-
-    model.rebuild(
-        ha_version=client.ha_version,
-        floors=floors,
-        areas=areas,
-        devices=devices,
-        entities=entities,
-        states=states,
-    )
+    await _refresh_model(client, model)
 
     await client.subscribe_state_changes()
     _LOGGER.info("Realtime sledování změn je aktivní")
 
     # Po reconnectu má prohlížeč načíst model znovu.
     broadcaster.note("structure", "")
+
+
+async def _refresh_model(client: HaClient, model: HomeModel) -> None:
+    """Přenačte registry a stavy. Volá se i po změně místnosti nebo názvu."""
+    model.rebuild(
+        ha_version=client.ha_version,
+        floors=await client.list_floors(),
+        areas=await client.list_areas(),
+        devices=await client.list_devices(),
+        entities=await client.list_entities(),
+        states=await client.get_states(),
+        config_entries=await client.list_config_entries(),
+    )
 
 
 async def main() -> int:
@@ -96,7 +96,9 @@ async def main() -> int:
         client.add_event_handler(on_event)
         client.set_ready_handler(lambda: _load_home(client, model, broadcaster))
 
-        app = server.create_app(client, model, broadcaster)
+        app = server.create_app(
+            client, model, broadcaster, lambda: _refresh_model(client, model)
+        )
         runner = await server.start(app)
         pump = asyncio.create_task(broadcaster.run())
 

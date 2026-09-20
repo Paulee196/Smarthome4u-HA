@@ -1,242 +1,135 @@
-/* Smarthome4u - frontend.
+/* Smarthome4u - kostra aplikace a přepínání sekcí.
  *
- * Mluví výhradně s interním Smarthome4u API. Nikdy přímo s Home Assistantem
- * a nikdy nevidí Supervisor token.
- *
- * Všechny cesty jsou relativní, protože aplikace běží pod Ingress prefixem.
+ * Frontend mluví výhradně s interním Smarthome4u API a nikdy nevidí
+ * Supervisor token. Všechny cesty jsou relativní kvůli Ingress prefixu.
  */
 
-import { cs as t, describeState } from "./i18n.js";
+import { api, openStream } from "./api.js";
+import { t } from "./i18n.js";
+import { icon } from "./icons.js";
+import { applyStates, clearWatchers } from "./controls.js";
+import { closeDialog, h } from "./ui.js";
+import { renderHome } from "./view-home.js";
+import { renderRooms } from "./view-rooms.js";
+import { renderScenes } from "./view-scenes.js";
+import { renderAutomations } from "./view-automations.js";
+import { renderDevices } from "./view-devices.js";
+import { renderSettings } from "./view-settings.js";
+
+const ROUTES = {
+  home: { label: t.nav.home, render: renderHome },
+  rooms: { label: t.nav.rooms, render: renderRooms },
+  scenes: { label: t.nav.scenes, render: renderScenes },
+  automations: { label: t.nav.automations, render: renderAutomations },
+  devices: { label: t.nav.devices, render: renderDevices },
+  settings: { label: t.nav.settings, render: renderSettings, hidden: true },
+};
 
 const el = {
   status: document.getElementById("status"),
   statusText: document.getElementById("status-text"),
   notice: document.getElementById("notice"),
-  rooms: document.getElementById("rooms"),
-  version: document.getElementById("version"),
+  view: document.getElementById("view"),
+  title: document.getElementById("view-title"),
+  nav: document.getElementById("nav"),
+  settings: document.getElementById("settings-button"),
 };
 
-/** entity_id -> prvek dlaždice, aby šlo překreslit jen to, co se změnilo. */
-const tiles = new Map();
+const state = { model: null, route: "home" };
 
-let reconnectDelay = 1000;
+const ctx = {
+  get model() {
+    return state.model;
+  },
+  refresh: loadModel,
+  navigate,
+  allEntities: () => (state.model?.rooms || []).flatMap((room) => room.entities),
+};
 
-// --------------------------------------------------------------------
-// Komunikace
-// --------------------------------------------------------------------
-
-function url(path) {
-  return new URL(path, document.baseURI).toString();
-}
+/* ------------------------------------------------------------------ */
+/* Data                                                                */
+/* ------------------------------------------------------------------ */
 
 async function loadModel() {
   try {
-    const response = await fetch(url("api/model"));
-    if (!response.ok) throw new Error(String(response.status));
-    render(await response.json());
-  } catch {
-    setStatus("offline");
-    showNotice(t.notice.offline, true);
-  }
-}
-
-function connectStream() {
-  const target = new URL("api/stream", document.baseURI);
-  target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
-
-  const socket = new WebSocket(target.toString());
-
-  socket.addEventListener("open", () => {
-    reconnectDelay = 1000;
-  });
-
-  socket.addEventListener("message", (event) => {
-    let message;
-    try {
-      message = JSON.parse(event.data);
-    } catch {
-      return;
-    }
-
-    if (message.type === "reload") {
-      loadModel();
-    } else if (message.type === "states") {
-      message.entities.forEach(updateTile);
-    }
-  });
-
-  socket.addEventListener("close", () => {
-    setStatus("offline");
-    setTimeout(connectStream, reconnectDelay);
-    reconnectDelay = Math.min(reconnectDelay * 2, 30000);
-  });
-}
-
-async function sendAction(entityId, action) {
-  const response = await fetch(url("api/action"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ entityId, action }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.message || t.notice.actionFailed);
-  }
-}
-
-// --------------------------------------------------------------------
-// Vykreslení
-// --------------------------------------------------------------------
-
-function render(model) {
-  setStatus(model.connected ? "online" : "offline");
-  el.version.textContent = model.haVersion
-    ? `${t.footer.version} ${model.haVersion}`
-    : "";
-
-  if (!model.loaded) {
-    showNotice(t.notice.connecting, false);
-    return;
-  }
-
-  if (!model.connected) {
-    showNotice(t.notice.offline, true);
-  } else {
-    hideNotice();
-  }
-
-  tiles.clear();
-  el.rooms.replaceChildren();
-
-  if (model.rooms.length === 0) {
-    el.rooms.append(buildEmpty());
-    return;
-  }
-
-  model.rooms.forEach((room) => el.rooms.append(buildRoom(room)));
-}
-
-function buildRoom(room) {
-  const section = document.createElement("section");
-  section.className = "room";
-
-  const head = document.createElement("div");
-  head.className = "room__head";
-
-  const name = document.createElement("h2");
-  name.className = "room__name";
-  name.textContent = room.name || t.room.unassigned;
-  head.append(name);
-
-  if (room.floorName) {
-    const floor = document.createElement("span");
-    floor.className = "room__floor";
-    floor.textContent = room.floorName;
-    head.append(floor);
-  }
-
-  const items = document.createElement("div");
-  items.className = "room__items";
-  room.entities.forEach((entity) => {
-    const tile = buildTile(entity);
-    tiles.set(entity.id, tile);
-    items.append(tile);
-  });
-
-  section.append(head, items);
-  return section;
-}
-
-function buildTile(entity) {
-  const controllable = entity.capability?.controllable === true;
-  const tile = document.createElement(controllable ? "button" : "div");
-  tile.className = "tile";
-
-  if (controllable) {
-    tile.type = "button";
-    tile.addEventListener("click", () => toggle(entity.id, tile));
-  }
-
-  const mark = document.createElement("span");
-  mark.className = "tile__mark";
-
-  const body = document.createElement("span");
-  body.className = "tile__body";
-
-  const name = document.createElement("span");
-  name.className = "tile__name";
-  name.textContent = entity.name;
-
-  const state = document.createElement("span");
-  state.className = "tile__state";
-
-  body.append(name, state);
-  tile.append(mark, body);
-
-  paint(tile, entity);
-  return tile;
-}
-
-function paint(tile, entity) {
-  const { text, tone } = describeState(entity, t);
-
-  const state = tile.querySelector(".tile__state");
-  state.textContent = text;
-  state.className = `tile__state tile__state--${tone}`;
-
-  const mark = tile.querySelector(".tile__mark");
-  mark.className = `tile__mark${tone === "on" || tone === "alert" ? ` tile__mark--${tone}` : ""}`;
-
-  if (tile.tagName === "BUTTON") {
-    tile.setAttribute("aria-pressed", String(entity.state === "on"));
-    tile.disabled = !entity.available;
-  }
-}
-
-function updateTile(entity) {
-  const tile = tiles.get(entity.id);
-  if (tile) paint(tile, entity);
-}
-
-function buildEmpty() {
-  const box = document.createElement("div");
-  box.className = "empty";
-
-  const title = document.createElement("h2");
-  title.textContent = t.empty.title;
-
-  const text = document.createElement("p");
-  text.textContent = t.empty.text;
-
-  box.append(title, text);
-  return box;
-}
-
-// --------------------------------------------------------------------
-// Akce
-// --------------------------------------------------------------------
-
-async function toggle(entityId, tile) {
-  tile.classList.add("tile--busy");
-  try {
-    await sendAction(entityId, "toggle");
-    hideNotice();
+    state.model = await api.model();
+    setStatus(state.model.connected);
+    updateNotice();
+    await draw();
   } catch (error) {
-    showNotice(error.message, true);
-  } finally {
-    tile.classList.remove("tile--busy");
+    setStatus(false);
+    showNotice(t.notice.offline, true);
   }
 }
 
-// --------------------------------------------------------------------
-// Stavové prvky
-// --------------------------------------------------------------------
+function updateNotice() {
+  if (!state.model) return;
+  if (!state.model.loaded) showNotice(t.notice.connecting, false);
+  else if (!state.model.connected) showNotice(t.notice.offline, true);
+  else hideNotice();
+}
 
-function setStatus(kind) {
-  el.status.className = `status status--${kind}`;
-  el.statusText.textContent =
-    kind === "online" ? t.status.online : t.status.offline;
+/* ------------------------------------------------------------------ */
+/* Vykreslení                                                          */
+/* ------------------------------------------------------------------ */
+
+async function draw() {
+  const route = ROUTES[state.route] || ROUTES.home;
+
+  clearWatchers();
+  el.view.replaceChildren();
+  el.title.textContent = route.label;
+  document.title = `${route.label} · ${t.appName}`;
+  paintNav();
+
+  if (!state.model) return;
+  await route.render(el.view, ctx);
+}
+
+function paintNav() {
+  el.nav.replaceChildren();
+
+  for (const [key, route] of Object.entries(ROUTES)) {
+    if (route.hidden) continue;
+
+    const active = key === state.route;
+    el.nav.append(
+      h(
+        "button",
+        {
+          class: `nav__item${active ? " nav__item--active" : ""}`,
+          type: "button",
+          "aria-current": active ? "page" : null,
+          onclick: () => navigate(key),
+        },
+        [icon(key), h("span", { class: "nav__label", text: route.label })],
+      ),
+    );
+  }
+}
+
+function navigate(route) {
+  if (!ROUTES[route]) route = "home";
+  closeDialog();
+  state.route = route;
+  if (location.hash !== `#/${route}`) location.hash = `#/${route}`;
+  else draw();
+}
+
+window.addEventListener("hashchange", () => {
+  const route = location.hash.replace(/^#\//, "") || "home";
+  state.route = ROUTES[route] ? route : "home";
+  closeDialog();
+  draw();
+});
+
+/* ------------------------------------------------------------------ */
+/* Stavové prvky                                                       */
+/* ------------------------------------------------------------------ */
+
+function setStatus(online) {
+  el.status.className = `status status--${online ? "online" : "offline"}`;
+  el.statusText.textContent = online ? t.status.online : t.status.offline;
 }
 
 function showNotice(message, isError) {
@@ -249,12 +142,24 @@ function hideNotice() {
   el.notice.hidden = true;
 }
 
-// --------------------------------------------------------------------
-// Start
-// --------------------------------------------------------------------
+/* ------------------------------------------------------------------ */
+/* Start                                                               */
+/* ------------------------------------------------------------------ */
 
-document.title = t.appName;
-setStatus("offline");
+el.settings.textContent = t.nav.settings;
+el.settings.addEventListener("click", () => navigate("settings"));
 el.statusText.textContent = t.status.connecting;
+
+state.route = location.hash.replace(/^#\//, "") || "home";
+if (!ROUTES[state.route]) state.route = "home";
+
 loadModel();
-connectStream();
+
+openStream({
+  onStates: applyStates,
+  onReload: loadModel,
+  onStatus: (online) => {
+    setStatus(online);
+    if (online) loadModel();
+  },
+});
