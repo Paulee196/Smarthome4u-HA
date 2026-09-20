@@ -1,169 +1,173 @@
-# Kompatibilita s Home Assistant API
+# Napojení na Home Assistant
 
-Povinná evidence. Každý Home Assistant command, který Smarthome4u používá, musí
-být v této tabulce. Cíl: při breaking change v Home Assistantu okamžitě vědět,
-co může být zasažené.
+Povinná evidence. Každé místo, kde Smarthome4u sahá na Home Assistant, musí být
+v této tabulce. Cíl: při breaking change okamžitě vědět, co může být zasažené.
 
-Všechny commandy se volají **výhradně** z `smarthome4u/app/ha/`. Žádný jiný modul
-nesmí znát konkrétní HA API.
+Jako integrace používáme Python API Home Assistantu. Odpadlo tím celé dřívější
+hádání nedokumentovaných WebSocket commandů.
 
 ---
 
-## Legenda typů
+## Legenda
 
 | Typ | Význam | Riziko |
 |---|---|---|
-| **veřejné** | Dokumentované v developers.home-assistant.io | Nízké, breaking change je ohlášený |
-| **interní** | Používá HA frontend, není veřejná smlouva | Vysoké, může se změnit bez ohlášení |
+| **veřejné** | Dokumentované pro autory integrací | Nízké, breaking change je ohlášený |
+| **interní** | Stabilní, ale bez záruky pro integrace | Střední |
 
 ---
 
-## Čtení - WebSocket
+## Čtení domácnosti
 
-| Command | Účel | Typ | Ověřeno od | Fallback |
-|---|---|---|---|---|
-| `auth` | Přihlášení Supervisor tokenem | veřejné | 2026.9 | žádný, bez toho aplikace neběží |
-| `get_config` | HA verze, jednotky, časová zóna | veřejné | 2026.9 | version gate se přeskočí |
-| `get_states` | Počáteční načtení všech stavů | veřejné | 2026.9 | žádný |
-| `subscribe_events` (`state_changed`) | Realtime změny stavů | veřejné | 2026.9 | periodický `get_states` |
-| `config/floor_registry/list` | Seznam pater | **interní** | 2026.9 | prázdný seznam, jede se bez pater |
-| `config/area_registry/list` | Seznam místností | **interní** | 2026.9 | prázdný seznam, vše do "Nezařazeno" |
-| `config/device_registry/list` | Seznam zařízení | **interní** | 2026.9 | entity se berou bez zařízení |
-| `config/entity_registry/list` | Registr entit, persistentní ID | **interní** | 2026.9 | jen `get_states`, bez stabilní identity |
-| `config_entries/get` | Seznam připojených integrací | **interní** | 2026.9 | detail zařízení neukáže integraci |
-| `manifest/list` | Názvy a typy všech integrací | **interní** | 2026.9 | zobrazí se doména místo názvu |
-| `frontend/get_translations` | České popisky polí v průvodci | **interní** | 2026.9 | zobrazí se strojové názvy polí |
+Vše v `home.py`.
 
-Čtecí commandy označené jako interní procházejí přes `_send_optional`. Jejich
-selhání zapíše varování do logu a aplikace pokračuje.
-
----
-
-## Ovládání - WebSocket
-
-| Command | Účel | Typ | Ověřeno od | Fallback |
-|---|---|---|---|---|
-| `call_service` | Všechny ovládací akce | veřejné | 2026.9 | hláška v aplikaci |
-
-Frontend nesmí volat libovolnou službu. Povolené dvojice schopnost - akce jsou
-v `app/capability.py` v tabulce `_ACTIONS` a hodnoty se ověřují na typ i rozsah.
-
----
-
-## Zápisy do registrů - WebSocket
-
-Všechno jsou **interní** commandy. Selhání se hlásí uživateli srozumitelnou
-větou přímo v aplikaci.
-
-| Command | Účel | Ověřeno od |
+| Napojení | Účel | Typ |
 |---|---|---|
-| `config/area_registry/create` | Nová místnost | 2026.9 |
-| `config/area_registry/update` | Přejmenování, přesun do patra | 2026.9 |
-| `config/area_registry/delete` | Smazání místnosti | 2026.9 |
-| `config/floor_registry/create` | Nové patro | 2026.9 |
-| `config/floor_registry/update` | Přejmenování, podlaží | 2026.9 |
-| `config/floor_registry/delete` | Smazání patra | 2026.9 |
-| `config/device_registry/update` | Název a místnost zařízení | 2026.9 |
-| `config/entity_registry/update` | Název a místnost entity | 2026.9 |
+| `helpers.area_registry.async_get` | Místnosti | veřejné |
+| `helpers.device_registry.async_get` | Zařízení | veřejné |
+| `helpers.entity_registry.async_get` | Registr entit, persistentní ID | veřejné |
+| `helpers.floor_registry.async_get` | Patra | veřejné |
+| `hass.states.async_all` / `get` | Aktuální stavy | veřejné |
+| `hass.config_entries.async_entries` | Připojené integrace | veřejné |
+| `er.async_entries_for_device` | Entity jednoho zařízení | veřejné |
+| `device.primary_config_entry` | Vlastník zařízení (HA 2026.8+) | veřejné |
 
-Smazání místnosti nemaže zařízení. Zařízení jen zůstanou nezařazená.
-
----
-
-## Config API - REST přes Supervisor proxy
-
-Základ je `http://supervisor/core/api`. Tyhle endpointy používá frontend
-Home Assistantu pro editory a pro přidávání integrací. **Nejsou součástí veřejné
-REST dokumentace** a jsou nejrizikovější částí celé aplikace.
-
-| Endpoint | Metoda | Účel |
-|---|---|---|
-| `/config/automation/config/{id}` | POST | Uložení automatizace ze šablony |
-| `/config/automation/config/{id}` | DELETE | Smazání automatizace |
-| `/config/scene/config/{id}` | POST | Uložení scény ze stavu místnosti |
-| `/config/scene/config/{id}` | DELETE | Smazání scény |
-| `/config/config_entries/flow` | GET | Nalezená zařízení čekající na nastavení |
-| `/config/config_entries/flow_handlers` | GET | Integrace, které jdou přidat průvodcem |
-| `/config/config_entries/flow` | POST | Zahájení přidání integrace |
-| `/config/config_entries/flow/{id}` | GET | Aktuální krok průvodce |
-| `/config/config_entries/flow/{id}` | POST | Odeslání vyplněného kroku |
-| `/config/config_entries/flow/{id}` | DELETE | Zrušení průvodce |
-| `/config/config_entries/entry/{id}` | DELETE | Odebrání integrace i s jejími zařízeními |
-
-Selhání kteréhokoliv z nich skončí srozumitelnou hláškou v aplikaci. Nikdy se
-uživatel neposílá do Home Assistantu.
+Model se nikde necachuje. Při každém požadavku se čte živý stav, takže nemůže
+vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.
 
 ---
 
-## Ingress hlavičky
+## Zápisy
 
-| Hlavička | Účel | Typ |
+Vše v `api.py`.
+
+| Napojení | Účel | Typ |
 |---|---|---|
-| `X-Remote-User-Id` | HA user ID pro navázání Smarthome4u role | veřejné |
-| `X-Remote-User-Name` | Přihlašovací jméno | veřejné |
-| `X-Remote-User-Display-Name` | Zobrazované jméno | veřejné |
+| `ar.async_create` / `async_update` / `async_delete` | Místnosti | veřejné |
+| `fr.async_create` / `async_update` / `async_delete` | Patra | veřejné |
+| `dr.async_update_device` | Název a místnost zařízení | veřejné |
+| `er.async_update_entity` | Název a místnost entity | veřejné |
+| `hass.services.async_call` | Všechny ovládací akce | veřejné |
+| `hass.config_entries.async_remove` | Odebrání integrace | veřejné |
+
+Smazání místnosti nemaže zařízení. Zůstanou nezařazená.
+
+Frontend nesmí zavolat libovolnou službu. Povolené dvojice schopnost - akce jsou
+v `capability.py` v tabulce `_ACTIONS` a hodnoty se ověřují na typ i rozsah.
+
+---
+
+## Průvodce přidáním integrace
+
+| Napojení | Účel | Typ |
+|---|---|---|
+| `hass.config_entries.flow.async_init` | Zahájení průvodce | veřejné |
+| `hass.config_entries.flow.async_configure` | Další krok | veřejné |
+| `hass.config_entries.flow.async_abort` | Zrušení | veřejné |
+| `hass.config_entries.flow.async_progress` | Nalezená zařízení | veřejné |
+| `loader.async_get_config_flows` | Co jde přidat průvodcem | **interní** |
+| `loader.async_get_integrations` | Názvy integrací | **interní** |
+| `voluptuous_serialize.convert` | Schéma na popis formuláře | **interní** |
+| `cv.custom_serializer` | Serializace selektorů | **interní** |
+| `helpers.translation.async_get_translations` | České popisky polí | veřejné |
+
+Dvojice `voluptuous_serialize` a `cv.custom_serializer` je přesně to, co používá
+frontend Home Assistantu. Dostáváme tedy stejná data jako on.
+
+---
+
+## Soubory
+
+| Soubor | Účel | Reload |
+|---|---|---|
+| `automations.yaml` | Automatizace ze šablon | `automation.reload` |
+| `scenes.yaml` | Scény ze stavu místnosti | `scene.reload` |
+
+Zapisuje se přes dočasný soubor a atomické přejmenování, aby výpadek napájení
+nepoškodil konfiguraci.
+
+**Do `.storage` se ručně nesahá nikdy.** Vlastní data půjdou přes
+`helpers.storage.Store`.
+
+Předpoklad: `configuration.yaml` obsahuje výchozí
+`automation: !include automations.yaml` a `scene: !include scenes.yaml`.
+Bez nich se zapsané automatizace nenačtou.
+
+---
+
+## Frontend
+
+| Napojení | Účel | Typ |
+|---|---|---|
+| `panel_custom.async_register_panel` | Registrace našeho panelu | veřejné |
+| `http.StaticPathConfig` | Servírování našich souborů | veřejné |
+| `HomeAssistantView` | Interní API s ověřením přihlášení | veřejné |
+| `frontend.add_extra_js_url` | Vložení `takeover.js` do frontendu HA | **interní** |
+| `frontend.async_remove_panel` | Úklid při vypnutí | veřejné |
+| `hass.connection.subscribeEvents` | Realtime změny stavů | veřejné |
+
+---
+
+## Rizikové oblasti
+
+### takeover.js
+
+Schování lišty sahá do stínového stromu `home-assistant-main`, což je vnitřek
+frontendu Home Assistantu. Ten se může kdykoliv změnit bez ohlášení.
+
+**Opatření:** celý modul je v try/catch, při jakékoliv nejistotě neudělá nic
+a Home Assistant zůstane plně funkční. Nejhorší možný následek je, že lišta
+zůstane vidět. Uživatel si obojí může vypnout v možnostech integrace.
+
+### Config Flow ve vlastním UI
+
+Tvar serializovaného schématu není smlouva pro integrace. Novější integrace
+používají selektory.
+
+**Opatření:** `flows.py` umí text, heslo, číslo, přepínač, výběr a vícenásobný
+výběr ve starém i selektorovém tvaru. Pole, které nerozpozná, se přeskočí
+a uživateli se řekne, že část nastavení nešla zobrazit. Neznámý typ kroku
+skončí hláškou a nabídkou zrušení, nikdy pádem.
+
+Podporované typy kroků: `form`, `menu`, `external_step`, `progress`,
+`create_entry`, `abort`.
+
+### Zápis do konfiguračních souborů
+
+Home Assistant nemá veřejné Python API pro ukládání automatizací a scén. Proto
+píšeme do stejných souborů, do kterých píše jeho vlastní editor.
+
+**Opatření:** automatizace se tvoří jen ze šesti pevných šablon, jejichž výstup
+je známý. Poškozený nebo neočekávaný soubor skončí srozumitelnou chybou, nikdy
+se nepřepíše.
+
+### Device Registry 2026
+
+Od HA 2026.8 patří zařízení právě jedné config entry, od 2026.9 existují child
+devices přes `via_device_id`.
+
+**Opatření:** čteme `primary_config_entry` jako jednu hodnotu, nikdy jako
+množinu. `via_device_id` se neslučuje.
 
 ---
 
 ## Žádné odkazy do Home Assistantu
 
-Smarthome4u uživatele nikdy nepřesouvá do rozhraní Home Assistantu. Dřívější
-odkazy s `target="_top"` byly odstraněny včetně pomocné funkce `haLink`, která
-je vytvářela.
+Smarthome4u uživatele nikdy nepřesouvá do rozhraní Home Assistantu.
 
 Jediný odkaz ven vede na **poskytovatele služby** při přihlášení přes jeho účet
 (krok `external_step`). Otevírá se v nové záložce a s Home Assistantem nesouvisí.
 
 ---
 
-## Rizikové oblasti
-
-### Interní registry commandy
-
-Čtení i zápis registrů není veřejná smlouva. Používá je HA frontend a mohou se
-změnit bez ohlášení v changelogu.
-
-**Opatření:** volají se jen z `app/ha/client.py`, čtení má definovaný fallback,
-zápis hlásí srozumitelnou chybu přímo v aplikaci.
-
-### Config Flow ve vlastním UI
-
-Tvar `data_schema` není veřejná smlouva. Pole se serializují ze schématu, které
-si každá integrace definuje sama, a novější integrace používají selektory.
-
-**Opatření:** `app/integrations.py` umí text, heslo, číslo, přepínač, výběr
-a vícenásobný výběr, ve starém i selektorovém tvaru. Pole, které nerozpozná, se
-přeskočí a uživateli se řekne, že část nastavení nešla zobrazit. Neznámý typ
-kroku aplikaci nikdy nezhroutí - skončí hláškou a nabídkou zrušení.
-
-Podporované typy kroků: `form`, `menu`, `external_step`, `progress`,
-`create_entry`, `abort`.
-
-### Config API pro automatizace a scény
-
-Developerské Automation API je označené jako aktivně vyvíjené a není doporučené
-pro integrace. Proto Smarthome4u **negeneruje automatizace volně** - jen ze
-šesti pevných šablon, jejichž výstup je známý a testovatelný.
-
-Editace existující automatizace se zatím nedělá. Složitá automatizace se
-zobrazuje jen ke čtení, se zapnutím, vypnutím a ručním spuštěním.
-
-### Device Registry 2026
-
-Od HA 2026.8 patří zařízení právě jedné config entry. Od 2026.9 existují child
-devices přes `via_device_id`. V 2026.10 se zpřísnily deprecated properties.
-
-**Opatření:** `_single_config_entry()` čte `primary_config_entry`, a jen pokud
-chybí, sáhne na starý seznam a vezme první položku. Nikdy se nepovažuje za
-množinu vlastníků. `via_device_id` se ukládá, ale neslučuje se podle něj.
-
----
-
 ## Postup při breaking change
 
 1. Zjistit z Developer Blogu, co se změnilo.
-2. Najít zasažený command v tabulce výše.
+2. Najít zasažené napojení v tabulce výše.
 3. Zakázat **pouze** postiženou funkci, ne celou aplikaci.
 4. Čtení stavů a ovládání nechat běžet, pokud fungují.
-5. Upravit adaptér, doplnit test, aktualizovat sloupec "Ověřeno od".
-6. Vydat opravu a zapsat do `CHANGELOG.md`.
+5. Upravit, doplnit test, zapsat do `CHANGELOG.md`.
+
+CI instaluje skutečný Home Assistant a ověřuje, že se všechny moduly načtou.
+Hassfest kontroluje manifest. Zelená kontrola tedy znamená, že napojení
+existuje.
