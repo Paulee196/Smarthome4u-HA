@@ -34,7 +34,7 @@ jobs:
           "
 
       - name: Ruff
-        run: ruff check --select E9,F,B smarthome4u/app
+        run: ruff check --select E9,F,B --output-format=github smarthome4u/app
 
   addon:
     name: Manifest aplikace
