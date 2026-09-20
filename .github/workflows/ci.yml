@@ -6,6 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  hassfest:
+    name: Manifest integrace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: home-assistant/actions/hassfest@master
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -16,48 +23,45 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Instalace závislostí
+      - name: Instalace Home Assistantu
         run: |
           python -m pip install --upgrade pip
-          pip install -r smarthome4u/requirements.txt ruff
+          pip install homeassistant ruff
 
       - name: Kontrola syntaxe
-        run: python -m compileall -q smarthome4u/app
+        run: python -m compileall -q custom_components/smarthome4u
 
-      - name: Kontrola importů
-        working-directory: smarthome4u
+      - name: Kontrola importů proti Home Assistantu
         run: |
           python -c "
-          import app.broadcast, app.capability, app.model, app.server
-          import app.ha.client, app.ha.version
-          print('Všechny moduly se načetly')
+          import sys
+          sys.path.insert(0, '.')
+          from custom_components.smarthome4u import api, config_flow, home
+          from custom_components.smarthome4u import capability, flows, templates
+          from custom_components.smarthome4u import config_files
+          import custom_components.smarthome4u as integration
+          print('Všechny moduly se načetly proti skutečnému Home Assistantu')
           "
 
       - name: Ruff
-        run: ruff check --select E9,F,B --output-format=github smarthome4u/app
+        run: ruff check --select E9,F,B --output-format=github custom_components/smarthome4u
 
-  addon:
-    name: Manifest aplikace
+  versions:
+    name: Shoda verzí
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Kontrola repository.yaml a config.yaml
+      - name: Manifest, const a UI musí mít stejnou verzi
         run: |
           python -c "
-          import yaml
-          repo = yaml.safe_load(open('repository.yaml'))
-          cfg = yaml.safe_load(open('smarthome4u/config.yaml'))
-          assert repo['name'], 'repository.yaml nemá název'
-          assert cfg['slug'] == 'smarthome4u', 'slug se neshoduje se složkou'
-          assert cfg['ingress'] is True, 'ingress musí být zapnutý'
-          assert 'ports' not in cfg, 'aplikace nesmí otevírat port'
-          for zakazane in ('full_access', 'privileged', 'docker_api', 'host_network'):
-              assert zakazane not in cfg, f'zakázané oprávnění: {zakazane}'
-          import re
+          import json, re
           q = chr(34)
-          js = open('smarthome4u/app/web/version.js', encoding='utf-8').read()
-          ui = re.search('APP_VERSION = ' + q + '([^' + q + ']+)' + q, js).group(1)
-          assert ui == cfg['version'], 'verze v UI (' + ui + ') neodpovida config.yaml (' + cfg['version'] + ')'
-          print('Manifest v pořádku, verze', cfg['version'])
+          manifest = json.load(open('custom_components/smarthome4u/manifest.json'))
+          const = open('custom_components/smarthome4u/const.py', encoding='utf-8').read()
+          js = open('custom_components/smarthome4u/frontend/version.js', encoding='utf-8').read()
+          const_v = re.search('VERSION = ' + q + '([^' + q + ']+)' + q, const).group(1)
+          ui_v = re.search('APP_VERSION = ' + q + '([^' + q + ']+)' + q, js).group(1)
+          assert manifest['version'] == const_v == ui_v, 'verze se neshodují: ' + manifest['version'] + ' / ' + const_v + ' / ' + ui_v
+          print('Verze v pořádku:', const_v)
           "

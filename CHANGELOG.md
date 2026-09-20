@@ -2,7 +2,34 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
-## [0.3.0] - ve vývoji
+## [0.4.0] - ve vývoji
+
+Smarthome4u přestal být doplněk a stal se vlastní integrací. Tím se z něj
+stala skutečná nadstavba - žádný iframe, žádná lišta Home Assistantu.
+
+### Změněno
+
+- Distribuce: z Home Assistant App na integraci v custom_components
+- Panel se registruje přes panel_custom a běží ve stínovém stromu
+- Registry, služby i config flow se čtou přes Python API Home Assistantu
+  místo nedokumentovaných WebSocket commandů
+- Realtime změny jdou přes spojení, které frontend Home Assistantu už má
+- Automatizace a scény se zapisují do automations.yaml a scenes.yaml
+  se standardním reloadem
+
+### Přidáno
+
+- Schování postranní lišty Home Assistantu, když běží Smarthome4u
+- Přistání ve Smarthome4u hned po přihlášení
+- Možnosti integrace pro vypnutí obojího
+- Kontrola proti skutečnému Home Assistantu v CI včetně hassfest
+
+### Odebráno
+
+- Celá vrstva doplňku: Dockerfile, AppArmor profil, Ingress, Supervisor token
+- Vlastní WebSocket klient a cache modelu - Home Assistant se ptá přímo
+
+## [0.3.0]
 
 Smarthome4u přestal být rozcestník. Uživatel se už nikdy nepřesune do
 rozhraní Home Assistantu.

@@ -1,11 +1,14 @@
 # Smarthome4u
 
-Jednoduché rozhraní pro Home Assistant. Instaluje se jako aplikace, po startu
-se dashboard vytvoří sám z místností a zařízení. Žádné nastavování, žádný token.
+Nadstavba pro Home Assistant. To, co je One UI nad Androidem u Samsungu nebo
+HyperOS u Xiaomi - stejný základ, jiné a jednodušší rozhraní.
 
-**Smarthome4u není nová smart-home platforma.** Je to uživatelské a instalační
-rozhraní nad standardním Home Assistantem. Home Assistant zůstává jediným
-zdrojem pravdy a výkonným jádrem. Když Smarthome4u vypnete, domácnost běží dál.
+Po přihlášení uživatel vidí Smarthome4u. Lišta Home Assistantu se schová.
+Zařízení, místnosti, scény i automatizace se spravují přímo tady, bez
+vyskakování do nastavení Home Assistantu.
+
+**Home Assistant zůstává jediným zdrojem pravdy a výkonným jádrem.** Když
+Smarthome4u vypnete, domácnost běží dál.
 
 ---
 
@@ -13,33 +16,53 @@ zdrojem pravdy a výkonným jádrem. Když Smarthome4u vypnete, domácnost běž
 
 | Verze | Stav | Obsah |
 |---|---|---|
-| v0.1 | ve vývoji | Spike - instalace, Ingress, načtení místností a zařízení, ovládání světel a zásuvek |
-| v1.0 | plánováno | Automatický dashboard, klima, žaluzie, senzory, šablony automatizací, technický režim |
+| v0.1 - v0.3 | hotovo | Základ, pět sekcí, ovládání, správa místností, scény, automatizace, vlastní průvodce integracemi |
+| v0.4 | ve vývoji | Přechod z doplňku na integraci, schovaná lišta, přistání po přihlášení |
+| v1.0 | plánováno | Editor automatizací, šablony dashboardu, technický režim, finální design |
 
-Aktuální postup a další kroky: [docs/POSTUP.md](docs/POSTUP.md)
+Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
+
+---
+
+## Co aplikace umí
+
+- **Domů** - souhrn domu, upozornění, přepínač Podle místností / Podle funkcí
+- **Místnosti** - ovládání po místnostech, správa místností a pater
+- **Scény** - spuštění, uložení aktuálního stavu místnosti jako scény
+- **Automatizace** - zapnutí, ruční spuštění, tvorba ze šesti šablon
+- **Zařízení** - seznam, detail, přejmenování, přiřazení do místnosti
+- **Integrace** - vlastní katalog, průvodce přidáním, odebrání
+
+Ovládání podle typu zařízení: stmívání, teplota bílé, barva, poloha a natočení
+žaluzií, termostat, zámek, rychlost ventilátoru, hlasitost.
 
 ---
 
 ## Instalace
 
-Podporováno je **Home Assistant OS** na architektuře amd64 nebo aarch64
-(Home Assistant Green, Raspberry Pi 4/5, mini PC, virtuální stroj).
+Potřebujete **Home Assistant 2026.8 nebo novější**. Funguje na OS, Container,
+Core i Supervised.
 
-1. Přidejte repozitář do Home Assistantu:
+### Přes HACS
 
-   [![Přidat repozitář do Home Assistantu](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FPaulee196%2FSmarthome4u-HA)
+1. HACS → ⋮ → **Vlastní repozitáře**
+2. Vložte `https://github.com/Paulee196/Smarthome4u-HA`, typ **Integrace**
+3. Najděte **Smarthome4u** a dejte **Stáhnout**
+4. Restartujte Home Assistant
+5. **Nastavení → Zařízení a služby → Přidat integraci → Smarthome4u**
 
-   Ručně: **Nastavení → Doplňky → Obchod s doplňky → ⋮ → Repozitáře** a vložte
-   `https://github.com/Paulee196/Smarthome4u-HA`
+### Ručně
 
-2. V obchodu najděte **Smarthome4u** a dejte **Instalovat**.
+1. Stáhněte repozitář jako ZIP
+2. Složku `custom_components/smarthome4u` zkopírujte do
+   `config/custom_components/`
+3. Restartujte Home Assistant
+4. **Nastavení → Zařízení a služby → Přidat integraci → Smarthome4u**
 
-3. Zapněte **Zobrazit v postranním panelu** a dejte **Spustit**.
+### Nastavení
 
-4. Otevřete Smarthome4u v levém menu.
-
-První instalace trvá několik minut, protože se aplikace sestavuje přímo
-v Home Assistantu. Další aktualizace jsou rychlejší.
+V **Možnostech** integrace jde vypnout schování lišty Home Assistantu i
+automatické přistání po přihlášení. Ve výchozím stavu je obojí zapnuté.
 
 ---
 
@@ -48,8 +71,8 @@ v Home Assistantu. Další aktualizace jsou rychlejší.
 | Dokument | Obsah |
 |---|---|
 | [docs/ZADANI.md](docs/ZADANI.md) | Závazné produktové a architektonické zadání |
-| [docs/POSTUP.md](docs/POSTUP.md) | Co je hotové, co se dělá, co je další krok |
-| [docs/HA_COMPATIBILITY.md](docs/HA_COMPATIBILITY.md) | Každý použitý Home Assistant command a jeho stabilita |
+| [docs/POSTUP.md](docs/POSTUP.md) | Co je hotové, co neověřené, co je další krok |
+| [docs/HA_COMPATIBILITY.md](docs/HA_COMPATIBILITY.md) | Napojení na Home Assistant a jeho stabilita |
 | [CHANGELOG.md](CHANGELOG.md) | Historie verzí |
 
 ---
@@ -57,14 +80,19 @@ v Home Assistantu. Další aktualizace jsou rychlejší.
 ## Struktura repozitáře
 
 ```
-repository.yaml        definice App repository pro Home Assistant
-smarthome4u/           samotná aplikace (Home Assistant App)
-  config.yaml          manifest aplikace
-  Dockerfile           sestavení
-  app/                 Python backend
-    ha/                Home Assistant Adapter - jediný modul znající HA API
-    web/               frontend
-docs/                  dokumentace a zadání
+custom_components/smarthome4u/
+  __init__.py       registrace panelu, statických souborů a API
+  config_flow.py    přidání integrace a její možnosti
+  api.py            interní API pro frontend
+  home.py           pohled na domácnost z registrů Home Assistantu
+  capability.py     co které zařízení umí a co se s ním smí dělat
+  flows.py          překlad config flow do našeho formuláře
+  templates.py      šablony automatizací
+  config_files.py   zápis automatizací a scén
+  frontend/         panel, ikony, styly, překlady
+    panel.js        vlastní prvek registrovaný v Home Assistantu
+    takeover.js     schování lišty a přistání po přihlášení
+docs/               dokumentace a zadání
 ```
 
 ---

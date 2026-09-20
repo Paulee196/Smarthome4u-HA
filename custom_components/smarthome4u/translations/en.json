@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smarthome4u",
+        "description": "The interface will be added to the sidebar. Nothing else to configure."
+      }
+    },
+    "abort": {
+      "already_configured": "Smarthome4u is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "How Smarthome4u should look",
+        "data": {
+          "hide_sidebar": "Hide the Home Assistant sidebar",
+          "landing": "Open Smarthome4u right after login"
+        }
+      }
+    }
+  }
+}

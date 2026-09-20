@@ -6,6 +6,20 @@
 
 import { t } from "./i18n.js";
 
+/* Kam se vkládají dialogy a hlášky. Nastaví ho panel při startu. */
+let host = null;
+
+export function setHost(root) {
+  host = root;
+  root.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDialog();
+  });
+}
+
+function shell() {
+  return host?.querySelector(".shell") || host;
+}
+
 /** Vytvoří prvek. children může být text, prvek nebo pole. */
 export function h(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -56,7 +70,8 @@ export function emptyState(text) {
 let toastTimer = null;
 
 export function toast(message, isError = false) {
-  const box = document.getElementById("toast");
+  const box = host?.getElementById("toast");
+  if (!box) return;
   box.textContent = message;
   box.className = `toast ${isError ? "toast--error" : "toast--ok"} toast--shown`;
 
@@ -102,8 +117,8 @@ export function dialog(title, content, footer = null) {
     panel,
   );
 
-  document.body.append(backdrop);
-  document.body.classList.add("no-scroll");
+  shell().append(backdrop);
+  shell().classList.add("no-scroll");
   openDialog = backdrop;
 
   const focusable = panel.querySelector("input, select, button");
@@ -116,12 +131,8 @@ export function closeDialog() {
   if (!openDialog) return;
   openDialog.remove();
   openDialog = null;
-  document.body.classList.remove("no-scroll");
+  shell()?.classList.remove("no-scroll");
 }
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeDialog();
-});
 
 /* ------------------------------------------------------------------ */
 /* Formulářové prvky                                                   */

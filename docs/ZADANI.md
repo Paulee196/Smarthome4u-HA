@@ -43,7 +43,8 @@ zařízení, nastavit ho, vytvořit automatizaci, scénu, upravit dashboard, spr
 místnosti. Rozdíl oproti Home Assistantu není v rozsahu, ale v tom, že se to dá
 udělat bez znalosti pojmů entita, integrace, helper nebo YAML.
 
-- Instalace jsou **dva kroky**: přidat repozitář, dát Instalovat.
+- Instalace je pár kroků: přidat repozitář do HACS, Install, restart, přidat
+  integraci. Pak už nikdy nic.
 - Po startu **není žádný průvodce**. Dashboard se vygeneruje sám a hned funguje.
 - Uživatel nikdy nevytváří Long-Lived Access Token.
 - Uživatel nikdy nevidí `entity_id`, pokud si nezapne pokročilé informace.
@@ -120,40 +121,37 @@ všemi zařízeními, místnostmi a automatizacemi.
 
 ## 3. Podporované prostředí
 
-Pouze **Home Assistant OS**, architektury **amd64** a **aarch64**.
+Home Assistant **2026.8 a novější**, jakýkoliv způsob instalace - OS, Container,
+Core i Supervised. Jako integrace nejsme vázaní na Supervisor.
 
-Typicky Home Assistant Green, Raspberry Pi 4/5 s HA OS, x86-64 mini PC s HA OS,
-HA OS ve virtuálním stroji.
-
-Oficiálně nepodporováno: Home Assistant Container, Core, Supervised, 32bit.
+Doporučeno: Home Assistant Green, Raspberry Pi 4/5, mini PC, virtuální stroj.
 
 ---
 
 ## 4. Distribuce
 
-Smarthome4u se distribuuje jako **Home Assistant App** (dříve add-on) z tohoto
-repozitáře. Repozitář je zároveň App repository i zdrojový kód, aby zákazník
-přidával jediný odkaz.
+Smarthome4u je **vlastní integrace** v `custom_components/smarthome4u`.
 
-Zákaznický postup:
+Důvod je v kapitole 1.4. Doplněk běží v iframu uvnitř skořápky Home Assistantu
+a z iframu nejde schovat postranní lištu ani se stát první obrazovkou po
+přihlášení. Integrace běží přímo ve frontendu Home Assistantu, takže to umí.
 
-1. Přidat repozitář přes My Home Assistant odkaz.
-2. Instalovat Smarthome4u.
-3. Zapnout v postranním panelu a spustit.
+Druhý důvod je stabilita. Integrace sahá na registry a config flow přes
+dokumentované Python API Home Assistantu, ne přes nedokumentované WebSocket
+commandy.
 
-### 4.1 Build
+### 4.1 Instalace u zákazníka
 
-Do verze 1.0 se aplikace sestavuje lokálně v Home Assistantu z Dockerfile.
-Odpadá tím CI, registry i podepisování a lze testovat hned po pushi.
+**Přes HACS:** přidat repozitář jako vlastní, dát Install, restartovat
+Home Assistant, přidat integraci v Nastavení.
 
-Před verzí 1.0 se přechází na předpřipravené multi-arch image v GHCR, protože
-lokální build zdržuje instalaci u zákazníka. Do té doby se `image:` v
-`config.yaml` nepoužívá.
+**Ručně:** stáhnout ZIP, rozbalit složku `smarthome4u` do
+`config/custom_components/`, restartovat, přidat integraci.
 
 ### 4.2 Release kanál
 
-Jeden kanál - Stable. Beta kanál se zavede, až budou existovat zákazníci, na
-kterých nelze testovat.
+Jeden kanál - Stable. Beta se zavede, až budou existovat zákazníci, na kterých
+nelze testovat.
 
 ---
 
@@ -161,17 +159,20 @@ kterých nelze testovat.
 
 Aplikace má čtyři oddělené moduly.
 
-### 5.1 Home Assistant Adapter (`app/ha/`)
+### 5.1 Přístup k Home Assistantu (`home.py`, `api.py`)
 
-**Jediný modul produktu, který smí znát konkrétní HA API a WebSocket commandy.**
+Jako integrace čteme registry přímo přes pomocníky Home Assistantu -
+`area_registry`, `device_registry`, `entity_registry`, `floor_registry`
+a `hass.states`. Zápisy jdou přes jejich `async_update` a `async_create`.
 
-Úkoly: přihlášení přes Supervisor token, čtení HA verze, čtení registrů
-(floor / area / device / entity), čtení stavů, realtime subscription, volání
-akcí, normalizace rozdílů mezi HA verzemi.
+Průvodce přidáním integrace běží přes `hass.config_entries.flow`.
+Akce přes `hass.services.async_call`.
 
-Když HA změní formát, mění se adaptér, ne třicet obrazovek.
+Žádné vlastní WebSocket spojení, žádné hádání interních commandů. Model se
+nikde necachuje - Home Assistant je jediný zdroj pravdy a ptáme se ho při
+každém požadavku.
 
-### 5.2 Capability Engine (`app/capability.py`)
+### 5.2 Capability Engine (`capability.py`)
 
 Převádí technický HA objekt na funkci srozumitelnou uživateli.
 
@@ -190,19 +191,28 @@ Příklady:
 - `binary_sensor` + `device_class=moisture` → únik vody
 - `sensor` + `device_class=temperature` → teplota
 
-### 5.3 Backend (`app/`)
+### 5.3 Backend (`api.py`, `home.py`, `flows.py`, `templates.py`)
 
-Interní API pro frontend, autorizace podle role, normalizovaný model, datastore,
-diagnostika. Frontend nikdy nemluví přímo s Home Assistantem.
+Interní HTTP API pro frontend, allowlist povolených akcí, pohled na domácnost,
+překlad config flow a šablony automatizací. Frontend nikdy nemluví přímo
+s Home Assistantem.
 
-### 5.4 Frontend (`app/web/`)
+### 5.4 Frontend (`frontend/`)
 
-UI, dashboardy, formuláře. Komunikuje výhradně s interním Smarthome4u API.
+Vlastní panel registrovaný přes `panel_custom`. Běží ve stínovém stromu, takže
+se styly Home Assistantu a naše navzájem neovlivňují. Komunikuje výhradně
+s interním Smarthome4u API.
+
+`takeover.js` je samostatný modul vkládaný do frontendu Home Assistantu. Schová
+postranní lištu a po přihlášení otevře Smarthome4u. Sahá do cizího DOM, proto
+je celý v try/catch a při nejistotě radši neudělá nic.
 
 ### 5.5 Datastore
 
-SQLite v perzistentním `/data`, které je automaticky součástí HA zálohy.
-Ukládá pouze Smarthome4u specifická data. Schema má číslo verze a migrace.
+Vlastní data (layout dashboardu, oblíbené) se ukládají přes `helpers.storage.Store`
+do `.storage` Home Assistantu, což je standardní cesta pro integrace a je
+automaticky součástí zálohy. Zápis provádí výhradně Store, nikdy ne ruční
+sahání do souborů.
 
 ---
 
@@ -210,44 +220,45 @@ Ukládá pouze Smarthome4u specifická data. Schema má číslo verze a migrace.
 
 ### 6.1 Pořadí preferencí
 
-1. Dokumentované veřejné HA API.
-2. Dokumentované WebSocket a REST mechanismy.
-3. Interní frontend WebSocket command - pouze v adaptéru a pouze zapsaný
-   v `HA_COMPATIBILITY.md`.
-4. **Žádný přímý zápis do interních storage souborů.**
+1. Pomocníci a registry Home Assistantu v Pythonu.
+2. Dokumentované služby a config entries API.
+3. Konfigurační soubory `automations.yaml` a `scenes.yaml` přes standardní
+   reload, protože pro ně Home Assistant veřejné Python API nemá.
+4. **Žádný zápis do `.storage` mimo vlastní `Store`.**
 
 ### 6.2 Realtime
 
-Povinně WebSocket subscription na `state_changed`. Žádný periodický polling
-celého stavu.
+Panel dostává změny z WebSocket připojení, které Home Assistant frontend už má
+otevřené. Žádné druhé spojení, žádný polling.
 
-Změny, na které musí UI reagovat: světlo zapnuté fyzickým vypínačem, změna
-teploty, změna entity v HA UI, přidání zařízení, změna místnosti, přejmenování.
+Změněné entity si frontend doptá našeho API jednou dávkou.
 
-### 6.3 Token
+### 6.3 Přihlášení
 
-Aplikace používá `SUPERVISOR_TOKEN` z prostředí. Uživatel nikdy nevytváří
-Long-Lived Access Token. Token existuje pouze v backendu.
+Uživatel je přihlášený přes Home Assistant. Panel předá svůj token našemu API,
+které ho ověřuje standardním způsobem pro integrace. Žádný Long-Lived Access
+Token, žádné druhé heslo.
 
 ---
 
-## 7. Ingress a role
+## 7. Přístup a role
 
-Přístup výhradně přes **Home Assistant Ingress**. Uživatel je už přihlášený přes
-HA, žádné druhé heslo, žádný otevřený port, žádné vlastní HTTPS.
+Smarthome4u je panel Home Assistantu. Uživatel je přihlášený přes Home Assistant,
+žádné druhé heslo, žádný otevřený port, žádné vlastní HTTPS.
 
-Identita se čte z Ingress hlaviček (`X-Remote-User-Id`, `X-Remote-User-Name`).
+Panel dostává od Home Assistantu objekt `hass` a z něj token, kterým se naše
+API autorizuje. Token nikde neukládáme.
 
 ### Role
 
 | Role | Vidí |
 |---|---|
-| **Uživatel** | Domov, místnosti, oblíbené, jednoduché automatizace, upozornění |
-| **Technik** | Navíc zařízení, entity, integrace, diagnostiku, odkazy do HA |
+| **Uživatel** | Domů, místnosti, oblíbené, scény, jednoduché automatizace |
+| **Technik** | Navíc zařízení, entity, integrace, diagnostiku |
 | **Admin** | Navíc nastavení Smarthome4u, role, diagnostický balíček |
 
-Role je navázaná na HA user ID. Skrytí tlačítka ve frontendu nestačí - backend
-musí oprávnění ověřovat.
+Role vychází z toho, zda je uživatel v Home Assistantu administrátor. Skrytí
+tlačítka ve frontendu nestačí - backend musí oprávnění ověřovat.
 
 ---
 
@@ -479,17 +490,17 @@ rozpadnout při zvětšení.
 
 ## 15. Bezpečnost
 
-Cíl je maximální rozumné HA App security score.
+**Povinné:** backend validuje všechny vstupy. Frontend nesmí zavolat libovolnou
+službu - povolené dvojice schopnost a akce jsou v `capability.py` a hodnoty se
+ověřují na typ i rozsah.
 
-**Zakázáno bez prokazatelné potřeby:** `full_access`, `privileged`, `docker_api`,
-`host_network`, mapování HA config adresáře pro zápis.
-
-**Povinné:** protection mode zapnutý, vlastní AppArmor profil, backend validuje
-všechny vstupy, Supervisor token pouze v backendu.
+Každý pohled v `api.py` vyžaduje přihlášení Home Assistantu.
 
 **Do logu nikdy nejdou** tokeny, hesla, OAuth secrets ani API klíče.
-Diagnostický export secrets rediguje. Frontend neukládá privilegovaný token do
-`localStorage`.
+Diagnostický export secrets rediguje. Frontend neukládá token do `localStorage`.
+
+`takeover.js` běží v cizím DOM. Nikdy nesmí shodit Home Assistant - všechno
+je v try/catch a při jakékoliv nejistotě modul neudělá nic.
 
 ---
 
@@ -623,11 +634,11 @@ s potvrzením.
 
 ## 24. Co Smarthome4u NESMÍ
 
-1. Ručně zapisovat do `.storage`.
+1. Ručně zapisovat do `.storage` mimo vlastní `Store`.
 2. Být hlavním výkonným jádrem domácnosti.
 3. Držet druhý pravdivý stav zařízení.
 4. Vyžadovat Long-Lived Token od běžného uživatele.
-5. Mít Supervisor token ve frontendu.
+5. Ukládat přihlašovací token do localStorage nebo ho posílat dál.
 6. Používat název entity pro typovou logiku.
 7. Používat `entity_id` jako persistentní identitu.
 8. Předpokládat, že každý Device je fyzický hardware.
@@ -645,62 +656,47 @@ s potvrzením.
 
 ## 25. Roadmapa
 
-### v0.1 - základ (hotovo)
+### v0.1 az v0.3 - hotovo
 
-Instalace jako App, Ingress, spojení s HA Core, načtení registrů, realtime
-stavy, Capability Engine, přehled místností, ovládání světel a zásuvek.
+Základ, rozhraní s pěti sekcemi, plné ovládání, správa místností, scény,
+automatizace ze šablon a vlastní průvodce přidáním integrace.
 
-Prokázalo, že architektura funguje. **Není to produkt** - jen jinak zobrazené
-entity.
+### v0.4 - nadstavba
 
-### v0.2 - rozhraní
-
-Tohle je verze, která z prohlížečky dělá rozhraní. Musí obsahovat celý
-seznam z kapitoly 1.2.
-
-- Navigace s pěti sekcemi podle kapitoly 10.3
-- Ovládání: stmívání, barva, teplota bílé, poloha žaluzie, termostat, zámek
-- Zařízení: seznam, detail, přejmenování, přiřazení do místnosti
-- Přidání zařízení: nalezená zařízení a seznam integrací
-- Místnosti a patra: vytvořit, přejmenovat, smazat, přesunout
-- Scény a skripty: seznam, spuštění, vytvoření z aktuálního stavu
-- Automatizace: seznam, zapnutí a vypnutí, ruční spuštění, mazání
-- Jednoduchý editor KDYŽ / POKUD / UDĚLEJ
-- Šablony automatizací
-- Dashboard: výběr šablony, oblíbené, pořadí, skrytí
-- Nastavení aplikace
-- Vlastní průvodce přidáním integrace, žádné odkazy do Home Assistantu
+Přechod z doplňku na vlastní integraci. Vlastní panel bez iframu, schovaná
+postranní lišta Home Assistantu, přistání ve Smarthome4u po přihlášení,
+přímý přístup k registrům a config flow místo nedokumentovaných commandů.
 
 **Kritéria přijetí:**
 
-- Uživatel projde celý seznam 1.2, aniž by otevřel Home Assistant.
-- Kde to nejde, existuje odkaz na přesnou obrazovku v HA.
-- Žádná funkce nevyžaduje znalost `entity_id`.
-- Nic z toho nespustí Smarthome4u jako výkonné jádro - vše dělá HA.
+- Po přihlášení uživatel vidí Smarthome4u, ne dashboard Home Assistantu.
+- Postranní lišta Home Assistantu není vidět.
+- Uživatel projde celý seznam 1.2, aniž by opustil Smarthome4u.
+- Vypnutí integrace vrátí Home Assistant do původního stavu.
 
 ### v1.0 - produkt pro zákazníky
 
-Čtyři šablony dashboardu, technický režim a role, SQLite datastore s migracemi,
-design systém podle auditu webu, kompletní čeština, diagnostika, předpřipravené
-GHCR image, otestovaná záloha a obnova.
+Editor KDYŽ / POKUD / UDĚLEJ, čtyři šablony dashboardu s oblíbenými a pořadím,
+technický režim a role, vlastní datastore, design systém podle auditu webu,
+kompletní čeština, diagnostika, otestovaná záloha a obnova.
 
 ### Později
 
 2D půdorys, blokový editor automatizací, Energie a Bezpečnost jako šablony,
 KNX workflow, ZHA diagnostika, branding partnerů, import a export šablon,
-audit log, 3D půdorys, samostatná PWA.
+audit log, 3D půdorys.
 
 ---
 
 ## 26. Definition of Done pro 1.0
 
-- Instalace na amd64 i aarch64 je opakovatelná.
+- Instalace přes HACS i ručně je opakovatelná.
 - Aktualizace nesmaže data.
 - Záloha a obnova je otestovaná.
-- Aplikace má odpovídající bezpečnostní profil.
+- Vypnutí integrace vrátí Home Assistant do původního stavu.
 - Klasické HA UI funguje souběžně.
-- Výpadek Smarthome4u nevyřadí automatizace.
-- Žádný přímý zápis do `.storage`.
+- Výpadek Smarthome4u nevyřadí automatizace ani nerozbije Home Assistant.
+- Žádný zápis do `.storage` mimo vlastní `Store`.
 - Realtime synchronizace funguje oběma směry.
 - Model zvládá registry model 2026.
 - Design odpovídá ověřené identitě webu.
@@ -715,17 +711,14 @@ audit log, 3D půdorys, samostatná PWA.
 
 Používat aktuální dokumentaci, ne staré návody z fór.
 
-- Home Assistant Apps: https://developers.home-assistant.io/docs/apps/
-- Konfigurace: https://developers.home-assistant.io/docs/apps/configuration/
-- Komunikace: https://developers.home-assistant.io/docs/apps/communication/
-- Ingress: https://developers.home-assistant.io/docs/apps/presentation/
-- Bezpečnost: https://developers.home-assistant.io/docs/apps/security/
-- Repository: https://developers.home-assistant.io/docs/apps/repository/
-- REST API: https://developers.home-assistant.io/docs/api/rest/
-- WebSocket API: https://developers.home-assistant.io/docs/api/websocket/
+- Integrace: https://developers.home-assistant.io/docs/creating_component_index/
+- Config Flow: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/
 - Device Registry: https://developers.home-assistant.io/docs/device_registry_index/
 - Entity Registry: https://developers.home-assistant.io/docs/entity_registry_index/
 - Area Registry: https://developers.home-assistant.io/docs/area_registry_index/
+- Vlastní panely: https://developers.home-assistant.io/docs/frontend/custom-ui/creating-custom-panels/
+- HTTP pohledy: https://developers.home-assistant.io/docs/api/native-app-integration/
+- Data Entry Flow: https://developers.home-assistant.io/docs/data_entry_flow_index/
 
 Průběžně sledovat Home Assistant Developer Blog, hlavně breaking changes.
 

@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smarthome4u",
+        "description": "Rozhraní se přidá do postranní nabídky. Nic dalšího nastavovat nemusíte."
+      }
+    },
+    "abort": {
+      "already_configured": "Smarthome4u už je přidané."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Jak má Smarthome4u vypadat",
+        "data": {
+          "hide_sidebar": "Schovat postranní lištu Home Assistantu",
+          "landing": "Po přihlášení otevřít rovnou Smarthome4u"
+        }
+      }
+    }
+  }
+}
