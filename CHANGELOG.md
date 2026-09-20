@@ -12,6 +12,8 @@ Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
   panel viset, nejdřív se odebere a pak zaregistruje znovu.
 - Starší Home Assistant bez StaticPathConfig použije původní způsob
   servírování souborů.
+- Opakovaná registrace cest a API už nevypne integraci. Při druhém spuštění
+  v rámci jednoho běhu Home Assistantu je to očekávaný stav, ne chyba.
 
 ### Změněno
 

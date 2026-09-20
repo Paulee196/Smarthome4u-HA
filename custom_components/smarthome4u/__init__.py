@@ -60,9 +60,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not store.get("api"):
         try:
             api.register(hass)
-        except Exception:  # noqa: BLE001 - chceme vědět proč, ne spadnout
-            _LOGGER.exception("Interní API se nepodařilo zaregistrovat")
-            return False
+        except Exception as err:  # noqa: BLE001
+            # Při opakovaném spuštění už cesty existují. To není chyba.
+            _LOGGER.warning(
+                "Interní API bylo nejspíš registrované už dřív (%s). Pokračuji.",
+                err,
+            )
         store["api"] = True
         _LOGGER.debug("Interní API je registrované")
 
@@ -109,12 +112,14 @@ async def _serve_files(hass: HomeAssistant, store: dict) -> bool:
         # Starší Home Assistant StaticPathConfig nezná.
         try:
             hass.http.register_static_path(STATIC_URL, str(folder), False)
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception("Soubory rozhraní se nepodařilo zpřístupnit")
-            return False
-    except Exception:  # noqa: BLE001
-        _LOGGER.exception("Soubory rozhraní se nepodařilo zpřístupnit")
-        return False
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Soubory rozhraní: %s. Pokračuji.", err)
+    except Exception as err:  # noqa: BLE001
+        # Při opakovaném spuštění je cesta už registrovaná. To není chyba.
+        _LOGGER.warning(
+            "Soubory rozhraní byly nejspíš zpřístupněné už dřív (%s). Pokračuji.",
+            err,
+        )
 
     store["static"] = True
     _LOGGER.debug("Soubory rozhraní se servírují z %s", STATIC_URL)
