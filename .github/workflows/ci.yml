@@ -26,7 +26,8 @@ jobs:
       - name: Instalace Home Assistantu
         run: |
           python -m pip install --upgrade pip
-          pip install homeassistant ruff
+          pip install pytest-homeassistant-custom-component ruff
+          python -c "import homeassistant.const as c; print('Testuje se proti Home Assistantu', c.__version__)"
 
       - name: Kontrola syntaxe
         run: python -m compileall -q custom_components/smarthome4u
@@ -45,6 +46,9 @@ jobs:
 
       - name: Ruff
         run: ruff check --select E9,F,B --output-format=github custom_components/smarthome4u
+
+      - name: Testy - integrace se opravdu přidá a spustí
+        run: pytest tests -q
 
   versions:
     name: Shoda verzí
