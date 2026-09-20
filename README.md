@@ -17,7 +17,7 @@ Smarthome4u vypnete, domácnost běží dál.
 | Verze | Stav | Obsah |
 |---|---|---|
 | v0.1 - v0.3 | hotovo | Základ, pět sekcí, ovládání, správa místností, scény, automatizace, vlastní průvodce integracemi |
-| v0.4 | ve vývoji | Přechod z doplňku na integraci, schovaná lišta, přistání po přihlášení |
+| v0.4 | **vydáno** | Přechod z doplňku na integraci, schovaná lišta, přistání po přihlášení |
 | v1.0 | plánováno | Editor automatizací, šablony dashboardu, technický režim, finální design |
 
 Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
@@ -40,7 +40,7 @@ Ovládání podle typu zařízení: stmívání, teplota bílé, barva, poloha a
 
 ## Instalace
 
-Potřebujete **Home Assistant 2026.8 nebo novější**. Funguje na OS, Container,
+Potřebujete **Home Assistant 2024.8 nebo novější**. Funguje na OS, Container,
 Core i Supervised.
 
 ### Přes HACS

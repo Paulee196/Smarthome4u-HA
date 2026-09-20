@@ -2,6 +2,13 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.4.3]
+
+### Opraveno
+
+- README uváděl Home Assistant 2026.8, správně je 2024.8 stejně jako hacs.json
+- Tabulka stavu vývoje ukazovala verzi 0.4 jako rozpracovanou
+
 ## [0.4.2]
 
 První vydaná verze integrace. Verze 0.4.0 a 0.4.1 se nikdy nevydaly.
