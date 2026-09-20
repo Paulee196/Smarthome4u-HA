@@ -11,7 +11,6 @@ import time
 from functools import wraps
 from typing import Any
 
-import voluptuous_serialize
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
@@ -508,19 +507,36 @@ def _serialize(result: dict) -> dict:
             value = result[key]
             data[key] = getattr(value, "value", value) if key == "type" else value
 
-    schema = result.get("data_schema")
-    if schema is not None:
-        try:
-            data["data_schema"] = voluptuous_serialize.convert(
-                schema, custom_serializer=cv.custom_serializer
-            )
-        except Exception:  # noqa: BLE001 - neznámé schéma nesmí shodit průvodce
-            _LOGGER.warning("Schéma kroku se nepodařilo přeložit")
-            data["data_schema"] = []
-    else:
-        data["data_schema"] = []
-
+    data["data_schema"] = _convert_schema(result.get("data_schema"))
     return data
+
+
+def _convert_schema(schema) -> list:
+    """Převede voluptuous schéma na seznam polí pro frontend.
+
+    Balíček voluptuous_serialize je deklarovaný v manifestu, takže si ho
+    Home Assistant doinstaluje. Kdyby přesto chyběl, průvodce ukáže krok bez
+    polí místo toho, aby spadla celá integrace.
+    """
+    if schema is None:
+        return []
+
+    try:
+        import voluptuous_serialize
+    except ImportError:
+        _LOGGER.error(
+            "Chybí balíček voluptuous-serialize. Průvodce přidáním integrace "
+            "nemůže zobrazit formuláře. Zkuste restartovat Home Assistant."
+        )
+        return []
+
+    try:
+        return voluptuous_serialize.convert(
+            schema, custom_serializer=cv.custom_serializer
+        )
+    except Exception:  # noqa: BLE001 - neznámé schéma nesmí shodit průvodce
+        _LOGGER.warning("Schéma kroku se nepodařilo přeložit")
+        return []
 
 
 class IntegrationsView(Sh4uView):

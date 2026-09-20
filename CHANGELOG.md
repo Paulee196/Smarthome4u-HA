@@ -2,6 +2,16 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.4.5]
+
+### Opraveno
+
+- Integrace se nespustila kvůli chybějícímu balíčku voluptuous-serialize.
+  Považoval jsem ho za součást Home Assistantu, ale není. Teď je uvedený
+  v manifestu jako požadavek, takže si ho Home Assistant doinstaluje sám.
+- Balíček se navíc načítá až ve chvíli, kdy je potřeba. Kdyby přesto chyběl,
+  průvodce přidáním integrace ukáže krok bez polí místo pádu celé integrace.
+
 ## [0.4.4]
 
 ### Opraveno

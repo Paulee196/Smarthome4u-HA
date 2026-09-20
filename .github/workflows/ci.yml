@@ -56,6 +56,15 @@ jobs:
           fi
           cat /tmp/log
 
+      - name: Cizí balíčky musí být v manifestu
+        run: |
+          if ! python scripts/check_imports.py > /tmp/log 2>&1; then
+            echo "::error::Nedeklarovaný balíček: $(tail -c 900 /tmp/log | tr '\n' ' ')"
+            cat /tmp/log
+            exit 1
+          fi
+          cat /tmp/log
+
       - name: Ruff
         run: ruff check --select E9,F,B --output-format=github custom_components/smarthome4u
 
