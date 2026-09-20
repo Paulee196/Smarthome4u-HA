@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 9. 2026
-**Aktuální verze:** 0.4.0
+**Aktuální verze:** 0.4.1
 **Fáze:** v0.4 nadstavba - hotový kód, čeká na ověření na reálném HA
 
 ---
@@ -68,8 +68,18 @@ z iframu by to nešlo.
 - [x] Automatizace a scény do YAML se standardním reloadem
 - [x] CI instaluje skutečný Home Assistant a ověřuje importy
 - [x] Hassfest kontroluje manifest
+- [x] Testy spouští skutečný Home Assistant: otevřou průvodce, přidají
+      integraci, ověří registraci panelu, zavolají API a zkusí zakázanou akci
+- [x] Kontrola vypisuje skutečnou chybu jako anotaci, ne jen návratový kód
 
 ---
+
+## Vyřešené potíže
+
+**Invalid handler specified (0.4.0)** - Home Assistant importuje 
+dřív než . Když import spadne, uživatel vidí jen tuhle hlášku
+bez vysvětlení. Opraveno v 0.4.1: oba soubory teď na začátku importují jen
+jistoty a zbytek se načítá až za běhu. Testy v CI tenhle scénář ověřují.
 
 ## Neověřeno - čeká na reálný Home Assistant
 
