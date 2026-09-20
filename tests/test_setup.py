@@ -155,3 +155,99 @@ async def test_akce_mimo_seznam_se_odmitne(
     )
     assert response.status == 400
     assert (await response.json())["error"] == "action_not_allowed"
+
+
+async def test_role_a_nastaveni(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """První administrátor se stane správcem a vidí nastavení."""
+    assert await async_setup_component(hass, "http", {})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["user"]["role"] == "admin"
+    assert model["preset"] == "prehled"
+
+    nastaveni = await (await client.get("/api/smarthome4u/settings")).json()
+    assert nastaveni["adminUserId"] == model["user"]["id"]
+    assert "mistnosti" in nastaveni["presets"]
+    assert "light" in nastaveni["kinds"]
+
+
+async def test_zmena_podoby_dashboardu(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Správce může přepnout podobu dashboardu, nehotovou ale ne."""
+    assert await async_setup_component(hass, "http", {})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    odpoved = await client.post(
+        "/api/smarthome4u/settings", json={"preset": "mistnosti"}
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["preset"] == "mistnosti"
+
+    # Půdorys se teprve připravuje.
+    odpoved = await client.post(
+        "/api/smarthome4u/settings", json={"preset": "pudorys"}
+    )
+    assert odpoved.status == 400
+
+
+async def test_prerazeni_entity(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Co Home Assistant hlásí jako světlo, jde přeřadit na zásuvku."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set(
+        "light.kontrolka", "on", {"supported_color_modes": ["onoff"]}
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    def najdi(model):
+        for room in model["rooms"]:
+            for ent in room["entities"]:
+                if ent["id"] == "light.kontrolka":
+                    return ent
+        return None
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert najdi(model)["capability"]["kind"] == "light"
+
+    odpoved = await client.post(
+        "/api/smarthome4u/entities/light.kontrolka/classify",
+        json={"kind": "switch"},
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert najdi(model)["capability"]["kind"] == "switch"
+
+    # A jde ji taky úplně schovat.
+    odpoved = await client.post(
+        "/api/smarthome4u/entities/light.kontrolka/classify",
+        json={"hidden": True},
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert najdi(model) is None

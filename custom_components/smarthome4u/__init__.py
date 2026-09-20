@@ -51,8 +51,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     from . import api
+    from .storage import Settings
 
     store = hass.data.setdefault(DOMAIN, {})
+
+    if "settings" not in store:
+        settings = Settings(hass)
+        try:
+            await settings.load()
+        except Exception:  # noqa: BLE001 - poškozený soubor nesmí shodit start
+            _LOGGER.exception("Nastavení se nepodařilo načíst, beru výchozí")
+        store["settings"] = settings
 
     if not await _serve_files(hass, store):
         return False

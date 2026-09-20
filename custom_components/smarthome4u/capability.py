@@ -337,6 +337,52 @@ _SERVICE_DOMAIN = {
 }
 
 
+# ----------------------------------------------------------------------
+# Ruční přeřazení
+#
+# Home Assistant hlásí jako světlo i kdejakou kontrolku a naopak některá
+# světla jsou obyčejný switch. Podle názvu to poznat nesmíme, takže to musí
+# jít opravit ručně.
+# ----------------------------------------------------------------------
+
+_PODLE_SCHOPNOSTI: dict[str, Callable[[str | None, dict[str, Any]], dict]] = {
+    "light": _light,
+    "switch": _switch,
+    "cover": _cover,
+    "climate": _climate,
+    "lock": _lock,
+    "fan": _fan,
+    "sensor": _sensor,
+    "binary_sensor": _binary_sensor,
+    "media_player": _media_player,
+    "number": _number,
+    "select": _select,
+    "button": _button,
+    "presence": _presence,
+}
+
+# Co smí správce nabídnout jako náhradní zařazení.
+PRERADITELNE = tuple(_PODLE_SCHOPNOSTI)
+
+
+def reclassify(
+    puvodni: dict[str, Any],
+    kind: str,
+    attributes: dict[str, Any],
+) -> dict[str, Any]:
+    """Vrátí schopnost, jako by entita byla jiného typu.
+
+    Příznaky se počítají ze skutečných atributů, takže ze zásuvky se
+    přeřazením nestane stmívatelné světlo.
+    """
+    handler = _PODLE_SCHOPNOSTI.get(kind)
+    if handler is None:
+        return puvodni
+
+    device_class = attributes.get("device_class")
+    return handler(device_class, attributes)
+
+
 class ActionNotAllowed(Exception):
     """Frontend požádal o něco, co pro tuto entitu není povolené."""
 

@@ -64,8 +64,15 @@ HIDDEN_CATEGORIES = {"config", "diagnostic"}
 class Home:
     """Čte strukturu domácnosti z registrů Home Assistantu."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, settings=None) -> None:
         self.hass = hass
+        self.settings = settings
+
+    def _override(self, entity_id: str) -> dict:
+        """Ruční oprava zařazení od správce."""
+        if self.settings is None:
+            return {}
+        return self.settings.overrides.get(entity_id, {})
 
     # ------------------------------------------------------------------
     # Jedna entita
@@ -105,6 +112,14 @@ class Home:
                 device = dr.async_get(self.hass).async_get(device_id)
                 area_id = device.area_id if device else None
 
+        schopnost = capability.classify(domain, device_class, attributes)
+
+        # Home Assistant hlásí jako světlo i věci, které světlo nejsou.
+        # Správce to může přeřadit ručně.
+        oprava = self._override(state.entity_id)
+        if oprava.get("kind"):
+            schopnost = capability.reclassify(schopnost, oprava["kind"], attributes)
+
         return {
             "id": state.entity_id,
             # Persistentní identita. entity_id je jen měnitelný atribut.
@@ -116,7 +131,8 @@ class Home:
             "areaId": area_id,
             "state": state.state,
             "available": state.state not in ("unavailable", "unknown"),
-            "capability": capability.classify(domain, device_class, attributes),
+            "capability": schopnost,
+            "overridden": bool(oprava.get("kind")),
             "attributes": {
                 key: attributes[key]
                 for key in FORWARDED_ATTRIBUTES
@@ -139,6 +155,9 @@ class Home:
             entry = registry.async_get(state.entity_id)
 
             if entry is not None and (entry.disabled_by or entry.hidden_by):
+                continue
+
+            if self._override(state.entity_id).get("hidden"):
                 continue
 
             view = self._entity_view(state, entry)
