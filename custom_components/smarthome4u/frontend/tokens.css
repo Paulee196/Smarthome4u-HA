@@ -6,64 +6,186 @@
  * POZOR: barvy níže jsou DOČASNÉ. Finální hodnoty se doplní až po auditu
  * webu smarthome4u.cz podle docs/ZADANI.md kap. 20. Do té doby se
  * nepoužívají v marketingových materiálech ani v release buildu.
+ *
+ * Vzhled: tmavý základ, bílý text, jeden modrofialový akcent. Žádné
+ * přechody, žádné sklo, stíny jen tam, kde něco skutečně leží nad obsahem.
  */
 
-:root {
+/* Tokeny se definují třikrát na stejné pravidlo.
+ * `:root` je původní zápis, `:host` platí uvnitř stínového stromu panelu
+ * a `.shell` je pojistka, kdyby prohlížeč `:host` v odkazovaném souboru
+ * neuplatnil. Dialogy i hlášky se vkládají dovnitř `.shell`, takže tokeny
+ * zdědí všechno. */
+:root,
+:host,
+.shell {
   /* --- Plochy (dark-first) --- */
-  --sh-bg: #0b0c10;
-  --sh-surface: #15171e;
-  --sh-surface-raised: #1d2029;
-  --sh-border: #272b36;
+  --sh-bg: #07080b;
+  --sh-surface: #0f1116;
+  --sh-surface-raised: #161922;
+  --sh-surface-hover: #1c2029;
+  --sh-border: #232734;
+  --sh-border-strong: #343a4a;
+  /* Překryv pod dialogem. Dost tmavý, aby pozadí přestalo rušit. */
+  --sh-overlay: rgba(3, 4, 6, 0.74);
+  /* Modrý blik při doteku na Androidu ruší klid rozhraní. */
+  --sh-tap-highlight: transparent;
 
   /* --- Text --- */
   --sh-text: #ffffff;
-  --sh-text-muted: #9aa1b1;
-  --sh-text-faint: #6b7280;
+  --sh-text-muted: #a2a9ba;
+  --sh-text-faint: #6d7486;
 
   /* --- Brand (DOČASNÉ) --- */
-  --sh-accent: #6c5ce7;
-  --sh-accent-hover: #7d6ff0;
+  --sh-accent: #6f5cff;
+  --sh-accent-hover: #8674ff;
   --sh-accent-text: #ffffff;
+  /* Tlumené varianty pro výplně a linky. Nikdy plná barva na velké ploše. */
+  --sh-accent-quiet: rgba(111, 92, 255, 0.14);
+  --sh-accent-line: rgba(111, 92, 255, 0.45);
 
   /* --- Sémantické barvy. Význam se nikdy nemění podle šablony. --- */
-  --sh-success: #34d399;
-  --sh-warning: #fbbf24;
-  --sh-error: #f87171;
-  --sh-info: #60a5fa;
-  --sh-offline: #4b5563;
+  --sh-success: #3ddc97;
+  --sh-warning: #ffc44d;
+  --sh-error: #ff6b6b;
+  --sh-error-hover: #ff8585;
+  /* Text na vyplněném nebezpečném tlačítku. Tmavý, jinak nevyjde kontrast. */
+  --sh-error-text: #0b0c10;
+  --sh-error-quiet: rgba(255, 107, 107, 0.12);
+  --sh-info: #5aa9ff;
+  --sh-offline: #5b6272;
+  /* Nedostupné jako text musí být čitelné, tečka smí být tmavší. */
+  --sh-offline-text: #8b93a4;
 
   /* --- Stav zařízení --- */
-  --sh-on: #fbbf24;
-  --sh-on-glow: rgba(251, 191, 36, 0.18);
-  --sh-alert-glow: rgba(248, 113, 113, 0.15);
+  --sh-on: #ffc44d;
+  --sh-on-text: #ffd27a;
+  --sh-on-quiet: rgba(255, 196, 77, 0.1);
+  --sh-on-line: rgba(255, 196, 77, 0.42);
+  /* Původní názvy, ať nic nespadne, pokud je někdo použije. */
+  --sh-on-glow: rgba(255, 196, 77, 0.1);
+  --sh-alert-glow: rgba(255, 107, 107, 0.1);
+  --sh-alert-quiet: rgba(255, 107, 107, 0.1);
+  --sh-alert-line: rgba(255, 107, 107, 0.42);
 
   /* --- Typografie --- */
   --sh-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
+  --sh-size-2xs: 0.6875rem;
   --sh-size-xs: 0.75rem;
   --sh-size-sm: 0.875rem;
   --sh-size-md: 1rem;
   --sh-size-lg: 1.25rem;
-  --sh-size-xl: 1.5rem;
+  --sh-size-xl: 1.625rem;
+  --sh-size-2xl: 2.125rem;
   --sh-weight-normal: 400;
   --sh-weight-medium: 500;
   --sh-weight-bold: 600;
+  --sh-leading-tight: 1.15;
+  --sh-leading-snug: 1.3;
+  --sh-leading-normal: 1.5;
+  /* Velké nadpisy se stahují, verzálková návěští se rozpouštějí. */
+  --sh-tracking-tight: -0.02em;
+  --sh-tracking-wide: 0.09em;
 
   /* --- Rozestupy --- */
+  --sh-gap-2xs: 2px;
   --sh-gap-xs: 4px;
   --sh-gap-sm: 8px;
   --sh-gap-md: 16px;
   --sh-gap-lg: 24px;
   --sh-gap-xl: 32px;
+  --sh-gap-2xl: 48px;
 
   /* --- Tvary --- */
-  --sh-radius-sm: 8px;
-  --sh-radius-md: 14px;
-  --sh-radius-lg: 20px;
+  --sh-radius-sm: 10px;
+  --sh-radius-md: 16px;
+  --sh-radius-lg: 22px;
+  --sh-radius-pill: 999px;
+  /* Vlasová linka. Jediná tloušťka rámečku v celé aplikaci. */
+  --sh-hairline: 1px;
+  /* Proužek aktivního stavu. Nese stav tvarem, ne jen barvou. */
+  --sh-rail: 3px;
 
   /* --- Dotykové cíle. Nikdy nesnižovat pod 44 px. --- */
   --sh-touch-target: 44px;
+  --sh-focus-width: 2px;
+  --sh-focus-offset: 2px;
+
+  /* --- Ikony --- */
+  --sh-icon: 22px;
+  --sh-icon-lg: 26px;
+  /* Tloušťka tahu ikon. Na nástěnném panelu se zesiluje. */
+  --sh-stroke: 1.6;
+  --sh-stroke-lg: 1.6;
+  /* Čtvercová podložka pod ikonou skupiny a řádku. */
+  --sh-glyph-box: 36px;
+
+  /* --- Rozměry prvků --- */
+  --sh-dot: 8px;
+  --sh-mark: 10px;
+  --sh-card-min: 168px;
+  --sh-card-height: 116px;
+  --sh-button-min: 150px;
+  --sh-swatch-min: 48px;
+  --sh-list-max: 240px;
+  --sh-progress-height: 4px;
+  --sh-track-height: 6px;
+  --sh-thumb: 26px;
+  --sh-stepper-width: 5ch;
+  /* Výška spodní navigace. Odvozená, ať se nerozejde s dotykovým cílem. */
+  --sh-nav-height: calc(var(--sh-touch-target) + var(--sh-gap-sm));
+  --sh-nav-width: 232px;
+  --sh-dialog-width: 560px;
+  --sh-dialog-height: 88dvh;
+  --sh-dialog-height-lg: 84dvh;
+  --sh-toast-width: 520px;
+  /* Úchyt spodního panelu na telefonu. */
+  --sh-handle-width: 36px;
+  --sh-handle-height: 4px;
+
+  /* --- Pohyb --- */
+  --sh-ease: cubic-bezier(0.2, 0, 0, 1);
+  --sh-fast: 120ms;
+  --sh-base: 200ms;
+
+  /* --- Stín. Jediný v aplikaci, jen pro věci ležící nad obsahem. --- */
+  --sh-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
+
+  /* --- Šipka u rozbalovacího seznamu. Barva musí zůstat tady. --- */
+  --sh-caret: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%20fill=%27none%27%20stroke=%27%23a2a9ba%27%20stroke-width=%271.6%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27m6%209%206%206%206-6%27/%3E%3C/svg%3E");
+  --sh-caret-size: 18px;
 
   /* --- Čitelná šířka textu, aby se obsah neroztáhl na 4K --- */
-  --sh-max-width: 1600px;
+  --sh-max-width: 1440px;
+  --sh-measure: 68ch;
+}
+
+/* Nástěnný panel - velký displej, kterého se dotýká prst, čtený ze
+ * vzdálenosti 1-3 metry. Roste písmo, ikony a dotykové cíle. Rozvržení
+ * se nemění, o to se stará style.css. */
+@media (min-width: 1400px) and (pointer: coarse) {
+  :root,
+  :host,
+  .shell {
+    --sh-size-2xs: 0.8125rem;
+    --sh-size-xs: 0.875rem;
+    --sh-size-sm: 1rem;
+    --sh-size-md: 1.125rem;
+    --sh-size-lg: 1.5rem;
+    --sh-size-xl: 2rem;
+    --sh-size-2xl: 2.75rem;
+    --sh-touch-target: 64px;
+    --sh-icon: 26px;
+    --sh-icon-lg: 34px;
+    /* Silnější tah ikon, jinak se ze vzdálenosti ztratí. */
+    --sh-stroke: 1.8;
+    --sh-stroke-lg: 1.9;
+    --sh-glyph-box: 48px;
+    --sh-card-min: 208px;
+    --sh-card-height: 150px;
+    --sh-nav-width: 280px;
+    --sh-thumb: 34px;
+    --sh-track-height: 8px;
+  }
 }

@@ -2,6 +2,38 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.5.0]
+
+### Opraveno
+
+- Design tokeny byly deklarované jen na :root. Uvnitř stínového stromu, kde
+  panel běží, :root neodpovídá ničemu - takže se nepoužila jediná barva ani
+  rozměr a všechno padalo na výchozí hodnoty prohlížeče. Odtud ten vzhled.
+  Tokeny jsou teď i na :host a .shell.
+
+### Změněno
+
+- Vzhled: tmavší a chladnější základ, tři úrovně ploch, čistší modrofialový
+  accent. Aktivní položku navigace značí tenká lišta místo výplně.
+- Dlaždice mají zaoblené podložky pod ikonou, která u zapnutého zařízení
+  zežloutne. Zapnutý stav je jemný odstín, ne svítící plocha.
+- Typografie: tabulkové číslice u hodnot, verzálková mikropísmena u popisků,
+  sevřenější nadpisy, větší mezery mezi sekcemi.
+- Mřížka dlaždic drží dva sloupce i na 360px telefonu.
+- Přejezd myší je ve @media (hover: hover), aby na dotykovém panelu
+  nezůstávaly zaseknuté stavy.
+
+### Přidáno
+
+- Role podle Loxone: jeden účet je správce a nastavuje, ostatní dům ovládají.
+  Kontroluje to backend u každé zapisující operace.
+- Správcem se stane první administrátor, který rozhraní otevře. Jde předat.
+- Vlastní nastavení se ukládá přes úložiště Home Assistantu, je v záloze.
+- Volba podoby dashboardu: Přehled, Místnosti, Funkce. Půdorys se připravuje.
+- Ruční přeřazení entity. Home Assistant hlásí jako světlo i kontrolky
+  a podle názvu to rozpoznávat nesmíme, takže to musí jít opravit ručně.
+- Schování entity, která do rozhraní nepatří.
+
 ## [0.4.5]
 
 ### Opraveno
