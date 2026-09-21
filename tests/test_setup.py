@@ -224,8 +224,9 @@ async def test_prerazeni_entity(
 ) -> None:
     """Co Home Assistant hlásí jako světlo, jde přeřadit na zásuvku."""
     assert await async_setup_component(hass, "http", {})
+    # Stmívatelné, takže ho automatika nechá být jako světlo.
     hass.states.async_set(
-        "light.kontrolka", "on", {"supported_color_modes": ["onoff"]}
+        "light.kontrolka", "on", {"supported_color_modes": ["brightness"]}
     )
 
     entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)

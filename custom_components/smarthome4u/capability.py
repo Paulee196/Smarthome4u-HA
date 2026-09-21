@@ -110,6 +110,16 @@ def _light(device_class: str | None, attributes: dict[str, Any]) -> dict[str, An
         spinac["fromLight"] = True
         return spinac
 
+    return _svetlo(attributes)
+
+
+def _svetlo(attributes: dict[str, Any]) -> dict[str, Any]:
+    """Schopnosti světla bez ptaní, jestli je to světlo.
+
+    Tohle se použije, když to správce určil ručně. Automatika si nesmí
+    jeho rozhodnutí přebít zpátky - jinak by se nedalo nic opravit.
+    """
+    modes = set(attributes.get("supported_color_modes") or [])
     return {
         "kind": "light",
         "controllable": True,
@@ -464,7 +474,8 @@ _SERVICE_DOMAIN = {
 # ----------------------------------------------------------------------
 
 _PODLE_SCHOPNOSTI: dict[str, Callable[[str | None, dict[str, Any]], dict]] = {
-    "light": _light,
+    # Ne _light: ten by rozhodnutí správce vrátil zpátky na spínač.
+    "light": lambda device_class, attributes: _svetlo(attributes),
     "switch": _switch,
     "cover": _cover,
     "climate": _climate,
