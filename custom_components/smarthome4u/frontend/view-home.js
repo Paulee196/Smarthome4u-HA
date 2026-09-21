@@ -20,8 +20,7 @@ import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { renderFloorplan } from "./view-floorplan.js";
-import { renderPanel } from "./view-panel.js";
-import { mrizkaOblibenych } from "./favorites.js";
+import { vykreslitPlochu } from "./blocks.js";
 import { icon, iconFor } from "./icons.js";
 import {
   h,
@@ -68,25 +67,21 @@ export async function renderHome(root, ctx) {
   const model = ctx.model;
   const preset = model.preset || "prehled";
 
-  if (preset === "pudorys") {
-    if (ctx.editing) pridat(root, listaUprav(ctx));
-    await renderFloorplan(root, ctx);
-    return;
-  }
-
   if (ctx.editing) {
     pridat(root, listaUprav(ctx));
   }
 
-  if (preset === "panel") {
-    renderPanel(root, ctx);
+  if (preset === "pudorys") {
+    await renderFloorplan(root, ctx);
     return;
   }
 
-  if (preset === "prehled") {
-    prehled(root, ctx);
-    return;
-  }
+  // Plocha je seznam bloků. Co na ní je a v jakém pořadí, určuje správce.
+  vykreslitPlochu(root, ctx);
+
+  // Místnosti a Funkce navíc rozepisují celý dům pod bloky. Tam se
+  // nevybírá, co se ukáže - vychází to z Home Assistantu.
+  if (preset !== "mistnosti" && preset !== "funkce") return;
 
   if (!model.rooms.length) {
     root.append(emptyState(t.empty.text));
@@ -96,10 +91,9 @@ export async function renderHome(root, ctx) {
   const telo = h("div", { class: "view" });
   root.append(telo);
 
-  const sekce =
-    preset === "funkce" ? podleFunkci(model, ctx) : podleMistnosti(model, ctx);
-
-  telo.replaceChildren(...sekce);
+  telo.replaceChildren(
+    ...(preset === "funkce" ? podleFunkci(model, ctx) : podleMistnosti(model, ctx)),
+  );
 
   if (ctx.editing) {
     zapnoutPretahovaniMistnosti(telo, ctx);
@@ -329,122 +323,3 @@ function panel(klic, title, subtitle, glyph, entities, ctx) {
 /* ------------------------------------------------------------------ */
 /* Přehled                                                             */
 /* ------------------------------------------------------------------ */
-
-function prehled(root, ctx) {
-  const model = ctx.model;
-  const souhrn = model.summary || {};
-
-  pridat(root, stavDomu(souhrn), upozorneni(souhrn));
-
-  const oblibene = model.favorites || [];
-  if (oblibene.length || ctx.editing) {
-    root.append(
-      blok(t.home.favorites, "scenes", h("div", { class: "stack" }, [
-        ctx.editing &&
-          h("p", { class: "muted", text: t.favorites.hint }),
-        mrizkaOblibenych(ctx),
-      ])),
-    );
-  } else if (ctx.jeTechnik) {
-    root.append(blok(t.home.favorites, "scenes", emptyState(t.home.noFavorites)));
-  }
-
-  const sceny = model.scenes || [];
-  if (sceny.length) {
-    root.append(blok(t.scenes.scenes, "scenes", mrizkaKaret(sceny)));
-  }
-
-  root.append(
-    blok(
-      t.home.quickActions,
-      "home",
-      h("div", { class: "row" }, [
-        button(t.home.allLightsOff, () => zhasnoutVse(model)),
-        button(t.nav.rooms, () => ctx.navigate("rooms"), "button--ghost"),
-      ]),
-    ),
-  );
-}
-
-function mrizkaKaret(entity) {
-  return h("div", { class: "cards" }, entity.map((e) => card(e)));
-}
-
-/** Stav domu větami, ne čísly bez kontextu. */
-function stavDomu(souhrn) {
-  const radky = [
-    veta(
-      "lighting",
-      souhrn.lightsOn
-        ? t.status.lightsOn(souhrn.lightsOn, souhrn.lightNames)
-        : t.status.allLightsOff,
-      Boolean(souhrn.lightsOn),
-    ),
-    veta(
-      "lock",
-      souhrn.unlockedCount
-        ? t.status.unlocked(souhrn.unlockedCount, souhrn.unlockedNames)
-        : t.status.allLocked,
-      Boolean(souhrn.unlockedCount),
-    ),
-    veta(
-      "window",
-      souhrn.openCount
-        ? t.status.open(souhrn.openCount, souhrn.openNames)
-        : t.status.allClosed,
-      Boolean(souhrn.openCount),
-    ),
-  ];
-
-  return h("section", { class: "panel stav" }, radky);
-}
-
-function veta(glyf, text, zvyraznit) {
-  return h(
-    "div",
-    { class: `stav__radek${zvyraznit ? " stav__radek--on" : ""}` },
-    [
-      h("span", { class: "stav__glyf" }, icon(glyf)),
-      h("span", { class: "stav__text", text }),
-    ],
-  );
-}
-
-function upozorneni(souhrn) {
-  if (!souhrn.alerts?.length) return null;
-
-  return h("section", { class: "panel panel--alert" }, [
-    h("div", { class: "panel__head" }, [
-      h("span", { class: "panel__glyph" }, icon("security")),
-      h("h2", { class: "panel__title", text: t.home.alerts }),
-    ]),
-    mrizkaKaret(souhrn.alerts),
-  ]);
-}
-
-function blok(nadpis, glyf, obsah) {
-  return h("section", { class: "panel" }, [
-    h("div", { class: "panel__head" }, [
-      h("span", { class: "panel__glyph" }, icon(glyf)),
-      h("h2", { class: "panel__title", text: nadpis }),
-    ]),
-    obsah,
-  ]);
-}
-async function zhasnoutVse(model) {
-  const lights = model.rooms
-    .flatMap((room) => room.entities)
-    .filter((entity) => entity.capability?.kind === "light" && entity.state === "on");
-
-  if (!lights.length) {
-    toast(t.status.allLightsOff);
-    return;
-  }
-
-  try {
-    await Promise.all(lights.map((entity) => api.action(entity.id, "turn_off")));
-    toast(t.home.turnedOff(lights.length));
-  } catch (error) {
-    toast(error.message, true);
-  }
-}

@@ -519,12 +519,46 @@ export const t = {
     },
   },
 
+  /* Názvy bloků. Musí říct, co blok ukazuje, ne jak se jmenuje uvnitř. */
+  blocks: {
+    clock: "Hodiny",
+    status: "Stav domu",
+    alerts: "Upozornění",
+    open: "Otevřená okna a dveře",
+    playing: "Právě hraje",
+    lights: "Rozsvícená světla",
+    scenes: "Scény",
+    rooms: "Místnosti",
+    actions: "Rychlé akce",
+    entities: "Vybraná zařízení",
+  },
+
+  blocksHint: {
+    clock: "Velké hodiny a datum",
+    status: "Svítí, zamčeno, zavřeno - třemi větami",
+    alerts: "Kouř, voda, plyn. Ukáže se, jen když je co hlásit",
+    open: "Co je právě otevřené nebo odemčené",
+    playing: "Co se přehrává a kde",
+    lights: "Kde svítí, s tlačítkem zhasnout vše",
+    scenes: "Scény z Home Assistanta",
+    rooms: "Dlaždice místností s teplotou",
+    actions: "Zhasnout vše a přechod do místností",
+    entities: "Zařízení, která si vyberete sám",
+  },
+
   editor: {
-    title: "Úprava rozvržení",
+    title: "Úprava plochy",
     hint:
-      "Chytněte prvek za ⠿ a přetáhněte. Křížkem ho schováte, " +
-      "šipkami opravíte jeho typ.",
+      "Chytněte blok za ⠿ a přetáhněte. Křížkem ho odeberete, " +
+      "tlačítkem dole přidáte další.",
     edit: "Upravit plochu",
+    addBlock: "Přidat blok",
+    removeBlock: "Odebrat blok",
+    blockEmpty: "Tenhle blok teď nemá co ukázat. Až bude, objeví se sám.",
+    blockFailed: "Blok se nepodařilo vykreslit.",
+    allBlocksUsed: "Všechny bloky už na ploše máte.",
+    emptyBoard:
+      "Plocha je prázdná. Klepněte na Upravit plochu a přidejte bloky.",
     done: "Hotovo",
     hide: "Schovat",
     drag: "Přetáhnout",

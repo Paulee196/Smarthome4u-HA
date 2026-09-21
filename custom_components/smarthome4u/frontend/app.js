@@ -53,6 +53,13 @@ const ctx = {
   navigate,
   allEntities: () => (state.model?.rooms || []).flatMap((room) => room.entities),
 
+  /* Bloky si drží jen entity_id, aby přežily přejmenování i výměnu
+     zařízení. Zbytek se dohledá v modelu až při vykreslení. */
+  entityById: (id) =>
+    (state.model?.rooms || [])
+      .flatMap((room) => room.entities)
+      .find((entity) => entity.id === id) || null,
+
   get editing() {
     return state.editing;
   },

@@ -60,6 +60,9 @@ VYCHOZI: dict[str, Any] = {
     "favorites": [],
     # Půdorys: obrázek a body se zařízeními v procentech plochy.
     "floorplan": {"image": None, "points": []},
+    # Plocha po blocích, zvlášť pro každou podobu dashboardu.
+    # Prázdné znamená "použij výchozí sestavu", ne "prázdná plocha".
+    "dashboard": {},
 }
 
 
@@ -153,6 +156,21 @@ class Settings:
         self.data["kiosk"] = bool(zapnuto)
         if landing is not None:
             self.data["landing"] = bool(landing)
+        await self.save()
+
+    # ------------------------------------------------------------------
+    # Plocha po blocích
+    # ------------------------------------------------------------------
+
+    def blocks(self, preset: str) -> list[dict] | None:
+        """Bloky pro danou podobu plochy, nebo None pro výchozí sestavu."""
+        ulozene = self.data.get("dashboard") or {}
+        bloky = ulozene.get(preset)
+        return bloky if isinstance(bloky, list) else None
+
+    async def set_blocks(self, preset: str, bloky: list[dict]) -> None:
+        """Celá sestava najednou - kvůli přeskládání i mazání."""
+        self.data.setdefault("dashboard", {})[preset] = bloky
         await self.save()
 
     # ------------------------------------------------------------------

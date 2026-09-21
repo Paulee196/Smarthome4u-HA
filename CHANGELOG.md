@@ -2,6 +2,32 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.10.0]
+
+### Změněno
+
+- Plocha je teď složená z bloků a dá se skutečně upravovat. Dřív byl
+  režim úprav z větší části jen nápis - editovatelná byla jediná mřížka
+  a všechno ostatní si aplikace počítala sama.
+- Bloky jdou přetáhnout, odebrat křížkem a přidat tlačítkem dole.
+  Na výběr je deset druhů: hodiny, stav domu, upozornění, otevřená okna
+  a dveře, právě hraje, rozsvícená světla, scény, místnosti, rychlé akce
+  a vlastní výběr zařízení.
+- Blok s vlastním výběrem se skládá po jednotlivých dlaždicích.
+  Klepnutí na dlaždici otevře výběr s vyhledáváním.
+- Sestava se ukládá zvlášť pro každou podobu plochy. Přehled si můžete
+  poskládat jinak než Nástěnný panel.
+- Každá podoba plochy má vlastní motiv, ne jen jiné pořadí: Přehled
+  velké dlaždice a málo textu, Místnosti hustší a technické, Funkce
+  největší dlaždice a nejvíc prázdna, Nástěnný panel velké písmo.
+- Mimo režim úprav se prázdné bloky nevykreslují. Co nemá co ukázat,
+  nezabírá místo.
+
+### Opraveno
+
+- Blok, který se nevykreslí, nepoloží celou plochu. Ostatní se vykreslí
+  a na jeho místě je vysvětlení.
+
 ## [0.9.5]
 
 ### Přidáno

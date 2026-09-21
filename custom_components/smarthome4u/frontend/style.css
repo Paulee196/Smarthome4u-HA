@@ -2160,3 +2160,124 @@ textarea.input {
     color: var(--sh-accent);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Plocha složená z bloků                                              */
+/* ------------------------------------------------------------------ */
+
+.plocha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-lg);
+}
+
+/* Obal bloku je vidět jen v režimu úprav. Mimo něj se vykreslí samotný
+   obsah, aby plocha nevypadala jako tabulka rámečků. */
+.blok {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-sm);
+  padding: var(--sh-gap-sm);
+  border: var(--sh-hairline) dashed var(--sh-border);
+  border-radius: var(--sh-radius-lg);
+}
+
+.blok__lista {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap-sm);
+  min-height: var(--sh-touch-target);
+  padding-inline: var(--sh-gap-xs);
+}
+
+.blok__jmeno {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--sh-size-sm);
+  font-weight: var(--sh-weight-medium);
+  color: var(--sh-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blok__akce {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sh-touch-target);
+  height: var(--sh-touch-target);
+  background: none;
+  border: none;
+  border-radius: var(--sh-radius-sm);
+  color: var(--sh-text-faint);
+  font: inherit;
+  cursor: pointer;
+}
+
+.blok__akce:hover {
+  background: var(--sh-surface-raised);
+  color: var(--sh-error);
+}
+
+.blok--pridat {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sh-gap-sm);
+  min-height: var(--sh-touch-target);
+  padding: var(--sh-gap-lg);
+  background: none;
+  border: 2px dashed var(--sh-border);
+  color: var(--sh-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.blok--pridat:hover {
+  border-color: var(--sh-accent);
+  color: var(--sh-text);
+}
+
+/* ------------------------------------------------------------------ */
+/* Motivy jednotlivých podob plochy                                    */
+/* ------------------------------------------------------------------ */
+
+/* Přehled: velké dlaždice, málo textu, hodně prázdna. */
+.plocha--prehled .cards {
+  --sh-card-min: 180px;
+}
+
+/* Místnosti: hustší a technické. Víc informací na stejné ploše. */
+.plocha--mistnosti,
+.plocha--funkce {
+  gap: var(--sh-gap-md);
+}
+
+.plocha--mistnosti .cards {
+  --sh-card-min: 140px;
+}
+
+/* Funkce: největší dlaždice a největší rozestupy. */
+.plocha--funkce {
+  gap: var(--sh-gap-xl);
+}
+
+.plocha--funkce .cards {
+  --sh-card-min: 220px;
+}
+
+/* Nástěnný panel: čitelné z několika metrů. */
+.plocha--panel .cards {
+  --sh-card-min: 200px;
+}
+
+.plocha--panel .panel__title {
+  font-size: var(--sh-size-lg);
+}
+
+.plocha--panel .stav__text {
+  font-size: var(--sh-size-lg);
+}

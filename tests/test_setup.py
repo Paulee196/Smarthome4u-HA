@@ -476,3 +476,57 @@ async def test_pomocnici_se_zobrazi(
         json={"entityId": "counter.kava", "action": "increment"},
     )
     assert odpoved.status == 200
+
+
+async def test_plocha_po_blocich(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Sestava plochy se uloží, vrátí a přežije restart."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("light.a", "off", {"supported_color_modes": ["onoff"]})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    # Dokud správce nic neupravil, rozhoduje výchozí sestava z frontendu.
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["blocks"] is None
+
+    sestava = [
+        {"id": "b1", "type": "status"},
+        {
+            "id": "b2",
+            "type": "entities",
+            "title": "Moje",
+            "entities": ["light.a", "light.neexistuje"],
+        },
+    ]
+    odpoved = await client.post(
+        "/api/smarthome4u/dashboard",
+        json={"preset": "prehled", "blocks": sestava},
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [b["type"] for b in model["blocks"]] == ["status", "entities"]
+    # Co v Home Assistantu není, se tiše vynechá.
+    assert model["blocks"][1]["entities"] == ["light.a"]
+    assert model["blocks"][1]["title"] == "Moje"
+
+    # Nová instance čte tentýž soubor - tohle je ten restart.
+    nove = storage.Settings(hass)
+    await nove.load()
+    assert len(nove.blocks("prehled")) == 2
+    # Ostatní podoby plochy se tím nezměnily.
+    assert nove.blocks("panel") is None
+
+    # Nesmysly se odmítnou.
+    spatne = await client.post(
+        "/api/smarthome4u/dashboard",
+        json={"preset": "neexistuje", "blocks": []},
+    )
+    assert spatne.status == 400

@@ -191,6 +191,8 @@ class ModelView(Sh4uView):
                 },
                 "preset": settings.preset if settings else "prehled",
                 "bigControls": settings.big_controls if settings else False,
+                # Bloky plochy. None znamená "použij výchozí sestavu".
+                "blocks": settings.blocks(settings.preset) if settings else None,
                 "favorites": home.favorites(),
                 "summary": home.summary(),
                 "roomSummaries": home.room_summaries(),
@@ -1207,6 +1209,70 @@ class FloorplanImageView(Sh4uView):
         return web.json_response({"ok": True, "image": f"{USER_URL}/{nazev}"})
 
 
+# Kolik bloků a kolik dlaždic v bloku má ještě smysl. Nad tím už to není
+# plocha, ale seznam - a ten patří do Místností.
+MAX_BLOKU = 30
+MAX_V_BLOKU = 60
+
+
+class DashboardView(Sh4uView):
+    """Plocha po blocích.
+
+    Posílá se vždy celá sestava, takže se nemůže rozejít pořadí s obsahem.
+    Ukládá se zvlášť pro každou podobu plochy - správce si může Přehled
+    poskládat jinak než Nástěnný panel.
+    """
+
+    url = f"{API_BASE}/dashboard"
+    name = "api:smarthome4u:dashboard"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+
+        payload = await self.body(request)
+        preset = payload.get("preset")
+        bloky = payload.get("blocks")
+
+        if preset not in storage.PRESETY:
+            raise ApiError("Neznámá podoba plochy.")
+        if not isinstance(bloky, list) or len(bloky) > MAX_BLOKU:
+            raise ApiError("Neplatná sestava plochy.")
+
+        ocistene = []
+        for blok in bloky:
+            if not isinstance(blok, dict):
+                raise ApiError("Neplatný blok.")
+
+            typ = blok.get("type")
+            ident = blok.get("id")
+            if not isinstance(typ, str) or not isinstance(ident, str):
+                raise ApiError("Neplatný blok.")
+
+            novy: dict[str, Any] = {"id": ident[:40], "type": typ[:40]}
+
+            nadpis = blok.get("title")
+            if isinstance(nadpis, str) and nadpis:
+                novy["title"] = nadpis[:60]
+
+            entity = blok.get("entities")
+            if isinstance(entity, list):
+                # Co už v Home Assistantu není, se tiše vynechá.
+                novy["entities"] = [
+                    eid
+                    for eid in entity[:MAX_V_BLOKU]
+                    if isinstance(eid, str) and self.hass.states.get(eid)
+                ]
+
+            ocistene.append(novy)
+
+        await settings.set_blocks(preset, ocistene)
+        return web.json_response({"ok": True})
+
+
 class FavoritesView(Sh4uView):
     """Celý seznam často používaných.
 
@@ -1336,6 +1402,7 @@ VIEWS = (
     ClassifyView,
     FavoriteView,
     FavoritesView,
+    DashboardView,
 )
 
 
