@@ -1,6 +1,7 @@
 {
   "domain": "smarthome4u",
   "name": "Smarthome4u",
+  "after_dependencies": ["hassio"],
   "codeowners": ["@Paulee196"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "panel_custom"],
