@@ -118,6 +118,10 @@ function vybratZpusob(ctx) {
         closeDialog();
         otevritEditor(ctx);
       }),
+      volba(t.builder.wayBlocks.name, t.builder.wayBlocks.description, () => {
+        closeDialog();
+        otevritEditor(ctx, null, "blocks");
+      }),
       volba(t.builder.wayTemplate.name, t.builder.wayTemplate.description, () => {
         closeDialog();
         pickTemplate(ctx);

@@ -8,6 +8,7 @@
  */
 
 import { api } from "./api.js";
+import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { t } from "./i18n.js";
 import {
   h,
@@ -60,7 +61,7 @@ const PREKLAD_SEKCE = { when: "triggers", and: "conditions", then: "actions" };
 /* Otevření                                                            */
 /* ------------------------------------------------------------------ */
 
-export function otevritEditor(ctx, model = null) {
+export function otevritEditor(ctx, model = null, rezim = "form") {
   const data = model || {
     alias: "",
     description: "",
@@ -71,17 +72,17 @@ export function otevritEditor(ctx, model = null) {
   };
 
   const jmeno = textInput(data.alias, t.builder.namePlaceholder);
-  const rezim = selectInput(
+  const vyberRezimu = selectInput(
     Object.entries(t.builder.modes).map(([value, label]) => ({ value, label })),
     data.mode || "single",
   );
 
-  const telo = h("div", { class: "stack" }, [
+  const telo = h("div", { class: rezim === "blocks" ? "stack bloky" : "stack" }, [
     field(t.builder.name, jmeno),
-    sekce(ctx, data, "when"),
-    sekce(ctx, data, "and"),
-    sekce(ctx, data, "then"),
-    field(t.builder.mode, rezim),
+    sekce(ctx, data, "when", rezim),
+    sekce(ctx, data, "and", rezim),
+    sekce(ctx, data, "then", rezim),
+    field(t.builder.mode, vyberRezimu),
   ]);
 
   dialog(
@@ -91,7 +92,7 @@ export function otevritEditor(ctx, model = null) {
       button(t.action.cancel, closeDialog, "button--ghost"),
       button(t.action.save, async () => {
         data.alias = jmeno.value;
-        data.mode = rezim.value;
+        data.mode = vyberRezimu.value;
 
         try {
           await api.buildAutomation(data);
@@ -110,7 +111,7 @@ export function otevritEditor(ctx, model = null) {
 /* Sekce                                                               */
 /* ------------------------------------------------------------------ */
 
-function sekce(ctx, data, klic) {
+function sekce(ctx, data, klic, rezim = "form") {
   const seznam = h("div", { class: "stack" });
   const nadpisy = {
     when: [t.builder.when, t.builder.whenHint, t.builder.addWhen],
@@ -126,8 +127,21 @@ function sekce(ctx, data, klic) {
     }
 
     data[klic].forEach((krok, index) => {
-      seznam.append(radek(ctx, data, klic, krok, index, prekreslit));
+      if (!krok._id) krok._id = "k" + ++pocitadlo;
+      const prvek = radek(ctx, data, klic, krok, index, prekreslit, rezim);
+      if (rezim === "blocks") prvek.setAttribute(ATRIBUT_KLICE, krok._id);
+      seznam.append(prvek);
     });
+
+    if (rezim === "blocks") {
+      povolitPretahovani(seznam, (poradi) => {
+        // Pole se přeskládá podle nového pořadí klíčů.
+        data[klic] = poradi
+          .map((id) => data[klic].find((k) => k._id === id))
+          .filter(Boolean);
+        prekreslit();
+      });
+    }
   }
 
   prekreslit();
@@ -150,8 +164,11 @@ function sekce(ctx, data, klic) {
   ]);
 }
 
+let pocitadlo = 0;
+
 function vychoziKrok(klic, typ) {
-  const krok = { type: typ };
+  // Stabilní klíč pro přetahování. Index by se při přesunu rozpadl.
+  const krok = { type: typ, _id: "k" + ++pocitadlo };
   if (klic === "when" && typ === "state") krok.to = "on";
   if (klic === "and" && typ === "state") krok.is = "on";
   if (klic === "then" && typ === "device") krok.command = "turn_on";
@@ -162,7 +179,7 @@ function vychoziKrok(klic, typ) {
 /* Jeden krok                                                          */
 /* ------------------------------------------------------------------ */
 
-function radek(ctx, data, klic, krok, index, prekreslit) {
+function radek(ctx, data, klic, krok, index, prekreslit, rezim = "form") {
   const typy = Object.keys(POLE[klic]).map((value) => ({
     value,
     label: t.builder[PREKLAD_SEKCE[klic]][value],
@@ -179,8 +196,15 @@ function radek(ctx, data, klic, krok, index, prekreslit) {
     pole.append(policko(ctx, krok, nazev));
   }
 
-  return h("div", { class: "builder__krok" }, [
+  return h("div", { class: rezim === "blocks" ? "builder__krok blok" : "builder__krok" }, [
     h("div", { class: "builder__krok-hlava" }, [
+      rezim === "blocks" &&
+        h("span", {
+          class: "dnd__uchyt",
+          "data-dnd-handle": "",
+          "aria-label": t.editor.drag,
+          text: "⠿",
+        }),
       vyberTypu,
       h("button", {
         class: "tile__more tile__more--danger",

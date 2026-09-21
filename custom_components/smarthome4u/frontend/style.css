@@ -1810,3 +1810,33 @@ textarea.input {
 .card__more--mid {
   right: var(--sh-touch-target);
 }
+
+/* ------------------------------------------------------------------ */
+/* Skládačka                                                           */
+/* ------------------------------------------------------------------ */
+
+/* Stejný model jako jednoduchý editor, jen se čte shora dolů jako řetěz. */
+.bloky .builder__sekce {
+  position: relative;
+}
+
+.blok {
+  position: relative;
+  border-left: 3px solid var(--sh-accent);
+}
+
+/* Spojnice mezi bloky, aby bylo vidět, že na sebe navazují. */
+.blok + .blok::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: calc(var(--sh-gap-sm) * -1);
+  width: 3px;
+  height: var(--sh-gap-sm);
+  background: var(--sh-accent);
+}
+
+.blok .dnd__uchyt {
+  width: auto;
+  min-width: var(--sh-touch-target);
+}
