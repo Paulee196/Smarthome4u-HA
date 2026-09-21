@@ -2,6 +2,27 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.8.1]
+
+### Opraveno
+
+- Přetahování nefungovalo vůbec. Aplikace běží ve stínovém stromu a tam
+  document.elementFromPoint vrací jen obal celého panelu, ne prvky uvnitř.
+  Soused pod prstem se tedy nikdy nenašel a nic se nepřeskládalo.
+  Hledá se teď od kořene stínového stromu.
+- Kiosk režim lištu schoval, ale obsah se přes její místo neroztáhl.
+  Zásuvka Home Assistantu drží šířku ve dvou proměnných a odsazení obsahu
+  má ve svém vlastním stínovém stromu, kam zvenčí žádný selektor nedosáhne.
+  Styl se teď vkládá i dovnitř zásuvky, stejně jako to dělá kiosk-mode.
+  Panel se už neroztahuje přes position fixed - to uvnitř cizího rozvržení
+  nefungovalo spolehlivě.
+
+### Změněno
+
+- V režimu úprav je úchytem celá dlaždice, jako ikona na telefonu.
+  Chytne se kdekoliv, ostatní se rozestoupí a udělají místo.
+- Klepnutí na tlačítko uvnitř dlaždice se nebere jako tažení.
+
 ## [0.8.0]
 
 Dodělané věci ze zadání. Nic z toho zatím neběželo na reálném Home

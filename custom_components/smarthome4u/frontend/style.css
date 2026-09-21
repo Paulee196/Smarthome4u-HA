@@ -1594,9 +1594,16 @@ textarea.input {
 }
 
 /* Dlaždice v úpravách nespíná, proto nemá stavy zapnuto. */
+/* V úpravách je úchytem celá dlaždice, proto tu musí být vypnutá gesta
+   prohlížeče. Stránka se posouvá tažením mimo dlaždice. */
 .card--edit {
   border-style: dashed;
   cursor: grab;
+  touch-action: none;
+}
+
+.card--edit:active {
+  cursor: grabbing;
 }
 
 .card--edit .card__hit {
@@ -1630,26 +1637,10 @@ textarea.input {
 /* Kiosk režim                                                         */
 /* ------------------------------------------------------------------ */
 
-/* Nestačí schovat lištu Home Assistantu - obsah se musí přes její místo
-   roztáhnout. Proto panel vystoupí z rozvržení a zabere celou plochu. */
-.shell--kiosk {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  background: var(--sh-bg);
-  overflow: hidden;
-}
-
+/* Lištu a odsazení řeší takeover.js na straně Home Assistantu. Tady jen
+   pustíme obsah přes celou šířku, ať se nezastaví na naší mezi. */
 .shell--kiosk .main {
-  height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-@media (min-width: 900px) {
-  .shell--kiosk .nav {
-    height: 100%;
-  }
+  max-width: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1678,12 +1669,14 @@ textarea.input {
   color: var(--sh-accent);
 }
 
-/* Úchyt dlaždice sedí v rohu, aby nebral místo obsahu. */
+/* Značka v rohu dlaždice jen napovídá, že se dá chytit. Tažení obstarává
+   celá dlaždice, proto tu nejsou žádné události. */
 .card--edit .dnd__uchyt {
   position: absolute;
   bottom: 0;
   right: 0;
-  z-index: 1;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .dnd--aktivni {

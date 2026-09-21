@@ -121,10 +121,10 @@ function zapnoutPretahovaniMistnosti(telo, ctx) {
 
 /** Dlaždice v režimu úprav - nespíná, jen se přetahuje a schovává. */
 function upravitelnaDlazdice(entity, ctx) {
-  const obal = h("div", { class: "card card--edit" }, [
+  // V úpravách je úchytem celá dlaždice, jako ikona na telefonu.
+  const obal = h("div", { class: "card card--edit", "data-dnd-handle": "" }, [
     h("span", {
       class: "dnd__uchyt",
-      "data-dnd-handle": "",
       "aria-label": t.editor.drag,
       text: "⠿",
     }),

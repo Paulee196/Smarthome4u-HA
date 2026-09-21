@@ -1,11 +1,12 @@
 /* Převzetí rozhraní - kiosk režim.
  *
- * Tenhle modul běží uvnitř frontendu Home Assistantu, ne v našem panelu.
- * Schová postranní lištu i horní pruh, když je otevřené Smarthome4u,
- * a po přihlášení otevře Smarthome4u místo výchozího dashboardu.
+ * Běží uvnitř frontendu Home Assistantu, ne v našem panelu.
  *
- * Zapnutí a vypnutí se čte z našeho nastavení, aby se to dalo přepnout
- * přímo v aplikaci bez restartu Home Assistantu.
+ * Schovat lištu nestačí. Zásuvka, ve které lišta sedí, si drží šířku a obsah
+ * zůstane odsunutý. Šířka se počítá ze dvou proměnných a obě se musí
+ * vynulovat - na skořápce i na samotné zásuvce. Navíc se musí sáhnout
+ * i dovnitř zásuvky, protože odsazení obsahu je v jejím vlastním stínovém
+ * stromu, kam zvenčí žádný selektor nedosáhne.
  *
  * Sahá do cizího DOM, který se může kdykoliv změnit. Proto je všechno
  * v try/catch a při jakékoliv nejistotě modul radši neudělá nic.
@@ -15,16 +16,37 @@
 const PANEL = "smarthome4u";
 const LANDED = "sh4u.landed";
 const STYLE_ID = "sh4u-kiosk";
+const STYLE_ZASUVKA_ID = "sh4u-kiosk-drawer";
 
-const CSS = `
+/* Styl pro skořápku Home Assistantu. */
+const CSS_SKORAPKA = `
+  :host {
+    --app-drawer-width: 0px !important;
+    --mdc-drawer-width: 0px !important;
+  }
+  ha-drawer {
+    --app-drawer-width: 0px !important;
+    --mdc-drawer-width: 0px !important;
+  }
   ha-sidebar { display: none !important; }
-  .mdc-drawer, ha-drawer > .mdc-drawer { width: 0 !important; }
-  :host { --mdc-drawer-width: 0px !important; --app-drawer-width: 0px !important; }
-  [slot="appContent"], .content { margin-inline-start: 0 !important; }
-  ha-menu-button, .header, app-header, app-toolbar { display: none !important; }
+  ha-menu-button { display: none !important; }
+`;
+
+/* Styl dovnitř zásuvky. Odsazení obsahu je v jejím vlastním stínu. */
+const CSS_ZASUVKA = `
+  .mdc-drawer { display: none !important; width: 0 !important; }
+  .mdc-drawer-app-content {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-inline-start: 0 !important;
+    margin-inline-end: 0 !important;
+  }
 `;
 
 let nastaveni = { kiosk: true, landing: true };
+
+/* Co je právě uplatněné. Bez toho by pozorovatel DOM točil dokola. */
+let uplatneno = null;
 
 /* ------------------------------------------------------------------ */
 /* Přístup do skořápky Home Assistantu                                 */
@@ -40,6 +62,11 @@ function koren() {
 
 function skorapka() {
   return koren()?.querySelector("home-assistant-main")?.shadowRoot || null;
+}
+
+function zasuvka() {
+  const host = skorapka();
+  return host?.querySelector("ha-drawer") || host?.getElementById?.("drawer") || null;
 }
 
 function naPanelu() {
@@ -72,11 +99,21 @@ async function nacistNastaveni() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Schování lišty                                                      */
+/* Vkládání a odebírání stylů                                          */
 /* ------------------------------------------------------------------ */
 
-function zasuvka() {
-  return skorapka()?.querySelector("ha-drawer") || null;
+function vlozit(kam, id, css) {
+  if (!kam || kam.getElementById?.(id) || kam.querySelector?.(`#${id}`)) return;
+
+  const styl = document.createElement("style");
+  styl.id = id;
+  styl.textContent = css;
+  kam.appendChild(styl);
+}
+
+function odebrat(kde, id) {
+  const styl = kde?.getElementById?.(id) || kde?.querySelector?.(`#${id}`);
+  styl?.remove();
 }
 
 function uplatnit() {
@@ -84,31 +121,36 @@ function uplatnit() {
     const host = skorapka();
     if (!host) return;
 
-    const stavajici = host.getElementById?.(STYLE_ID);
+    const prvek = zasuvka();
     const zapnout = nastaveni.kiosk && naPanelu();
 
-    if (zapnout && !stavajici) {
-      const styl = document.createElement("style");
-      styl.id = STYLE_ID;
-      styl.textContent = CSS;
-      host.appendChild(styl);
-    } else if (!zapnout && stavajici) {
-      stavajici.remove();
-    }
-
-    // Samotné schování lišty nestačí - zásuvka si drží šířku a obsah
-    // zůstane odsunutý. Šířku má v proměnné na svém vlastním prvku, takže
-    // se musí přepsat přímo tam. Zvenčí přes selektor to neprojde.
-    const prvek = zasuvka();
-    if (!prvek) return;
+    // Zásuvka se objeví až po prvním vykreslení, proto se pokus opakuje,
+    // dokud ji nenajdeme.
+    if (uplatneno === zapnout && (prvek || !zapnout)) return;
+    uplatneno = prvek || !zapnout ? zapnout : null;
 
     if (zapnout) {
-      prvek.style.setProperty("--mdc-drawer-width", "0px", "important");
-      prvek.style.setProperty("--app-drawer-width", "0px", "important");
+      vlozit(host, STYLE_ID, CSS_SKORAPKA);
+
+      if (prvek) {
+        // Zásuvka si šířku drží na sobě, takže zvenčí ji přebije jen
+        // hodnota zapsaná přímo na její prvek.
+        prvek.style.setProperty("--mdc-drawer-width", "0px", "important");
+        prvek.style.setProperty("--app-drawer-width", "0px", "important");
+        vlozit(prvek.shadowRoot, STYLE_ZASUVKA_ID, CSS_ZASUVKA);
+      }
     } else {
-      prvek.style.removeProperty("--mdc-drawer-width");
-      prvek.style.removeProperty("--app-drawer-width");
+      odebrat(host, STYLE_ID);
+
+      if (prvek) {
+        prvek.style.removeProperty("--mdc-drawer-width");
+        prvek.style.removeProperty("--app-drawer-width");
+        odebrat(prvek.shadowRoot, STYLE_ZASUVKA_ID);
+      }
     }
+
+    // Home Assistant si šířku obsahu počítá při změně velikosti okna.
+    window.dispatchEvent(new Event("resize"));
   } catch {
     /* Home Assistant změnil strukturu. Necháme lištu být. */
   }
@@ -144,10 +186,11 @@ function sledovat() {
   window.addEventListener("location-changed", uplatnit);
   window.addEventListener("popstate", uplatnit);
 
-  // Home Assistant překresluje skořápku i bez změny adresy.
+  // Home Assistant překresluje skořápku i bez změny adresy. Sleduje se
+  // i vnitřek, protože zásuvka vzniká až po prvním vykreslení.
   const pozorovatel = new MutationObserver(uplatnit);
-  const host = koren();
-  if (host) pozorovatel.observe(host, { childList: true, subtree: false });
+  const host = skorapka();
+  if (host) pozorovatel.observe(host, { childList: true, subtree: true });
 
   // Změnu nastavení v aplikaci chceme poznat bez obnovení stránky.
   window.addEventListener("sh4u-kiosk-changed", async () => {

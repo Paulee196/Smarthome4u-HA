@@ -3,9 +3,9 @@
  * Postavené na Pointer Events, ne na HTML5 drag and drop. Ten na dotykových
  * zařízeních nefunguje a Smarthome4u musí jít upravit i na tabletu.
  *
- * Tahá se za úchyt, ne za celou dlaždici. Díky tomu jde v režimu úprav
- * normálně scrollovat prstem a nemusí se hádat, jestli uživatel táhne,
- * nebo posouvá stránku.
+ * Tahá se za úchyt. V režimu úprav je úchytem celá dlaždice, takže se
+ * chytne a táhne jako ikona na telefonu. U místností je úchytem jejich
+ * hlavička.
  *
  * Postup: přetahovaný prvek se vyjme z toku a plave nad stránkou, na jeho
  * místě zůstane zástupce stejné velikosti. Zástupce se přesouvá mezi
@@ -18,6 +18,20 @@ export const ATRIBUT_UCHYTU = "data-dnd-handle";
 
 /** Prvek, který se přesouvá. Jeho hodnota je klíč do uloženého pořadí. */
 export const ATRIBUT_KLICE = "data-dnd-key";
+
+/**
+ * Co je pod prstem.
+ *
+ * Aplikace běží ve stínovém stromu a document.elementFromPoint tam vrací
+ * jen obal celého panelu. Hledat se musí od kořene stínového stromu,
+ * jinak se soused nikdy nenajde a nic se nepřeskládá.
+ */
+function podPrstem(kontejner, udalost) {
+  const koren = kontejner.getRootNode();
+  const hledat = koren?.elementFromPoint ? koren : document;
+  const prvek = hledat.elementFromPoint(udalost.clientX, udalost.clientY);
+  return prvek?.closest(`[${ATRIBUT_KLICE}]`) || null;
+}
 
 /**
  * Zapne přetahování v kontejneru.
@@ -70,9 +84,7 @@ export function povolitPretahovani(kontejner, onZmena) {
     const dy = udalost.clientY - zacatek.y;
     tazeny.style.transform = `translate(${dx}px, ${dy}px)`;
 
-    const pod = document
-      .elementFromPoint(udalost.clientX, udalost.clientY)
-      ?.closest(`[${ATRIBUT_KLICE}]`);
+    const pod = podPrstem(kontejner, udalost);
 
     if (!pod || pod === tazeny || pod.parentElement !== kontejner) return;
 
@@ -125,6 +137,10 @@ export function povolitPretahovani(kontejner, onZmena) {
 
   function naStisk(udalost) {
     if (udalost.button !== undefined && udalost.button !== 0) return;
+
+    // Klepnutí na tlačítko uvnitř dlaždice není tažení.
+    const tlacitko = udalost.target.closest("button");
+    if (tlacitko && !tlacitko.hasAttribute(ATRIBUT_UCHYTU)) return;
 
     const u = udalost.target.closest(`[${ATRIBUT_UCHYTU}]`);
     if (!u) return;
