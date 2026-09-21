@@ -442,7 +442,11 @@ async def test_pomocnici_se_zobrazi(
     hass.states.async_set("input_text.poznamka", "ahoj", {"max": 100})
     hass.states.async_set("input_datetime.budik", "2026-09-21 06:30:00",
                           {"has_date": True, "has_time": True})
-    hass.states.async_set("counter.kava", "3", {"step": 1})
+    # Počítadlo jako skutečná integrace - jinak by neexistovala služba
+    # counter.increment a nešlo by ověřit, že se dá ovládat.
+    assert await async_setup_component(
+        hass, "counter", {"counter": {"kava": {"initial": 3, "step": 1}}}
+    )
     hass.states.async_set("timer.peceni", "idle", {"duration": "0:30:00"})
     hass.states.async_set("schedule.topeni", "on", {})
 
