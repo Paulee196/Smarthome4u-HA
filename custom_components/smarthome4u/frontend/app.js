@@ -29,11 +29,12 @@ const ROUTES = {
     technik: true,
   },
   devices: { label: t.nav.devices, render: renderDevices, technik: true },
+  // Nastavení vidí každý - kvůli volbě vzhledu. Co smí měnit jen
+  // správce, si hlídá obrazovka sama.
   settings: {
     label: t.nav.settings,
     render: renderSettings,
     hidden: true,
-    technik: true,
   },
 };
 
@@ -80,7 +81,8 @@ const ctx = {
       /* Soukromé okno. Režim vydrží jen do překreslení. */
     }
     state.editing = false;
-    navigate("home");
+    // Přepíná se z nastavení, tak v něm člověk zůstane.
+    bezpecne(draw());
   },
   startEditing() {
     state.editing = true;
@@ -175,31 +177,12 @@ function bezpecne(slib) {
   });
 }
 
-/** Přepínač Uživatel / Technik. Vidí ho jen správce. */
+/* Přepínač technického režimu bydlí v Nastavení / Účet. V hlavičce
+   dělal jen zmatek - vedle Nastavení další tlačítko, které nikdo
+   nepotřeboval každý den. Nastavení vidí každý, kvůli volbě vzhledu. */
 function paintRezim() {
-  const jeSpravce = state.model?.user?.role === "admin";
   if (!el.settings) return;
-  el.settings.hidden = !jeSpravce;
-
-  const koren = el.settings.getRootNode?.();
-  let tlacitko = koren?.getElementById?.("rezim-button");
-  if (!jeSpravce) {
-    tlacitko?.remove();
-    return;
-  }
-
-  if (!tlacitko) {
-    tlacitko = h("button", {
-      class: "button button--ghost",
-      type: "button",
-      id: "rezim-button",
-      onclick: () => ctx.prepnoutRezim(),
-    });
-    el.settings.parentElement?.insertBefore(tlacitko, el.settings);
-  }
-
-  tlacitko.textContent =
-    state.rezim === "technician" ? t.mode.toUser : t.mode.toTechnician;
+  el.settings.hidden = false;
 }
 
 /** Úprava plochy. Patří do hlavičky, ne zahrabaná v nastavení. */

@@ -26,17 +26,19 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.settings"
 
-# Dostupné podoby dashboardu.
+# Dostupné podoby plochy.
+#
+# Místnosti a Funkce tu schválně nejsou. Obojí je v navigaci vlevo,
+# takže jako podoba plochy by to bylo totéž dvakrát.
 PRESET_PREHLED = "prehled"
-PRESET_MISTNOSTI = "mistnosti"
-PRESET_FUNKCE = "funkce"
 PRESET_PUDORYS = "pudorys"
 PRESET_PANEL = "panel"
 
+# Co existovalo dřív a má se tiše převést.
+PRESETY_ZRUSENE = {"mistnosti": PRESET_PREHLED, "funkce": PRESET_PREHLED}
+
 PRESETY = (
     PRESET_PREHLED,
-    PRESET_MISTNOSTI,
-    PRESET_FUNKCE,
     PRESET_PANEL,
     PRESET_PUDORYS,
 )
@@ -162,15 +164,24 @@ class Settings:
 
         dashboard = self.data.setdefault("dashboard", {})
         if isinstance(dashboard, dict):
-            for blocks in dashboard.values():
+            for sestava in dashboard.values():
+                # Starší zápis je holý seznam, novější slovník se sloupci.
+                blocks = sestava.get("blocks") if isinstance(sestava, dict) else sestava
                 if not isinstance(blocks, list):
                     continue
                 for block in blocks:
-                    entity_refs = block.get("entities") if isinstance(block, dict) else None
+                    if not isinstance(block, dict):
+                        continue
+                    entity_refs = block.get("entities")
                     if isinstance(entity_refs, list):
                         block["entities"] = [
                             norm(item) for item in entity_refs if isinstance(item, str)
                         ]
+                    velikosti = block.get("sizes")
+                    if isinstance(velikosti, dict):
+                        block["sizes"] = {
+                            norm(key): value for key, value in velikosti.items()
+                        }
 
     # ------------------------------------------------------------------
     # Správce
@@ -211,6 +222,7 @@ class Settings:
     @property
     def preset(self) -> str:
         hodnota = self.data.get("preset")
+        hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
         return hodnota if hodnota in PRESETY else PRESET_PREHLED
 
     async def set_preset(self, preset: str) -> None:
@@ -249,15 +261,31 @@ class Settings:
     # Plocha po blocích
     # ------------------------------------------------------------------
 
-    def blocks(self, preset: str) -> list[dict] | None:
-        """Bloky pro danou podobu plochy, nebo None pro výchozí sestavu."""
-        ulozene = self.data.get("dashboard") or {}
-        bloky = ulozene.get(preset)
-        return bloky if isinstance(bloky, list) else None
+    def board(self, preset: str) -> dict | None:
+        """Sestava plochy: sloupce a bloky. None znamená výchozí sestavu.
 
-    async def set_blocks(self, preset: str, bloky: list[dict]) -> None:
+        Do verze 0.10 se ukládal jen seznam bloků. Takový zápis se převede
+        na jeden sloupec, aby stará plocha vypadala stejně jako dřív.
+        """
+        ulozene = self.data.get("dashboard") or {}
+        sestava = ulozene.get(preset)
+
+        if isinstance(sestava, list):
+            return {"columns": 1, "blocks": sestava}
+        if isinstance(sestava, dict) and isinstance(sestava.get("blocks"), list):
+            sloupce = sestava.get("columns")
+            return {
+                "columns": sloupce if isinstance(sloupce, int) else 1,
+                "blocks": sestava["blocks"],
+            }
+        return None
+
+    async def set_board(self, preset: str, sloupce: int, bloky: list[dict]) -> None:
         """Celá sestava najednou - kvůli přeskládání i mazání."""
-        self.data.setdefault("dashboard", {})[preset] = bloky
+        self.data.setdefault("dashboard", {})[preset] = {
+            "columns": sloupce,
+            "blocks": bloky,
+        }
         await self.save()
 
     # ------------------------------------------------------------------

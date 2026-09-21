@@ -208,8 +208,8 @@ class ModelView(Sh4uView):
                 },
                 "preset": settings.preset if settings else "prehled",
                 "bigControls": settings.big_controls if settings else False,
-                # Bloky plochy. None znamená "použij výchozí sestavu".
-                "blocks": settings.blocks(settings.preset) if settings else None,
+                # Sestava plochy. None znamená "použij výchozí sestavu".
+                "board": settings.board(settings.preset) if settings else None,
                 "favorites": home.favorites(),
                 "summary": home.summary(),
                 "roomSummaries": home.room_summaries(),
@@ -1251,6 +1251,9 @@ class FloorplanImageView(Sh4uView):
 # plocha, ale seznam - a ten patří do Místností.
 MAX_BLOKU = 30
 MAX_V_BLOKU = 60
+# Sloupce plochy. Víc než čtyři se nevejdou ani na velkou obrazovku.
+MAX_SLOUPCU = 4
+VELIKOSTI_DLAZDIC = ("s", "m", "l")
 
 
 class DashboardView(Sh4uView):
@@ -1274,11 +1277,14 @@ class DashboardView(Sh4uView):
         payload = await self.body(request)
         preset = payload.get("preset")
         bloky = payload.get("blocks")
+        sloupce = payload.get("columns", 1)
 
         if preset not in storage.PRESETY:
             raise ApiError("Neznámá podoba plochy.")
         if not isinstance(bloky, list) or len(bloky) > MAX_BLOKU:
             raise ApiError("Neplatná sestava plochy.")
+        if not isinstance(sloupce, int) or not 1 <= sloupce <= MAX_SLOUPCU:
+            raise ApiError("Počet sloupců musí být 1 až 4.")
 
         ocistene = []
         for blok in bloky:
@@ -1293,8 +1299,13 @@ class DashboardView(Sh4uView):
             novy: dict[str, Any] = {"id": ident[:40], "type": typ[:40]}
 
             nadpis = blok.get("title")
-            if isinstance(nadpis, str) and nadpis:
-                novy["title"] = nadpis[:60]
+            if isinstance(nadpis, str) and nadpis.strip():
+                novy["title"] = nadpis.strip()[:60]
+
+            # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.
+            sirka = blok.get("cols")
+            if isinstance(sirka, int) and 1 <= sirka <= sloupce:
+                novy["cols"] = sirka
 
             entity = blok.get("entities")
             if isinstance(entity, list):
@@ -1306,9 +1317,20 @@ class DashboardView(Sh4uView):
                     and (ref := refs.normalize_ref(self.hass, item)) is not None
                 ]
 
+            # Velikost jednotlivých dlaždic. Klíčem je stabilní reference.
+            velikosti = blok.get("sizes")
+            if isinstance(velikosti, dict):
+                novy["sizes"] = {
+                    ref: velikost
+                    for klic, velikost in velikosti.items()
+                    if isinstance(klic, str)
+                    and velikost in VELIKOSTI_DLAZDIC
+                    and (ref := refs.normalize_ref(self.hass, klic)) is not None
+                }
+
             ocistene.append(novy)
 
-        await settings.set_blocks(preset, ocistene)
+        await settings.set_board(preset, sloupce, ocistene)
         return web.json_response({"ok": True})
 
 

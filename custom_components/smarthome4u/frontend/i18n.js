@@ -413,6 +413,26 @@ export const t = {
     account: "Účet",
     unknownUser: "Neznámý uživatel",
     youAreAdmin: "Jste správce domácnosti. Můžete měnit vše.",
+    technician: "Technický režim",
+    technicianHint:
+      "Ukáže automatizace, zařízení a integrace. Vypnutím uvidíte " +
+      "aplikaci tak, jak ji vidí ostatní členové domácnosti.",
+    theme: "Vzhled",
+    themeHint:
+      "Platí pro tohle zařízení. Tablet na zdi může být tmavý a telefon " +
+      "světlý.",
+    themes: {
+      auto: "Podle Home Assistanta",
+      light: "Světlý",
+      dark: "Tmavý",
+      ha: "Motiv Home Assistanta",
+    },
+    themesHint: {
+      auto: "Barvy Smarthome4u, světlé nebo tmavé podle nastavení HA",
+      light: "Barvy Smarthome4u, vždy světlé",
+      dark: "Barvy Smarthome4u, vždy tmavé",
+      ha: "Převezme barvy z motivu, který máte v Home Assistantu",
+    },
     youAreUser: "Můžete ovládat dům. Nastavení mění správce.",
     onlyAdmin: "Nastavení může měnit jen správce domácnosti.",
 
@@ -430,7 +450,9 @@ export const t = {
       "Místo výchozího dashboardu Home Assistantu se rovnou otevře Smarthome4u.",
 
     dashboard: "Dashboard",
-    dashboardHint: "Vyberte podobu. Rozvržení pak jde upravit přetažením.",
+    dashboardHint:
+      "Vyberte podobu. Každá má vlastní sestavu bloků, kterou upravíte " +
+      "tlačítkem Upravit plochu na obrazovce Domů.",
     editDashboard: "Upravit rozvržení",
     resetLayout: "Vrátit výchozí rozvržení",
     resetLayoutHint:
@@ -497,26 +519,21 @@ export const t = {
   favorites: {
     replace: "Vyměnit zařízení",
     tapToReplace: "Klepnutím vyměníte",
+    tapToEdit: "klepnutím upravíte",
+    replaceHint: "Na tomhle místě bude jiné zařízení",
+    removeHint: "Zařízení zůstane, jen zmizí z plochy",
     add: "Přidat zařízení",
     remove: "Odebrat z plochy",
     hint:
-      "Klepnutím na dlaždici vyměníte zařízení. Přetažením změníte " +
-      "pořadí, křížkem dlaždici odeberete.",
+      "Klepnutím na dlaždici změníte velikost nebo vyměníte zařízení. " +
+      "Přetažením změníte pořadí, křížkem dlaždici odeberete.",
   },
 
   presets: {
     comingSoon: "Připravuje se",
     prehled: {
       name: "Přehled",
-      description: "Souhrn domu, upozornění a rychlé akce",
-    },
-    mistnosti: {
-      name: "Místnosti",
-      description: "Ovládání po místnostech",
-    },
-    funkce: {
-      name: "Funkce",
-      description: "Osvětlení, stínění, klima, bezpečnost",
+      description: "Bloky ve sloupcích. Stav domu, vaše zařízení, scény.",
     },
     panel: {
       name: "Nástěnný panel",
@@ -558,8 +575,8 @@ export const t = {
   editor: {
     title: "Úprava plochy",
     hint:
-      "Chytněte blok za ⠿ a přetáhněte. Křížkem ho odeberete, " +
-      "tlačítkem dole přidáte další.",
+      "Chytněte blok za ⠿ a přetáhněte. Klepnutím na název ho přejmenujete, " +
+      "tlačítkem se šířkou roztáhnete, křížkem odeberete.",
     edit: "Upravit plochu",
     addBlock: "Přidat blok",
     removeBlock: "Odebrat blok",
@@ -577,7 +594,20 @@ export const t = {
       wide: "Široká",
       tall: "Vysoká",
       big: "Velká",
+      s: "Malá",
+      m: "Střední",
+      l: "Velká s ovládáním",
     },
+    sizeHint:
+      "Malá ukáže jen ikonu a název. Velká má ovládání přímo v dlaždici - " +
+      "stmívání, polohu žaluzie nebo teplotu bez otevírání detailu.",
+    tileMenu: "Upravit dlaždici",
+    columns: "Sloupce",
+    columnsHint: "Kolik bloků vedle sebe. Na telefonu je vždy jeden.",
+    rename: "Přejmenovat blok",
+    renameHint: "Prázdný název vrátí původní.",
+    width: (sirka, sloupce) => `Šířka ${sirka}/${sloupce}`,
+    widthHint: "Přes kolik sloupců blok sahá. Klepnutím se mění.",
     reclassify: "Změnit typ",
     reclassifyHint:
       "Home Assistant hlásí jako světlo i kontrolky. Tady to můžete opravit.",

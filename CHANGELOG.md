@@ -2,6 +2,39 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.11.0]
+
+### Přidáno
+
+- Světlý a tmavý motiv. V Nastavení / Vzhled jsou čtyři volby: podle
+  Home Assistanta (výchozí - světlý nebo tmavý podle toho, jak běží HA),
+  vždy světlý, vždy tmavý, a motiv Home Assistanta, který převezme barvy
+  přímo z motivu nastaveného v HA. Volba platí pro zařízení, ne pro účet.
+- Barvy z webu smarthome4u.cz: tyrkysová, fialová z loga, tmavošedý text.
+  Dosud byly dočasné.
+- Plocha má sloupce. V úpravách se přepíná 1 až 4, na telefonu je vždy
+  jeden. Každý blok má vlastní šířku - přes kolik sloupců sahá.
+- Bloky jdou přejmenovat. Klepnutím na název v režimu úprav.
+- Dlaždice mají tři velikosti. Malá je jen ikona a název. Velká má
+  ovládání přímo v sobě - stmívání, polohu žaluzie, teplotu, hlasitost -
+  bez otevírání detailu. Velikost se volí klepnutím na dlaždici v úpravách.
+- Klepnutí na dlaždici v úpravách otevře nabídku: velikost, vyměnit
+  zařízení, odebrat. Dřív šlo jen rovnou vyměnit.
+
+### Změněno
+
+- Přepínač technického režimu je v Nastavení / Účet, ne v hlavičce.
+- Nastavení otevře každý, kvůli volbě vzhledu. Co smí měnit jen správce,
+  je dál jen pro správce.
+- Podoby plochy Místnosti a Funkce zmizely. Obojí je v navigaci vlevo,
+  jako plocha to bylo totéž dvakrát. Kdo je měl zvolené, dostane Přehled.
+- Zbylé podoby: Přehled, Nástěnný panel, Půdorys. Každá má vlastní
+  sestavu bloků.
+
+### Opraveno
+
+- Přepnutí technického režimu už nevyhodí z nastavení na Domů.
+
 ## [0.10.3]
 
 ### Opraveno

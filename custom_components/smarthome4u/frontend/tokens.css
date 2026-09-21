@@ -3,12 +3,16 @@
  * JEDINÉ místo, kde smí být barva, font nebo rozměr. Nikde jinde v CSS
  * nesmí být hodnota napsaná napřímo.
  *
- * POZOR: barvy níže jsou DOČASNÉ. Finální hodnoty se doplní až po auditu
- * webu smarthome4u.cz podle docs/ZADANI.md kap. 20. Do té doby se
- * nepoužívají v marketingových materiálech ani v release buildu.
+ * Barvy vychází z webu smarthome4u.cz (audit 21. 9. 2026):
+ * akcent tyrkysová #09e1c0, v logu přechod do fialové #7272ff,
+ * text #353740, tlumený text #747d88, linky #dddddd.
  *
- * Vzhled: tmavý základ, bílý text, jeden modrofialový akcent. Žádné
- * přechody, žádné sklo, stíny jen tam, kde něco skutečně leží nad obsahem.
+ * Motivy:
+ *   tmavý   výchozí, když Home Assistant běží v tmavém režimu
+ *   světlý  když běží ve světlém
+ *   ha      barvy převzaté přímo z motivu Home Assistanta
+ * Který platí, určuje panel.js atributem data-theme na hostiteli
+ * a třídou na .shell jako pojistkou.
  */
 
 /* Tokeny se definují třikrát na stejné pravidlo.
@@ -19,32 +23,41 @@
 :root,
 :host,
 .shell {
-  /* --- Plochy (dark-first) --- */
-  --sh-bg: #07080b;
-  --sh-surface: #0f1116;
-  --sh-surface-raised: #161922;
-  --sh-surface-hover: #1c2029;
-  --sh-border: #232734;
-  --sh-border-strong: #343a4a;
+  /* ================================================================ */
+  /* Tmavý motiv (výchozí)                                            */
+  /* ================================================================ */
+
+  /* --- Plochy --- */
+  --sh-bg: #0b0e14;
+  --sh-surface: #12161f;
+  --sh-surface-raised: #1a1f2b;
+  --sh-surface-hover: #202636;
+  --sh-border: #262d3c;
+  --sh-border-strong: #384156;
   /* Překryv pod dialogem. Dost tmavý, aby pozadí přestalo rušit. */
-  --sh-overlay: rgba(3, 4, 6, 0.74);
+  --sh-overlay: rgba(4, 6, 10, 0.74);
   /* Modrý blik při doteku na Androidu ruší klid rozhraní. */
   --sh-tap-highlight: transparent;
 
   /* --- Text --- */
-  --sh-text: #ffffff;
-  --sh-text-muted: #a2a9ba;
-  --sh-text-faint: #6d7486;
+  --sh-text: #f5f7fa;
+  --sh-text-muted: #a3adbf;
+  --sh-text-faint: #6f7a90;
 
-  /* --- Brand (DOČASNÉ) --- */
-  --sh-accent: #6f5cff;
-  --sh-accent-hover: #8674ff;
-  --sh-accent-text: #ffffff;
+  /* --- Brand --- */
+  --sh-accent: #09e1c0;
+  --sh-accent-hover: #3af0d4;
+  /* Text na tyrkysové výplni. Bílá by na ní nevyšla kontrastem. */
+  --sh-accent-text: #06231f;
+  /* Akcent jako text nebo ikona na ploše. */
+  --sh-accent-ink: #2ee8c9;
+  /* Druhá barva z loga. Jen pro značku, ne pro ovládání. */
+  --sh-accent-2: #7272ff;
   /* Tlumené varianty pro výplně a linky. Nikdy plná barva na velké ploše. */
-  --sh-accent-quiet: rgba(111, 92, 255, 0.14);
-  --sh-accent-line: rgba(111, 92, 255, 0.45);
+  --sh-accent-quiet: rgba(9, 225, 192, 0.14);
+  --sh-accent-line: rgba(9, 225, 192, 0.45);
 
-  /* --- Sémantické barvy. Význam se nikdy nemění podle šablony. --- */
+  /* --- Sémantické barvy. Význam se nikdy nemění podle motivu. --- */
   --sh-success: #3ddc97;
   --sh-warning: #ffc44d;
   --sh-error: #ff6b6b;
@@ -68,9 +81,25 @@
   --sh-alert-quiet: rgba(255, 107, 107, 0.1);
   --sh-alert-line: rgba(255, 107, 107, 0.42);
 
-  /* --- Typografie --- */
-  --sh-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  /* --- Stín. Jediný v aplikaci, jen pro věci ležící nad obsahem. --- */
+  --sh-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
+  /* Stín přetahovaného prvku. */
+  --sh-drag-shadow: 0 12px 32px rgb(0 0 0 / 55%);
+
+  /* --- Šipka u rozbalovacího seznamu. Barva musí zůstat tady. --- */
+  --sh-caret: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%20fill=%27none%27%20stroke=%27%23a3adbf%27%20stroke-width=%271.6%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27m6%209%206%206%206-6%27/%3E%3C/svg%3E");
+  --sh-caret-size: 18px;
+
+  /* ================================================================ */
+  /* Společné pro všechny motivy                                      */
+  /* ================================================================ */
+
+  /* --- Typografie. Web používá Montserrat a Open Sans; když nejsou
+     v systému, sáhne se po systémovém písmu - fonty zvenčí se
+     nestahují, panel musí běžet i bez internetu. --- */
+  --sh-font: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --sh-font-heading: Montserrat, var(--sh-font);
   --sh-size-2xs: 0.6875rem;
   --sh-size-xs: 0.75rem;
   --sh-size-sm: 0.875rem;
@@ -108,9 +137,6 @@
   --sh-rail: 3px;
 
   /* --- Dotykové cíle. Nikdy nesnižovat pod 44 px. --- */
-  /* Stín přetahovaného prvku. */
-  --sh-drag-shadow: 0 12px 32px rgb(0 0 0 / 55%);
-
   --sh-touch-target: 44px;
   --sh-focus-width: 2px;
   --sh-focus-offset: 2px;
@@ -152,16 +178,123 @@
   --sh-fast: 120ms;
   --sh-base: 200ms;
 
-  /* --- Stín. Jediný v aplikaci, jen pro věci ležící nad obsahem. --- */
-  --sh-shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
-
-  /* --- Šipka u rozbalovacího seznamu. Barva musí zůstat tady. --- */
-  --sh-caret: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%20fill=%27none%27%20stroke=%27%23a2a9ba%27%20stroke-width=%271.6%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27m6%209%206%206%206-6%27/%3E%3C/svg%3E");
-  --sh-caret-size: 18px;
-
   /* --- Čitelná šířka textu, aby se obsah neroztáhl na 4K --- */
   --sh-max-width: 1440px;
   --sh-measure: 68ch;
+}
+
+/* ================================================================== */
+/* Světlý motiv                                                       */
+/* ================================================================== */
+
+:host([data-theme="light"]),
+.shell--light {
+  --sh-bg: #f4f6f9;
+  --sh-surface: #ffffff;
+  --sh-surface-raised: #f7f9fc;
+  --sh-surface-hover: #eef1f6;
+  --sh-border: #dfe4ec;
+  --sh-border-strong: #c6cfdb;
+  --sh-overlay: rgba(28, 31, 39, 0.5);
+
+  --sh-text: #1c1f27;
+  --sh-text-muted: #5d6676;
+  --sh-text-faint: #8b94a5;
+
+  /* Tyrkysová z webu je na bílé moc světlá pro text. Výplně ji drží,
+     text a ikony berou tmavší odstín, aby vyšel kontrast. */
+  --sh-accent: #00c4a7;
+  --sh-accent-hover: #09e1c0;
+  --sh-accent-text: #06231f;
+  --sh-accent-ink: #078a75;
+  --sh-accent-2: #5b5bff;
+  --sh-accent-quiet: rgba(0, 196, 167, 0.14);
+  --sh-accent-line: rgba(0, 196, 167, 0.5);
+
+  --sh-success: #1e9e6a;
+  --sh-warning: #d98c00;
+  --sh-error: #d64545;
+  --sh-error-hover: #e05c5c;
+  --sh-error-text: #ffffff;
+  --sh-error-quiet: rgba(214, 69, 69, 0.1);
+  --sh-info: #2d7ff9;
+  --sh-offline: #aab2c0;
+  --sh-offline-text: #6f7a90;
+
+  --sh-on: #e8a800;
+  --sh-on-text: #7a5a00;
+  --sh-on-quiet: rgba(232, 168, 0, 0.12);
+  --sh-on-line: rgba(232, 168, 0, 0.45);
+  --sh-on-glow: rgba(232, 168, 0, 0.12);
+  --sh-alert-glow: rgba(214, 69, 69, 0.1);
+  --sh-alert-quiet: rgba(214, 69, 69, 0.1);
+  --sh-alert-line: rgba(214, 69, 69, 0.45);
+
+  --sh-shadow-overlay: 0 24px 64px rgba(28, 31, 39, 0.22);
+  --sh-drag-shadow: 0 12px 32px rgb(28 31 39 / 25%);
+
+  --sh-caret: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2024%2024%27%20fill=%27none%27%20stroke=%27%235d6676%27%20stroke-width=%271.6%27%20stroke-linecap=%27round%27%20stroke-linejoin=%27round%27%3E%3Cpath%20d=%27m6%209%206%206%206-6%27/%3E%3C/svg%3E");
+}
+
+/* ================================================================== */
+/* Motiv Home Assistanta                                              */
+/*                                                                    */
+/* Proměnné motivu si Home Assistant nastavuje na kořeni stránky      */
+/* a do stínového stromu se dědí. Tady se jen přemapují na naše.      */
+/* Odvozené odstíny počítá color-mix; kde ho prohlížeč neumí,          */
+/* zůstane hodnota z tmavého motivu výš.                              */
+/* ================================================================== */
+
+:host([data-theme="ha"]),
+.shell--ha {
+  --sh-bg: var(--primary-background-color, #0b0e14);
+  --sh-surface: var(--card-background-color, #12161f);
+  --sh-surface-raised: var(--secondary-background-color, #1a1f2b);
+  --sh-surface-hover: color-mix(
+    in srgb,
+    var(--card-background-color, #12161f) 88%,
+    var(--primary-text-color, #f5f7fa)
+  );
+  --sh-border: var(--divider-color, #262d3c);
+  --sh-border-strong: color-mix(
+    in srgb,
+    var(--divider-color, #262d3c) 70%,
+    var(--primary-text-color, #f5f7fa)
+  );
+
+  --sh-text: var(--primary-text-color, #f5f7fa);
+  --sh-text-muted: var(--secondary-text-color, #a3adbf);
+  --sh-text-faint: var(--disabled-text-color, #6f7a90);
+
+  --sh-accent: var(--primary-color, #09e1c0);
+  --sh-accent-hover: color-mix(in srgb, var(--primary-color, #09e1c0) 85%, white);
+  --sh-accent-text: var(--text-primary-color, #ffffff);
+  --sh-accent-ink: var(--primary-color, #09e1c0);
+  --sh-accent-2: var(--accent-color, #7272ff);
+  --sh-accent-quiet: color-mix(in srgb, var(--primary-color, #09e1c0) 14%, transparent);
+  --sh-accent-line: color-mix(in srgb, var(--primary-color, #09e1c0) 45%, transparent);
+
+  --sh-success: var(--success-color, #3ddc97);
+  --sh-warning: var(--warning-color, #ffc44d);
+  --sh-error: var(--error-color, #ff6b6b);
+  --sh-error-hover: color-mix(in srgb, var(--error-color, #ff6b6b) 85%, white);
+  --sh-error-text: var(--text-primary-color, #ffffff);
+  --sh-error-quiet: color-mix(in srgb, var(--error-color, #ff6b6b) 12%, transparent);
+  --sh-info: var(--info-color, #5aa9ff);
+  --sh-offline: var(--disabled-color, #5b6272);
+  --sh-offline-text: var(--disabled-text-color, #8b93a4);
+
+  --sh-on: var(--state-active-color, #ffc44d);
+  --sh-on-text: var(--state-active-color, #ffd27a);
+  --sh-on-quiet: color-mix(in srgb, var(--state-active-color, #ffc44d) 10%, transparent);
+  --sh-on-line: color-mix(in srgb, var(--state-active-color, #ffc44d) 42%, transparent);
+  --sh-on-glow: var(--sh-on-quiet);
+  --sh-alert-glow: var(--sh-error-quiet);
+  --sh-alert-quiet: var(--sh-error-quiet);
+  --sh-alert-line: color-mix(in srgb, var(--error-color, #ff6b6b) 42%, transparent);
+
+  --sh-font: var(--primary-font-family, "Open Sans", system-ui, sans-serif);
+  --sh-font-heading: var(--primary-font-family, Montserrat, system-ui, sans-serif);
 }
 
 /* Nástěnný panel - velký displej, kterého se dotýká prst, čtený ze

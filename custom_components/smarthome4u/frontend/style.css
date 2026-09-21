@@ -2165,12 +2165,6 @@ textarea.input {
 /* Plocha složená z bloků                                              */
 /* ------------------------------------------------------------------ */
 
-.plocha {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sh-gap-lg);
-}
-
 /* Obal bloku je vidět jen v režimu úprav. Mimo něj se vykreslí samotný
    obsah, aby plocha nevypadala jako tabulka rámečků. */
 .blok {
@@ -2250,25 +2244,6 @@ textarea.input {
   --sh-card-min: 180px;
 }
 
-/* Místnosti: hustší a technické. Víc informací na stejné ploše. */
-.plocha--mistnosti,
-.plocha--funkce {
-  gap: var(--sh-gap-md);
-}
-
-.plocha--mistnosti .cards {
-  --sh-card-min: 140px;
-}
-
-/* Funkce: největší dlaždice a největší rozestupy. */
-.plocha--funkce {
-  gap: var(--sh-gap-xl);
-}
-
-.plocha--funkce .cards {
-  --sh-card-min: 220px;
-}
-
 /* Nástěnný panel: čitelné z několika metrů. */
 .plocha--panel .cards {
   --sh-card-min: 200px;
@@ -2293,4 +2268,125 @@ textarea.input {
 .tile--radek .tile__body {
   flex: 1;
   min-width: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Plocha ve sloupcích                                                 */
+/* ------------------------------------------------------------------ */
+
+/* Počet sloupců nese proměnná --sloupce z blocks.js, šířka bloku
+   --sirka. Na telefonu je vždy jeden sloupec - bloky vedle sebe by
+   tam byly na šířku prstu. */
+.plocha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sh-gap-lg);
+  align-items: start;
+}
+
+.plocha__blok {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .plocha {
+    grid-template-columns: repeat(var(--sloupce, 1), minmax(0, 1fr));
+  }
+
+  .plocha__blok {
+    grid-column: span min(var(--sirka, 1), var(--sloupce, 1));
+  }
+}
+
+/* Lišta bloku v úpravách: název je tlačítko, ať je jasné, že se
+   dá přejmenovat. */
+.blok__jmeno {
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--sh-radius-sm);
+  padding: 0 var(--sh-gap-xs);
+  min-height: var(--sh-touch-target);
+  font: inherit;
+  font-size: var(--sh-size-sm);
+  font-weight: var(--sh-weight-medium);
+  cursor: pointer;
+}
+
+.blok__jmeno:hover {
+  background: var(--sh-surface-raised);
+  color: var(--sh-text);
+}
+
+.blok__akce {
+  width: auto;
+  padding: 0 var(--sh-gap-sm);
+  font-size: var(--sh-size-xs);
+  white-space: nowrap;
+}
+
+.blok__akce--danger:hover {
+  color: var(--sh-error);
+}
+
+/* Tichá lišta - nemá rámeček akcentu jako hlavní lišta úprav. */
+.editbar--tichy {
+  border-color: var(--sh-border);
+}
+
+/* ------------------------------------------------------------------ */
+/* Velikosti dlaždic                                                   */
+/* ------------------------------------------------------------------ */
+
+/* Malá: jen ikona a název v jednom řádku. */
+.card--s .card__hit {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sh-gap-sm);
+  min-height: var(--sh-touch-target);
+  padding: var(--sh-gap-sm) var(--sh-gap-md);
+}
+
+.card--s .card__icon {
+  margin: 0;
+}
+
+.card--s .card__state {
+  display: none;
+}
+
+/* Velká: přes dva sloupce mřížky a s ovládáním uvnitř. */
+.card--l {
+  grid-column: span 2;
+}
+
+.card__ovladani {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-sm);
+  padding: 0 var(--sh-gap-md) var(--sh-gap-md);
+}
+
+/* V ovládání uvnitř dlaždice se stavový řádek nevypisuje - stav už
+   je v hlavičce. */
+.card__ovladani .controls__state {
+  display: none;
+}
+
+/* Rozestup mřížky dlaždic podle motivu plochy. */
+.plocha--panel .card__ovladani {
+  padding-bottom: var(--sh-gap-lg);
+}
+
+/* Nebezpečná volba v nabídce nad dlaždicí. */
+.tile--danger .tile__name {
+  color: var(--sh-error);
+}
+
+/* Nadpisy berou písmo z webu, když je v systému. */
+.header__title,
+.panel__title,
+.block__title,
+.dialog__title {
+  font-family: var(--sh-font-heading);
 }

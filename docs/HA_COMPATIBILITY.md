@@ -105,6 +105,13 @@ Bez nich se zapsané automatizace nenačtou.
 | `frontend.add_extra_js_url` | Vložení `takeover.js` do frontendu HA | **interní** |
 | `frontend.async_remove_panel` | Úklid při vypnutí | veřejné |
 | `hass.connection.subscribeEvents` | Realtime změny stavů | veřejné |
+| `hass.themes.darkMode` | Jestli HA běží ve tmavém režimu; řídí motiv "auto" | **interní** |
+| CSS proměnné motivu (`--primary-color`, `--card-background-color`, …) | Motiv "podle Home Assistanta" je přemapuje na naše tokeny | **interní** |
+
+Proměnné motivu si Home Assistant nastavuje na kořeni stránky a do stínového
+stromu se dědí. Když některá chybí, tokens.css sáhne po hodnotě tmavého
+motivu. Když `hass.themes` chybí, motiv "auto" se řídí nastavením systému.
+Ověřeno na HA 2026.9.
 
 ---
 

@@ -180,9 +180,10 @@ async def test_role_a_nastaveni(
 
     nastaveni = await (await client.get("/api/smarthome4u/settings")).json()
     assert nastaveni["adminUserId"] == model["user"]["id"]
-    assert "mistnosti" in nastaveni["presets"]
+    # Místnosti a Funkce jsou v navigaci, jako podoba plochy zmizely.
+    assert "mistnosti" not in nastaveni["presets"]
     assert "panel" in nastaveni["presets"]
-    assert len(nastaveni["presets"]) == 5
+    assert len(nastaveni["presets"]) == 3
     assert "light" in nastaveni["kinds"]
 
 
@@ -200,12 +201,18 @@ async def test_zmena_podoby_dashboardu(
     client = await hass_client()
 
     odpoved = await client.post(
-        "/api/smarthome4u/settings", json={"preset": "mistnosti"}
+        "/api/smarthome4u/settings", json={"preset": "panel"}
     )
     assert odpoved.status == 200
 
     model = await (await client.get("/api/smarthome4u/model")).json()
-    assert model["preset"] == "mistnosti"
+    assert model["preset"] == "panel"
+
+    # Zrušená podoba ze starší verze se tiše převede na Přehled.
+    settings = hass.data[DOMAIN]["settings"]
+    settings.data["preset"] = "mistnosti"
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["preset"] == "prehled"
 
     # Půdorys je od 0.8.0 hotový.
     odpoved = await client.post(
@@ -538,40 +545,61 @@ async def test_plocha_po_blocich(
 
     # Dokud správce nic neupravil, rozhoduje výchozí sestava z frontendu.
     model = await (await client.get("/api/smarthome4u/model")).json()
-    assert model["blocks"] is None
+    assert model["board"] is None
 
     sestava = [
-        {"id": "b1", "type": "status"},
+        {"id": "b1", "type": "status", "cols": 3},
         {
             "id": "b2",
             "type": "entities",
             "title": "Moje",
+            "cols": 9,
             "entities": ["light.a", "light.neexistuje"],
+            "sizes": {"light.a": "l", "light.neexistuje": "s", "x": "obri"},
         },
     ]
     odpoved = await client.post(
         "/api/smarthome4u/dashboard",
-        json={"preset": "prehled", "blocks": sestava},
+        json={"preset": "prehled", "columns": 3, "blocks": sestava},
     )
-    assert odpoved.status == 200
+    assert odpoved.status == 200, await odpoved.text()
 
     model = await (await client.get("/api/smarthome4u/model")).json()
-    assert [b["type"] for b in model["blocks"]] == ["status", "entities"]
-    # Co v Home Assistantu není, se tiše vynechá.
-    assert model["blocks"][1]["entities"] == ["entity:light.a"]
-    assert model["blocks"][1]["title"] == "Moje"
+    sestava = model["board"]
+    assert sestava["columns"] == 3
+    assert [b["type"] for b in sestava["blocks"]] == ["status", "entities"]
+    assert sestava["blocks"][0]["cols"] == 3
+    # Šířka přes víc sloupců, než plocha má, se zahodí.
+    assert "cols" not in sestava["blocks"][1]
+    # Co v Home Assistantu není, se tiše vynechá - v seznamu i ve velikostech.
+    assert sestava["blocks"][1]["entities"] == ["entity:light.a"]
+    assert sestava["blocks"][1]["sizes"] == {"entity:light.a": "l"}
+    assert sestava["blocks"][1]["title"] == "Moje"
 
     # Nová instance čte tentýž soubor - tohle je ten restart.
     nove = storage.Settings(hass)
     await nove.load()
-    assert len(nove.blocks("prehled")) == 2
+    assert len(nove.board("prehled")["blocks"]) == 2
     # Ostatní podoby plochy se tím nezměnily.
-    assert nove.blocks("panel") is None
+    assert nove.board("panel") is None
+
+    # Sestava ze starší verze byla holý seznam. Musí se přečíst jako
+    # jeden sloupec, aby stará plocha vypadala stejně jako dřív.
+    nove.data["dashboard"]["panel"] = [{"id": "z", "type": "clock"}]
+    assert nove.board("panel") == {
+        "columns": 1,
+        "blocks": [{"id": "z", "type": "clock"}],
+    }
 
     # Nesmysly se odmítnou.
     spatne = await client.post(
         "/api/smarthome4u/dashboard",
         json={"preset": "neexistuje", "blocks": []},
+    )
+    assert spatne.status == 400
+    spatne = await client.post(
+        "/api/smarthome4u/dashboard",
+        json={"preset": "prehled", "columns": 7, "blocks": []},
     )
     assert spatne.status == 400
 
@@ -622,7 +650,7 @@ async def test_bloky_preziji_prejmenovani_entity(
     )
 
     model = await (await client.get("/api/smarthome4u/model")).json()
-    assert model["blocks"][0]["entities"] == [entry_record.id]
+    assert model["board"]["blocks"][0]["entities"] == [entry_record.id]
     assert any(
         entity["id"] == "light.pracovna_nova" and entity["ref"] == entry_record.id
         for room in model["rooms"]

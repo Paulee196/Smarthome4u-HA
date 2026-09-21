@@ -28,8 +28,10 @@ nad Home Assistantem. Home Assistant je jediný zdroj pravdy a výkonné jádro.
 9. **Žádné hardcoded texty.** Vše přes i18n, první jazyk čeština.
 10. **Žádný odkaz ven z aplikace.** Uživatel nikdy neskončí v rozhraní
     Home Assistantu. Viz sekce níže.
-11. **Žádné barvy mimo `frontend/tokens.css`.** Finální brand barvy se doplní
-    až po auditu webu smarthome4u.cz. Do té doby jsou označené jako dočasné.
+11. **Žádné barvy mimo `frontend/tokens.css`.** Brand barvy jsou z auditu
+    webu smarthome4u.cz (21. 9. 2026): tyrkysová `#09e1c0`, fialová
+    `#7272ff`, text `#353740`. Každá barva existuje ve třech motivech:
+    tmavém, světlém a "podle Home Assistanta". Nová barva = tři hodnoty.
 
 ## Bezpečnost aplikace
 

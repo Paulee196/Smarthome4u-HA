@@ -10,6 +10,7 @@
  */
 
 import { setAuth, api } from "./api.js";
+import { ucinnyMotiv, UDALOST as MOTIV_ZMENEN } from "./theme.js";
 import { setHost } from "./ui.js";
 import { mount, applyIncoming } from "./app.js";
 
@@ -40,6 +41,8 @@ class Smarthome4uPanel extends HTMLElement {
         await this._hass?.auth?.refreshAccessToken?.();
       },
     );
+
+    if (this._ready) this._uplatnitMotiv();
 
     if (!this._ready) {
       this._ready = true;
@@ -116,6 +119,9 @@ class Smarthome4uPanel extends HTMLElement {
     setHost(root);
     mount(root);
 
+    this._uplatnitMotiv();
+    window.addEventListener(MOTIV_ZMENEN, () => this._uplatnitMotiv());
+
     this._uplatnitKiosk();
     window.addEventListener("sh4u-kiosk-changed", () => this._uplatnitKiosk());
 
@@ -130,6 +136,26 @@ class Smarthome4uPanel extends HTMLElement {
   }
 
   /* ---------------------------------------------------------------- */
+
+  /**
+   * Motiv se nese atributem na hostiteli - na něj míří :host([data-theme])
+   * v tokens.css. Třída na kostře je pojistka pro prohlížeče, které
+   * :host s atributem v odkazovaném souboru neuplatní.
+   */
+  _uplatnitMotiv() {
+    try {
+      const motiv = ucinnyMotiv(this._hass);
+      if (this.dataset.theme === motiv) return;
+
+      this.dataset.theme = motiv;
+      if (this._shell) {
+        this._shell.classList.remove("shell--light", "shell--dark", "shell--ha");
+        this._shell.classList.add("shell--" + motiv);
+      }
+    } catch (error) {
+      console.warn("[Smarthome4u] Motiv:", error);
+    }
+  }
 
   /**
    * Kiosk režim: panel zabere celé okno.

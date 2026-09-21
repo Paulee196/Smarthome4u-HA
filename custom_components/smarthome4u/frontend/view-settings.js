@@ -9,6 +9,7 @@
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { icon } from "./icons.js";
+import { VOLBY as MOTIVY, zvolenyMotiv, nastavitMotiv } from "./theme.js";
 import {
   h,
   button,
@@ -21,8 +22,6 @@ import {
 
 const PRESET_POPIS = {
   prehled: "prehled",
-  mistnosti: "mistnosti",
-  funkce: "funkce",
   panel: "panel",
   pudorys: "pudorys",
 };
@@ -36,7 +35,17 @@ export async function renderSettings(root, ctx) {
       class: "muted",
       text: jeSpravce ? t.settings.youAreAdmin : t.settings.youAreUser,
     }),
+    jeSpravce &&
+      prepinac(
+        t.settings.technician,
+        ctx.jeTechnik,
+        () => ctx.prepnoutRezim(),
+        t.settings.technicianHint,
+      ),
   ]));
+
+  // Vzhled si volí každý sám, i kdo není správce.
+  root.append(sekceMotiv());
 
   if (!jeSpravce) {
     root.append(emptyState(t.settings.onlyAdmin));
@@ -79,6 +88,48 @@ function prepinac(popis, hodnota, onChange, napoveda) {
       h("span", { text: popis }),
     ]),
     napoveda && h("p", { class: "muted", text: napoveda }),
+  ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Motiv                                                               */
+/* ------------------------------------------------------------------ */
+
+/* Světlý, tmavý, nebo podle Home Assistanta. Ukládá se do prohlížeče,
+   ne k účtu - tablet na zdi a telefon v ruce chtějí každý něco jiného. */
+function sekceMotiv() {
+  const aktualni = zvolenyMotiv();
+  const mrizka = h("div", { class: "grid-buttons" });
+
+  for (const volba of MOTIVY) {
+    const vybrany = volba === aktualni;
+    mrizka.append(
+      h(
+        "button",
+        {
+          class: "picker" + (vybrany ? " picker--active" : ""),
+          type: "button",
+          "aria-pressed": String(vybrany),
+          onclick: () => {
+            nastavitMotiv(volba);
+            for (const tlacitko of mrizka.children) {
+              const je = tlacitko === mrizka.children[MOTIVY.indexOf(volba)];
+              tlacitko.classList.toggle("picker--active", je);
+              tlacitko.setAttribute("aria-pressed", String(je));
+            }
+          },
+        },
+        [
+          h("span", { class: "picker__name", text: t.settings.themes[volba] }),
+          h("span", { class: "picker__desc", text: t.settings.themesHint[volba] }),
+        ],
+      ),
+    );
+  }
+
+  return karta(t.settings.theme, "rooms", [
+    h("p", { class: "muted", text: t.settings.themeHint }),
+    mrizka,
   ]);
 }
 

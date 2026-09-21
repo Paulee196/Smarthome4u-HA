@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.10.3
+**Aktuální verze:** 0.11.0
 **Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---
@@ -91,6 +91,17 @@ z iframu by to nešlo.
 - [x] Kiosk režim: skrytí obou lišt Home Assistantu a roztažení do celé šířky
 - [x] Nastavení aplikace včetně stavu Home Assistantu - verze, paměť, úložiště
 - [x] Vydání na GitHubu se tvoří samo z tagu, HACS podle něj nabídne aktualizaci
+
+### Plocha z bloků a motivy (v0.10 - v0.11)
+
+- [x] Plocha je mřížka bloků: přetažení, odebrání, přidání z nabídky deseti druhů
+- [x] Sloupce 1-4 a šířka bloku, na telefonu vždy jeden sloupec
+- [x] Přejmenování bloku klepnutím na název
+- [x] Dlaždice ve třech velikostech, velká s ovládáním uvnitř
+- [x] Nabídka nad dlaždicí: velikost, vyměnit, odebrat
+- [x] Uložené rozvržení drží registry ID, přežije přejmenování entity
+- [x] Tři motivy: tmavý, světlý, podle Home Assistanta; barvy z webu smarthome4u.cz
+- [x] Technický režim v Nastavení / Účet, řízený účtem
 
 ---
 
@@ -189,7 +200,7 @@ Pavel má nadstavbu nainstalovanou přes HACS a hlásí zpět. Potvrzené věci:
 | Volné propojování bloků drátem | Skládačka jde zatím shora dolů. Dráty jako v Node-RED až bude jasné, že jsou potřeba. |
 | Odebrání jednotlivého zařízení | Jen celá integrace - nevratná operace patří tam, kde je celý kontext. |
 | Logo a ikona | Čeká na Pavla. |
-| Finální brand barvy | Po auditu webu smarthome4u.cz. |
+| Role user / technician / admin a rozdělení oprávnění | Zadání v docs/CLAUDE_DASHBOARD_FIX.md, body 5. Zatím jen správce a ostatní. |
 
 ---
 

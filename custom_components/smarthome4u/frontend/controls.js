@@ -116,12 +116,25 @@ function levelOf(entity) {
   return null;
 }
 
-/** Dlaždice do mřížky. Ikona, název, stav a případný proužek úrovně. */
-export function card(entity) {
+/* Velikosti dlaždice. Velká nemá jen víc místa - ukazuje rovnou ovládání,
+   takže se stmívá nebo nastavuje teplota bez otevírání detailu. */
+export const VELIKOSTI_DLAZDIC = ["s", "m", "l"];
+
+/**
+ * Dlaždice do mřížky. Ikona, název, stav a případný proužek úrovně.
+ *
+ * @param {object} entity
+ * @param {object} [volby]
+ * @param {"s"|"m"|"l"} [volby.size] velikost; velká má ovládání uvnitř
+ */
+export function card(entity, volby = {}) {
   const kind = entity.capability?.kind;
   const primary = PRIMARY[kind];
   const detail = hasExtraControls(entity);
   const interactive = Boolean(primary) || detail;
+  const velikost = VELIKOSTI_DLAZDIC.includes(volby.size) ? volby.size : "m";
+  // Velká dlaždice s ovládáním má smysl jen tam, kde je co ovládat.
+  const sOvladanim = velikost === "l" && detail;
 
   const glyph = h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg"));
 
@@ -158,7 +171,11 @@ export function card(entity) {
 
   const children = [hit, level];
 
-  if (detail && primary) {
+  // Ovládání přímo v dlaždici. Překresluje se se změnou stavu.
+  const ovladani = sOvladanim ? h("div", { class: "card__ovladani" }) : null;
+  if (ovladani) children.push(ovladani);
+
+  if (detail && primary && !sOvladanim) {
     children.push(
       h("button", {
         class: "card__more",
@@ -170,9 +187,15 @@ export function card(entity) {
     );
   }
 
-  function trida(stav, velikost) {
-    // Velikost dlaždice si volí správce v editoru rozvržení.
-    return ["card", "card--" + stav, velikost ? "card--" + velikost : ""]
+  function trida(stav, stara) {
+    // Velikost dlaždice si volí správce v režimu úprav. Stará velikost
+    // (wide, tall, big) z rozvržení místností se drží vedle nové.
+    return [
+      "card",
+      "card--" + stav,
+      "card--" + velikost,
+      stara ? "card--" + stara : "",
+    ]
       .filter(Boolean)
       .join(" ");
   }
@@ -194,6 +217,10 @@ export function card(entity) {
     if (hit.tagName === "BUTTON") {
       hit.disabled = !next.available;
       if (primary) hit.setAttribute("aria-pressed", String(next.state === "on"));
+    }
+
+    if (ovladani) {
+      ovladani.replaceChildren(...buildControls(next, { jenOvladani: true }));
     }
   }
 
@@ -283,16 +310,24 @@ function paticka(entity) {
   ]);
 }
 
-function buildControls(entity) {
+/**
+ * Ovládací prvky pro dané zařízení.
+ *
+ * Používá je dialog i velká dlaždice. Dlaždice už má stav a zapínání
+ * v hlavičce, takže si je nechá vynechat - jinak by tam byly dvakrát.
+ */
+function buildControls(entity, volby = {}) {
   const c = entity.capability || {};
   const attrs = entity.attributes || {};
   const { text } = describeState(entity);
+  const { jenOvladani = false } = volby;
 
-  const parts = [h("p", { class: "controls__state", text })];
+  const parts = jenOvladani ? [] : [h("p", { class: "controls__state", text })];
+  const zapinani = (e) => (jenOvladani ? null : onOffRow(e));
 
   switch (c.kind) {
     case "light":
-      parts.push(onOffRow(entity));
+      parts.push(zapinani(entity));
       if (c.dimmable) {
         const pct = attrs.brightness ? Math.round((attrs.brightness / 255) * 100) : 0;
         parts.push(
@@ -323,7 +358,7 @@ function buildControls(entity) {
 
     case "switch":
     case "fan":
-      parts.push(onOffRow(entity));
+      parts.push(zapinani(entity));
       if (c.speed) {
         parts.push(
           labelled(

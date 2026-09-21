@@ -154,8 +154,8 @@ export const api = {
   classify: (id, body) => request("POST", `entities/${enc(id)}/classify`, body),
   toggleFavorite: (id) => request("POST", `favorites/${enc(id)}`, {}),
   saveFavorites: (entities) => request("POST", "favorites", { entities }),
-  saveDashboard: (preset, blocks) =>
-    request("POST", "dashboard", { preset, blocks }),
+  saveDashboard: (preset, columns, blocks) =>
+    request("POST", "dashboard", { preset, columns, blocks }),
 
   templates: () => request("GET", "templates"),
   createAutomation: (body) => request("POST", "automations", body),

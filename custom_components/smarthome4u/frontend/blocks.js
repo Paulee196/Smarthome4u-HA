@@ -1,11 +1,12 @@
 /* Plocha složená z bloků.
  *
  * Tohle je jádro úprav dashboardu. Plocha není pevně daná obrazovka, ale
- * seznam bloků. Každý blok se dá přesunout, odebrat a přidat. Bloky, které
- * drží zařízení, se navíc skládají po jednotlivých dlaždicích.
+ * mřížka o několika sloupcích a v ní bloky. Každý blok se dá přesunout,
+ * odebrat, přejmenovat a roztáhnout přes víc sloupců. Bloky, které drží
+ * zařízení, se navíc skládají po jednotlivých dlaždicích.
  *
  * Když správce nic neupravil, použije se výchozí sestava pro zvolenou
- * podobu plochy. Každá podoba má svůj motiv, ne jen jiné pořadí.
+ * podobu plochy.
  */
 
 import { api } from "./api.js";
@@ -14,7 +15,18 @@ import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { mrizkaZarizeni } from "./favorites.js";
 import { icon } from "./icons.js";
-import { h, button, closeDialog, dialog, emptyState, toast } from "./ui.js";
+import {
+  h,
+  button,
+  closeDialog,
+  dialog,
+  emptyState,
+  textInput,
+  toast,
+} from "./ui.js";
+
+/* Sloupce plochy. Víc než čtyři se nevejdou ani na velkou obrazovku. */
+export const MAX_SLOUPCU = 4;
 
 /* ------------------------------------------------------------------ */
 /* Definice bloků                                                      */
@@ -63,42 +75,51 @@ const JEDNOU = new Set(["clock", "status", "rooms", "actions"]);
 /**
  * Výchozí sestava pro danou podobu plochy.
  *
- * Každá podoba má jiný motiv, ne jen jiné pořadí bloků:
- * - prehled   velké dlaždice a rychlé akce, málo textu
- * - mistnosti hustší a technické, všechno na jedné ploše
- * - funkce    hodně prázdna, velké dlaždice po skupinách
- * - panel     hodiny a stav velkým písmem, čitelné z dálky
+ * - prehled  dva sloupce, stav domu a vlastní zařízení přes celou šířku,
+ *            scény a rychlé akce vedle sebe
+ * - panel    hodiny přes celou šířku, pod nimi co se právě děje,
+ *            velké písmo, čitelné z dálky
  */
 export function vychozi(preset, model) {
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
 
   if (preset === "panel") {
-    return [
-      { id: "b1", type: "clock" },
-      { id: "b2", type: "alerts" },
-      { id: "b3", type: "open" },
-      { id: "b4", type: "playing" },
-      { id: "b5", type: "lights" },
-      { id: "b6", type: "entities", title: t.home.favorites, entities: oblibene },
-      { id: "b7", type: "rooms" },
-    ];
+    return {
+      columns: 2,
+      blocks: [
+        { id: "b1", type: "clock", cols: 2 },
+        { id: "b2", type: "alerts", cols: 2 },
+        { id: "b3", type: "open" },
+        { id: "b4", type: "playing" },
+        { id: "b5", type: "lights", cols: 2 },
+        {
+          id: "b6",
+          type: "entities",
+          title: t.home.favorites,
+          entities: oblibene,
+          cols: 2,
+        },
+        { id: "b7", type: "rooms", cols: 2 },
+      ],
+    };
   }
 
-  if (preset === "mistnosti" || preset === "funkce") {
-    return [
-      { id: "b1", type: "status" },
-      { id: "b2", type: "alerts" },
-      { id: "b3", type: "rooms" },
-    ];
-  }
-
-  return [
-    { id: "b1", type: "status" },
-    { id: "b2", type: "alerts" },
-    { id: "b3", type: "entities", title: t.home.favorites, entities: oblibene },
-    { id: "b4", type: "scenes" },
-    { id: "b5", type: "actions" },
-  ];
+  return {
+    columns: 2,
+    blocks: [
+      { id: "b1", type: "status", cols: 2 },
+      { id: "b2", type: "alerts", cols: 2 },
+      {
+        id: "b3",
+        type: "entities",
+        title: t.home.favorites,
+        entities: oblibene,
+        cols: 2,
+      },
+      { id: "b4", type: "scenes" },
+      { id: "b5", type: "actions" },
+    ],
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -107,40 +128,74 @@ export function vychozi(preset, model) {
 
 export function vykreslitPlochu(root, ctx) {
   const preset = ctx.model.preset || "prehled";
-  const bloky = ctx.model.blocks?.length
-    ? ctx.model.blocks
+  const sestava = ctx.model.board?.blocks
+    ? ctx.model.board
     : vychozi(preset, ctx.model);
 
-  const plocha = h("div", { class: `plocha plocha--${preset}` });
+  const sloupce = Math.min(MAX_SLOUPCU, Math.max(1, sestava.columns || 1));
+  const bloky = sestava.blocks;
+
+  const ulozit = (nove) =>
+    ulozitSestavu(ctx, { columns: sloupce, ...nove, blocks: nove.blocks || bloky });
+
+  if (ctx.editing) {
+    root.append(listaSloupcu(sloupce, (n) => ulozit({ columns: n })));
+  }
+
+  const plocha = h("div", { class: "plocha plocha--" + preset });
+  plocha.style.setProperty("--sloupce", String(sloupce));
   root.append(plocha);
 
-  const ulozit = (nove) => ulozitBloky(ctx, nove);
-
   for (const blok of bloky) {
-    const prvek = jedenBlok(ctx, blok, bloky, ulozit);
+    const prvek = jedenBlok(ctx, blok, bloky, sloupce, (b) => ulozit({ blocks: b }));
     if (prvek) plocha.append(prvek);
   }
 
   if (ctx.editing) {
-    plocha.append(pridatBlok(ctx, bloky, ulozit));
+    plocha.append(pridatBlok(ctx, bloky, (b) => ulozit({ blocks: b })));
     povolitPretahovani(plocha, (poradi) => {
       const podleId = new Map(bloky.map((b) => [b.id, b]));
-      ulozit(poradi.map((id) => podleId.get(id)).filter(Boolean));
+      ulozit({ blocks: poradi.map((id) => podleId.get(id)).filter(Boolean) });
     });
   } else if (!plocha.children.length) {
     plocha.append(emptyState(t.editor.emptyBoard));
   }
 }
 
-function jedenBlok(ctx, blok, bloky, ulozit) {
+/* Přepínač počtu sloupců. Na telefonu je vždy jeden, tohle platí od
+   šířky tabletu. */
+function listaSloupcu(sloupce, onZmena) {
+  return h("section", { class: "editbar editbar--tichy" }, [
+    h("div", { class: "editbar__text" }, [
+      h("span", { class: "editbar__title", text: t.editor.columns }),
+      h("span", { class: "editbar__hint", text: t.editor.columnsHint }),
+    ]),
+    h(
+      "div",
+      { class: "segmented" },
+      [1, 2, 3, 4].map((n) =>
+        h("button", {
+          class: "segmented__item" + (n === sloupce ? " segmented__item--active" : ""),
+          type: "button",
+          text: String(n),
+          "aria-pressed": String(n === sloupce),
+          onclick: () => n !== sloupce && onZmena(n),
+        }),
+      ),
+    ),
+  ]);
+}
+
+function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
   const definice = BLOKY[blok.type];
   if (!definice) return null;
 
+  const sirka = Math.min(sloupce, Math.max(1, blok.cols || 1));
+  const nahradit = (novy) => ulozit(bloky.map((b) => (b.id === blok.id ? novy : b)));
+
   let obsah = null;
   try {
-    obsah = definice.render(ctx, blok, (novy) =>
-      ulozit(bloky.map((b) => (b.id === blok.id ? novy : b))),
-    );
+    obsah = definice.render(ctx, blok, nahradit);
   } catch (error) {
     console.error("[Smarthome4u] Blok se nevykreslil:", blok.type, error);
     obsah = ctx.editing ? emptyState(t.editor.blockFailed) : null;
@@ -149,14 +204,32 @@ function jedenBlok(ctx, blok, bloky, ulozit) {
   // Mimo úpravy nemá smysl ukazovat prázdný rámeček.
   if (!obsah && !ctx.editing) return null;
 
-  if (!ctx.editing) return obsah;
+  if (!ctx.editing) {
+    obsah.style.setProperty("--sirka", String(sirka));
+    obsah.classList.add("plocha__blok");
+    return obsah;
+  }
 
-  const obal = h("div", { class: "blok" }, [
+  const obal = h("div", { class: "blok plocha__blok" }, [
     h("div", { class: "blok__lista" }, [
       h("span", { class: "dnd__uchyt", text: "⠿" }),
-      h("span", { class: "blok__jmeno", text: blok.title || t.blocks[blok.type] }),
+      h("button", {
+        class: "blok__jmeno",
+        type: "button",
+        text: blok.title || t.blocks[blok.type],
+        title: t.editor.rename,
+        onclick: () => prejmenovat(blok, nahradit),
+      }),
       h("button", {
         class: "blok__akce",
+        type: "button",
+        text: t.editor.width(sirka, sloupce),
+        title: t.editor.widthHint,
+        // Cyklí 1 → 2 → … → sloupce → 1.
+        onclick: () => nahradit({ ...blok, cols: (sirka % sloupce) + 1 }),
+      }),
+      h("button", {
+        class: "blok__akce blok__akce--danger",
         type: "button",
         text: "✕",
         "aria-label": t.editor.removeBlock,
@@ -166,16 +239,48 @@ function jedenBlok(ctx, blok, bloky, ulozit) {
     obsah || emptyState(t.editor.blockEmpty),
   ]);
 
+  obal.style.setProperty("--sirka", String(sirka));
   obal.setAttribute(ATRIBUT_KLICE, blok.id);
   obal.setAttribute("data-dnd-handle", "");
   return obal;
+}
+
+function prejmenovat(blok, nahradit) {
+  const vstup = textInput(blok.title || "", t.blocks[blok.type]);
+
+  const potvrdit = () => {
+    closeDialog();
+    const nazev = vstup.value.trim();
+    const novy = { ...blok };
+    if (nazev) novy.title = nazev;
+    else delete novy.title;
+    nahradit(novy);
+  };
+
+  vstup.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") potvrdit();
+  });
+
+  dialog(
+    t.editor.rename,
+    h("div", { class: "stack" }, [
+      h("p", { class: "muted", text: t.editor.renameHint }),
+      vstup,
+      h("div", { class: "row" }, [
+        button(t.action.cancel, closeDialog, "button--ghost"),
+        button(t.action.save, potvrdit),
+      ]),
+    ]),
+  );
+
+  vstup.focus();
 }
 
 function pridatBlok(ctx, bloky, ulozit) {
   return h(
     "button",
     {
-      class: "blok blok--pridat",
+      class: "blok blok--pridat plocha__blok",
       type: "button",
       onclick: () => nabidnoutBloky(ctx, bloky, ulozit),
     },
@@ -231,9 +336,13 @@ function novyBlok(typ) {
   return blok;
 }
 
-async function ulozitBloky(ctx, bloky) {
+async function ulozitSestavu(ctx, sestava) {
   try {
-    await api.saveDashboard(ctx.model.preset || "prehled", bloky);
+    await api.saveDashboard(
+      ctx.model.preset || "prehled",
+      sestava.columns,
+      sestava.blocks,
+    );
     toast(t.notice.saved);
     await ctx.refresh();
   } catch (error) {
@@ -475,9 +584,7 @@ function zarizeni(ctx, blok, ulozitBlok) {
     "devices",
     h("div", { class: "stack" }, [
       ctx.editing && h("p", { class: "muted", text: t.favorites.hint }),
-      mrizkaZarizeni(ctx, ids, (nove) =>
-        ulozitBlok({ ...blok, entities: nove }),
-      ),
+      mrizkaZarizeni(ctx, blok, ulozitBlok),
     ]),
   );
 }
