@@ -62,6 +62,9 @@ FORWARDED_ATTRIBUTES = (
 
 HIDDEN_CATEGORIES = {"config", "diagnostic"}
 
+# Co znamená "je otevřené" - zajímá to na první pohled při odchodu z domu.
+OPENING_CLASSES = frozenset({"door", "window", "garage_door", "opening"})
+
 
 class Home:
     """Čte strukturu domácnosti z registrů Home Assistantu."""
@@ -366,31 +369,108 @@ class Home:
         }
 
     def summary(self) -> dict:
-        lights_on = 0
-        alerts = []
+        """Stav domu jednou větou.
+
+        Ne výpis všeho. Člověk chce vědět: svítí někde, je zamčeno, je něco
+        otevřené a neděje se něco zlého. Nic víc na domovskou obrazovku
+        nepatří - jinak z ní je nekonečný seznam, ve kterém se nedá nic najít.
+        """
+        svetla: list[dict] = []
+        otevrene: list[dict] = []
+        odemcene: list[dict] = []
+        upozorneni: list[dict] = []
 
         for view in self._visible():
             kind = view["capability"].get("kind")
-            if kind == "light" and view["state"] == "on":
-                lights_on += 1
-            elif (
-                kind == "binary_sensor"
-                and view["state"] == "on"
-                and view["capability"].get("safety")
-            ):
-                alerts.append(view)
+            stav = view["state"]
+
+            if kind == "light" and stav == "on":
+                svetla.append(view)
+            elif kind == "lock" and stav == "unlocked":
+                odemcene.append(view)
+            elif kind == "cover" and stav in ("open", "opening"):
+                otevrene.append(view)
+            elif kind == "binary_sensor" and stav == "on":
+                if view["capability"].get("safety"):
+                    upozorneni.append(view)
+                elif view["deviceClass"] in OPENING_CLASSES:
+                    otevrene.append(view)
 
         devices = dr.async_get(self.hass)
         areas = ar.async_get(self.hass)
 
         return {
-            "lightsOn": lights_on,
-            "alerts": alerts,
+            "lightsOn": len(svetla),
+            "lightNames": [v["name"] for v in svetla[:5]],
+            "openCount": len(otevrene),
+            "openNames": [v["name"] for v in otevrene[:5]],
+            "unlockedCount": len(odemcene),
+            "unlockedNames": [v["name"] for v in odemcene[:5]],
+            "alerts": upozorneni,
             "deviceCount": sum(
                 1 for device in devices.devices.values() if not device.disabled_by
             ),
             "areaCount": len(areas.areas),
         }
+
+    def favorites(self) -> list[dict]:
+        """Co si správce označil jako často používané.
+
+        Tohle je jádro domovské obrazovky. Běžný člen domácnosti dělá jen pár
+        věcí - ty mají být na jedno klepnutí, zbytek se hledá v místnostech.
+        """
+        if self.settings is None:
+            return []
+
+        vybrane = []
+        for entity_id in self.settings.favorites:
+            view = self.entity(entity_id)
+            if view is not None:
+                vybrane.append(view)
+        return vybrane
+
+    def room_summaries(self) -> list[dict]:
+        """Místnosti jako karty se stručným stavem.
+
+        Lidé myslí v místnostech, ne v entitách. Nejdřív dostanou přehled
+        místností, teprve po klepnutí konkrétní ovládání.
+        """
+        souhrny = []
+
+        for room in self.rooms():
+            svetla = 0
+            teplota = None
+            problem = False
+
+            for view in room["entities"]:
+                kind = view["capability"].get("kind")
+                if kind == "light" and view["state"] == "on":
+                    svetla += 1
+                elif kind == "sensor" and view["deviceClass"] == "temperature":
+                    try:
+                        teplota = round(float(view["state"]))
+                    except (TypeError, ValueError):
+                        teplota = None
+                elif (
+                    kind == "binary_sensor"
+                    and view["state"] == "on"
+                    and view["capability"].get("safety")
+                ):
+                    problem = True
+
+            souhrny.append(
+                {
+                    "id": room["id"],
+                    "name": room["name"],
+                    "floorName": room["floorName"],
+                    "count": len(room["entities"]),
+                    "lightsOn": svetla,
+                    "temperature": teplota,
+                    "alert": problem,
+                }
+            )
+
+        return souhrny
 
 
 def _entity_sort_key(view: dict) -> tuple[int, str]:

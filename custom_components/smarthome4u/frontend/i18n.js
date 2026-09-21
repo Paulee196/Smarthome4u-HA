@@ -18,10 +18,32 @@ export const t = {
     settings: "Nastavení",
   },
 
+  mode: {
+    toTechnician: "Režim technika",
+    toUser: "Režim uživatele",
+  },
+
   status: {
     connecting: "Připojuji se",
     online: "Připojeno",
     offline: "Bez spojení",
+
+    // Stav domu se píše větou. Číslo bez kontextu nikomu nic neřekne.
+    allLightsOff: "Nikde nesvítí.",
+    lightsOn: (pocet, jmena) =>
+      pocet === 1
+        ? `Svítí ${jmena[0]}.`
+        : `Svítí ${pocet} světla. ${(jmena || []).join(", ")}`,
+    allLocked: "Vše je zamčené.",
+    unlocked: (pocet, jmena) =>
+      pocet === 1
+        ? `Odemčeno: ${jmena[0]}`
+        : `Odemčeno na ${pocet} místech. ${(jmena || []).join(", ")}`,
+    allClosed: "Vše je zavřené.",
+    open: (pocet, jmena) =>
+      pocet === 1
+        ? `Otevřeno: ${jmena[0]}`
+        : `Otevřeno je ${pocet} věcí. ${(jmena || []).join(", ")}`,
   },
 
   notice: {
@@ -51,9 +73,15 @@ export const t = {
     lightsOn: "Svítí",
     devices: "Zařízení",
     rooms: "Místnosti",
-    allQuiet: "Vše je v pořádku",
     alerts: "Vyžaduje pozornost",
-    allLightsOff: "Zhasnout vše",
+    allLightsOff: "Zhasnout všechna světla",
+    quickActions: "Rychlé akce",
+    favorites: "Často používané",
+    noFavorites:
+      "Zatím tu nic není. V ovládání zařízení klepněte na hvězdičku " +
+      "a objeví se tady.",
+    turnedOff: (pocet) =>
+      pocet === 1 ? `Zhasnuto 1 světlo.` : `Zhasnuto ${pocet} světel.`,
   },
 
   functions: {
@@ -91,6 +119,11 @@ export const t = {
     noFloor: "Bez patra",
     level: "Podlaží",
     deviceCount: "zařízení",
+    openRoom: "Otevřít místnost",
+    lightsOn: (pocet) => (pocet === 1 ? `Svítí 1 světlo` : `Svítí ${pocet}`),
+    nothingOn: "Nikde nesvítí",
+    deviceTotal: (pocet) =>
+      pocet === 1 ? `1 zařízení` : `${pocet} zařízení`,
     deleteRoomHint:
       "Smazáním místnosti se nic nesmaže. Zařízení jen zůstanou nezařazená.",
   },
@@ -347,6 +380,10 @@ export const t = {
     kioskHint:
       "Schová postranní lištu a horní pruh Home Assistantu, když je otevřené " +
       "Smarthome4u. Vypnutím se Home Assistant vrátí do původní podoby.",
+    bigControls: "Zvětšené ovládání",
+    bigControlsHint:
+      "Větší tlačítka a písmo. Hodí se pro starší uživatele a pro panel " +
+      "na zdi, na který se dívá z dálky.",
     landing: "Po přihlášení otevřít Smarthome4u",
     landingHint:
       "Místo výchozího dashboardu Home Assistantu se rovnou otevře Smarthome4u.",
@@ -489,6 +526,8 @@ export const t = {
     playPause: "Přehrát nebo pozastavit",
     value: "Hodnota",
     option: "Volba",
+    addFavorite: "Přidat mezi často používané",
+    removeFavorite: "Odebrat z často používaných",
   },
 
   state: {

@@ -1,4 +1,14 @@
-/* Domů - dashboard domácnosti.
+/* Domů - co se děje v domě právě teď.
+ *
+ * Záměrně tu NENÍ výpis všech zařízení. Nejčastější chyba v podobných
+ * rozhraních je, že každá entita skončí jako karta a za měsíc je z toho
+ * jedna nekonečná stránka, ve které se nedá nic najít.
+ *
+ * Běžný člen domácnosti potřebuje jen pár věcí: svítí někde, je zamčeno,
+ * je něco otevřené, a rychle sáhnout na to, co používá denně. Zbytek se
+ * hledá v místnostech.
+ *
+ * Původní popis:
  *
  * Podobu volí správce v nastavení. Rozvržení jde upravit přetažením.
  * Členění na funkce je princip převzatý z instalačních systémů, ne jejich
@@ -66,14 +76,9 @@ export async function renderHome(root, ctx) {
     pridat(root, listaUprav(ctx));
   }
 
-  if (!ctx.editing && preset === "prehled") {
-    pridat(
-      root,
-      introCard(),
-      statsRow(model.summary || {}),
-      upozorneni(model.summary || {}),
-      rychleAkce(model),
-    );
+  if (preset === "prehled" && !ctx.editing) {
+    prehled(root, ctx);
+    return;
   }
 
   if (!model.rooms.length) {
@@ -314,84 +319,120 @@ function panel(klic, title, subtitle, glyph, entities, ctx) {
 /* Souhrn, upozornění a rychlé akce                                    */
 /* ------------------------------------------------------------------ */
 
-function upozorneni(summary) {
-  if (!summary.alerts?.length) return null;
+/* ------------------------------------------------------------------ */
+/* Přehled                                                             */
+/* ------------------------------------------------------------------ */
+
+function prehled(root, ctx) {
+  const model = ctx.model;
+  const souhrn = model.summary || {};
+
+  pridat(root, stavDomu(souhrn), upozorneni(souhrn));
+
+  const oblibene = model.favorites || [];
+  if (oblibene.length) {
+    root.append(
+      blok(t.home.favorites, "scenes", mrizkaKaret(oblibene)),
+    );
+  } else if (ctx.jeTechnik) {
+    root.append(blok(t.home.favorites, "scenes", emptyState(t.home.noFavorites)));
+  }
+
+  const sceny = model.scenes || [];
+  if (sceny.length) {
+    root.append(blok(t.scenes.scenes, "scenes", mrizkaKaret(sceny)));
+  }
+
+  root.append(
+    blok(
+      t.home.quickActions,
+      "home",
+      h("div", { class: "row" }, [
+        button(t.home.allLightsOff, () => zhasnoutVse(model)),
+        button(t.nav.rooms, () => ctx.navigate("rooms"), "button--ghost"),
+      ]),
+    ),
+  );
+}
+
+function mrizkaKaret(entity) {
+  return h("div", { class: "cards" }, entity.map((e) => card(e)));
+}
+
+/** Stav domu větami, ne čísly bez kontextu. */
+function stavDomu(souhrn) {
+  const radky = [
+    veta(
+      "lighting",
+      souhrn.lightsOn
+        ? t.status.lightsOn(souhrn.lightsOn, souhrn.lightNames)
+        : t.status.allLightsOff,
+      Boolean(souhrn.lightsOn),
+    ),
+    veta(
+      "lock",
+      souhrn.unlockedCount
+        ? t.status.unlocked(souhrn.unlockedCount, souhrn.unlockedNames)
+        : t.status.allLocked,
+      Boolean(souhrn.unlockedCount),
+    ),
+    veta(
+      "window",
+      souhrn.openCount
+        ? t.status.open(souhrn.openCount, souhrn.openNames)
+        : t.status.allClosed,
+      Boolean(souhrn.openCount),
+    ),
+  ];
+
+  return h("section", { class: "panel stav" }, radky);
+}
+
+function veta(glyf, text, zvyraznit) {
+  return h(
+    "div",
+    { class: `stav__radek${zvyraznit ? " stav__radek--on" : ""}` },
+    [
+      h("span", { class: "stav__glyf" }, icon(glyf)),
+      h("span", { class: "stav__text", text }),
+    ],
+  );
+}
+
+function upozorneni(souhrn) {
+  if (!souhrn.alerts?.length) return null;
 
   return h("section", { class: "panel panel--alert" }, [
     h("div", { class: "panel__head" }, [
       h("span", { class: "panel__glyph" }, icon("security")),
       h("h2", { class: "panel__title", text: t.home.alerts }),
     ]),
-    h(
-      "div",
-      { class: "cards" },
-      summary.alerts.map((entity) => card(entity)),
-    ),
+    mrizkaKaret(souhrn.alerts),
   ]);
 }
 
-function rychleAkce(model) {
-  return h("div", { class: "row" }, [
-    button(t.home.allLightsOff, () => zhasnoutVse(model), "button--ghost"),
-  ]);
-}
-
-function statsRow(summary) {
-  return h("div", { class: "stats" }, [
-    stat(summary.lightsOn ?? 0, t.home.lightsOn),
-    stat(summary.deviceCount ?? 0, t.home.devices),
-    stat(summary.areaCount ?? 0, t.home.rooms),
-  ]);
-}
-
-function stat(value, label) {
-  return h("div", { class: "stat" }, [
-    h("span", { class: "stat__value", text: String(value) }),
-    h("span", { class: "stat__label", text: label }),
-  ]);
-}
-
-const INTRO_KEY = "sh4u.intro.done";
-
-function introCard() {
-  let done = false;
-  try {
-    done = localStorage.getItem(INTRO_KEY) === "1";
-  } catch {
-    done = false;
-  }
-  if (done) return null;
-
-  const box = h("section", { class: "intro" }, [
-    h("h2", { class: "intro__title", text: t.intro.title }),
-    h("p", { class: "muted", text: t.intro.text }),
-    h("ul", { class: "intro__list" }, [
-      h("li", { text: t.intro.step1 }),
-      h("li", { text: t.intro.step2 }),
-      h("li", { text: t.intro.step3 }),
+function blok(nadpis, glyf, obsah) {
+  return h("section", { class: "panel" }, [
+    h("div", { class: "panel__head" }, [
+      h("span", { class: "panel__glyph" }, icon(glyf)),
+      h("h2", { class: "panel__title", text: nadpis }),
     ]),
-    button(t.intro.dismiss, () => {
-      try {
-        localStorage.setItem(INTRO_KEY, "1");
-      } catch {
-        /* nevadí, jen se to příště ukáže znovu */
-      }
-      box.remove();
-    }),
+    obsah,
   ]);
-
-  return box;
 }
-
 async function zhasnoutVse(model) {
   const lights = model.rooms
     .flatMap((room) => room.entities)
     .filter((entity) => entity.capability?.kind === "light" && entity.state === "on");
 
-  if (!lights.length) return;
+  if (!lights.length) {
+    toast(t.status.allLightsOff);
+    return;
+  }
 
   try {
     await Promise.all(lights.map((entity) => api.action(entity.id, "turn_off")));
+    toast(t.home.turnedOff(lights.length));
   } catch (error) {
     toast(error.message, true);
   }

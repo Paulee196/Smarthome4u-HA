@@ -24,6 +24,14 @@ import {
 
 const watchers = new Map();
 
+/* Kdo je správce a co je mezi oblíbenými. Nastavuje app.js po načtení
+   modelu, aby ovládací panel mohl nabídnout hvězdičku. */
+let stav = { favorites: [], admin: false, refresh: null };
+
+export function nastavitOblibene(favorites, admin, refresh) {
+  stav = { favorites: favorites || [], admin: Boolean(admin), refresh };
+}
+
 export function watch(entityId, update) {
   if (!watchers.has(entityId)) watchers.set(entityId, new Set());
   watchers.get(entityId).add(update);
@@ -233,7 +241,7 @@ export function row(entity, extras = []) {
 
 export function openControls(entity) {
   const body = h("div", { class: "controls" });
-  const handle = dialog(entity.name, body);
+  const handle = dialog(entity.name, body, paticka(entity));
 
   function render(current) {
     body.replaceChildren(...buildControls(current));
@@ -243,6 +251,28 @@ export function openControls(entity) {
   watch(entity.id, (next) => {
     if (handle.panel.isConnected) render(next);
   });
+}
+
+/** Hvězdička přidá zařízení na domovskou obrazovku. */
+function paticka(entity) {
+  if (!stav.admin) return null;
+
+  const jeOblibene = stav.favorites.includes(entity.id);
+
+  return h("div", { class: "row" }, [
+    button(
+      jeOblibene ? t.control.removeFavorite : t.control.addFavorite,
+      async () => {
+        try {
+          await api.toggleFavorite(entity.id);
+          await stav.refresh?.();
+        } catch (error) {
+          toast(error.message, true);
+        }
+      },
+      jeOblibene ? "button--ghost" : "",
+    ),
+  ]);
 }
 
 function buildControls(entity) {

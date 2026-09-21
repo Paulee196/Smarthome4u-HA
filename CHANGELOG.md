@@ -2,6 +2,33 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.0]
+
+Přestavba dashboardů podle toho, co v diskuzích o Home Assistantu i jiných
+systémech vychází opakovaně. Nejčastější selhání je, že každá entita skončí
+jako karta a za měsíc je z toho nekonečná stránka, ve které se nedá nic najít.
+Přesně to tu bylo.
+
+### Přidáno
+
+- Režim technika a režim uživatele. Uživatel vidí Domů, Místnosti a Scény.
+  Automatizace, zařízení, integrace a nastavení jsou jen pro technika.
+  Přepínač je v hlavičce a vidí ho jen správce.
+- Často používané. Hvězdičkou v ovládání se zařízení dostane na domovskou
+  obrazovku. To je jádro denního ovládání.
+- Zvětšené ovládání jako volba v nastavení. Větší cíle i písmo pro starší
+  uživatele a pro panel na zdi.
+
+### Změněno
+
+- Domovská obrazovka už není výpis všech zařízení. Ukazuje stav domu větami
+  (nikde nesvítí, vše zamčené, otevřeno je okno v ložnici), upozornění,
+  často používané, scény a rychlé akce.
+- Místnosti jsou karty se stručným stavem - kolik svítí, jaká je teplota.
+  Jednotlivá zařízení se ukážou teprve po klepnutí na místnost.
+- Zhasnutí všech světel řekne, kolik jich zhaslo. Bez zpětné vazby si
+  uživatel není jistý, jestli se něco stalo.
+
 ## [0.8.2]
 
 ### Opraveno

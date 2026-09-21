@@ -1,8 +1,14 @@
-/* Místnosti - ovládání po místnostech a správa struktury. */
+/* Místnosti.
+ *
+ * Nejdřív karty místností se stručným stavem, teprve po klepnutí
+ * konkrétní ovládání. Lidé myslí v místnostech, ne v entitách, a plochý
+ * seznam všeho je to, co podobná rozhraní obvykle zabije.
+ */
 
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
+import { icon } from "./icons.js";
 import {
   h,
   button,
@@ -21,36 +27,75 @@ import {
 export function renderRooms(root, ctx) {
   const model = ctx.model;
 
-  root.append(
-    h("div", { class: "row row--end" }, [
-      button(t.rooms.manage, () => openManager(ctx), "button--ghost"),
-    ]),
-  );
+  if (ctx.jeTechnik) {
+    root.append(
+      h("div", { class: "row row--end" }, [
+        button(t.rooms.manage, () => openManager(ctx), "button--ghost"),
+      ]),
+    );
+  }
 
-  if (!model.rooms.length) {
+  const souhrny = model.roomSummaries || [];
+  if (!souhrny.length) {
     root.append(emptyState(t.rooms.empty));
     return;
   }
 
-  const grid = h("div", { class: "view" });
-  for (const room of model.rooms) {
-    grid.append(
-      h("section", { class: "panel" }, [
-        h("div", { class: "panel__head" }, [
-          h("h2", { class: "panel__title", text: room.name || t.rooms.unassigned }),
-          room.floorName && h("span", { class: "panel__sub", text: room.floorName }),
-        ]),
-        h(
-          "div",
-          { class: "cards" },
-          room.entities.map((entity) => card(entity)),
-        ),
-      ]),
-    );
+  const mrizka = h("div", { class: "cards cards--rooms" });
+  for (const souhrn of souhrny) {
+    mrizka.append(kartaMistnosti(souhrn, ctx));
   }
-  root.append(grid);
+  root.append(mrizka);
 }
 
+/** Karta místnosti: název, kolik svítí, teplota. Nic víc. */
+function kartaMistnosti(souhrn, ctx) {
+  const popisky = [];
+
+  popisky.push(
+    souhrn.lightsOn
+      ? t.rooms.lightsOn(souhrn.lightsOn)
+      : t.rooms.nothingOn,
+  );
+  if (souhrn.temperature !== null && souhrn.temperature !== undefined) {
+    popisky.push(`${souhrn.temperature} °C`);
+  }
+
+  return h(
+    "button",
+    {
+      class: `card card--room${souhrn.alert ? " card--alert" : ""}${
+        souhrn.lightsOn ? " card--on" : ""
+      }`,
+      type: "button",
+      "aria-label": `${souhrn.name || t.rooms.unassigned}, ${t.rooms.openRoom}`,
+      onclick: () => otevritMistnost(souhrn, ctx),
+    },
+    [
+      h("span", { class: "card__icon" }, icon("rooms")),
+      h("span", {
+        class: "card__name",
+        text: souhrn.name || t.rooms.unassigned,
+      }),
+      h("span", { class: "card__state", text: popisky.join(" · ") }),
+      souhrn.floorName &&
+        h("span", { class: "card__floor", text: souhrn.floorName }),
+    ],
+  );
+}
+
+/** Detail místnosti. Teprve tady jsou jednotlivá zařízení. */
+function otevritMistnost(souhrn, ctx) {
+  const room = (ctx.model.rooms || []).find((r) => r.id === souhrn.id);
+  const entity = room?.entities || [];
+
+  dialog(
+    souhrn.name || t.rooms.unassigned,
+    entity.length
+      ? h("div", { class: "cards" }, entity.map((e) => card(e)))
+      : emptyState(t.rooms.empty),
+  );
+}
 /* ------------------------------------------------------------------ */
 /* Správa pater a místností                                            */
 /* ------------------------------------------------------------------ */

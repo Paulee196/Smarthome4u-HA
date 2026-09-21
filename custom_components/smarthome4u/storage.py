@@ -42,6 +42,8 @@ VYCHOZI: dict[str, Any] = {
     # protože Smarthome4u má být nadstavba, ne další položka v menu.
     "kiosk": True,
     "landing": True,
+    # Zvětšené ovládání pro starší uživatele a nástěnné panely.
+    "bigControls": False,
     # Ruční rozvržení dashboardu. Prázdné znamená pořadí podle Home Assistantu.
     "layout": {"rooms": [], "entities": {}, "sizes": {}},
     # entity_id -> {"kind": "switch"} nebo {"hidden": true}
@@ -127,6 +129,14 @@ class Settings:
     @property
     def landing(self) -> bool:
         return bool(self.data.get("landing", True))
+
+    @property
+    def big_controls(self) -> bool:
+        return bool(self.data.get("bigControls", False))
+
+    async def set_big_controls(self, zapnuto: bool) -> None:
+        self.data["bigControls"] = bool(zapnuto)
+        await self.save()
 
     async def set_kiosk(self, zapnuto: bool, landing: bool | None = None) -> None:
         self.data["kiosk"] = bool(zapnuto)

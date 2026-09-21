@@ -104,6 +104,12 @@ function sekceVzhled(ctx, nastaveni) {
       t.settings.kioskHint,
     ),
     prepinac(
+      t.settings.bigControls,
+      nastaveni.bigControls,
+      (zapnuto) => uloz({ bigControls: zapnuto }),
+      t.settings.bigControlsHint,
+    ),
+    prepinac(
       t.settings.landing,
       nastaveni.landing,
       (zapnuto) => uloz({ landing: zapnuto }),

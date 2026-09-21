@@ -7,7 +7,7 @@
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { icon } from "./icons.js";
-import { applyStates, clearWatchers } from "./controls.js";
+import { applyStates, clearWatchers, nastavitOblibene } from "./controls.js";
 import { closeDialog, h } from "./ui.js";
 import { APP_VERSION } from "./version.js";
 import { renderHome } from "./view-home.js";
@@ -17,16 +17,29 @@ import { renderAutomations } from "./view-automations.js";
 import { renderDevices } from "./view-devices.js";
 import { renderSettings } from "./view-settings.js";
 
+/* Uživatel vidí jen to, co denně používá. Automatizace, zařízení
+   a integrace patří technikovi - jinak z toho je nepřehledná hromada. */
 const ROUTES = {
   home: { label: t.nav.home, render: renderHome },
   rooms: { label: t.nav.rooms, render: renderRooms },
   scenes: { label: t.nav.scenes, render: renderScenes },
-  automations: { label: t.nav.automations, render: renderAutomations },
-  devices: { label: t.nav.devices, render: renderDevices },
-  settings: { label: t.nav.settings, render: renderSettings, hidden: true },
+  automations: {
+    label: t.nav.automations,
+    render: renderAutomations,
+    technik: true,
+  },
+  devices: { label: t.nav.devices, render: renderDevices, technik: true },
+  settings: {
+    label: t.nav.settings,
+    render: renderSettings,
+    hidden: true,
+    technik: true,
+  },
 };
 
-const state = { model: null, route: "home", editing: false };
+const REZIM_KLIC = "sh4u.rezim";
+
+const state = { model: null, route: "home", editing: false, rezim: "user" };
 let el = null;
 
 const ctx = {
@@ -39,6 +52,23 @@ const ctx = {
 
   get editing() {
     return state.editing;
+  },
+
+  get rezim() {
+    return state.rezim;
+  },
+  get jeTechnik() {
+    return state.rezim === "technician";
+  },
+  prepnoutRezim() {
+    state.rezim = state.rezim === "technician" ? "user" : "technician";
+    try {
+      localStorage.setItem(REZIM_KLIC, state.rezim);
+    } catch {
+      /* Soukromé okno. Režim se jen nezapamatuje. */
+    }
+    state.editing = false;
+    navigate("home");
   },
   startEditing() {
     state.editing = true;
@@ -70,6 +100,14 @@ export function mount(root) {
   el.settings.textContent = t.nav.settings;
   el.settings.addEventListener("click", () => navigate("settings"));
 
+  try {
+    if (localStorage.getItem(REZIM_KLIC) === "technician") {
+      state.rezim = "technician";
+    }
+  } catch {
+    /* Soukromé okno. Zůstane uživatelský režim. */
+  }
+
   state.route = readRoute();
   paintNav();
   el.title.textContent = ROUTES[state.route].label;
@@ -91,7 +129,10 @@ export function applyIncoming(entities) {
 
 function readRoute() {
   const hash = (window.location.hash || "").replace(/^#\//, "");
-  return ROUTES[hash] ? hash : "home";
+  const route = ROUTES[hash];
+  if (!route) return "home";
+  if (route.technik && state.rezim !== "technician") return "home";
+  return hash;
 }
 
 function onRouteChange() {
@@ -100,6 +141,32 @@ function onRouteChange() {
   state.route = next;
   closeDialog();
   draw();
+}
+
+/** Přepínač Uživatel / Technik. Vidí ho jen správce. */
+function paintRezim() {
+  const jeSpravce = state.model?.user?.role === "admin";
+  el.settings.hidden = !jeSpravce;
+
+  const koren = el.settings.getRootNode?.();
+  let tlacitko = koren?.getElementById?.("rezim-button");
+  if (!jeSpravce) {
+    tlacitko?.remove();
+    return;
+  }
+
+  if (!tlacitko) {
+    tlacitko = h("button", {
+      class: "button button--ghost",
+      type: "button",
+      id: "rezim-button",
+      onclick: () => ctx.prepnoutRezim(),
+    });
+    el.settings.parentElement?.insertBefore(tlacitko, el.settings);
+  }
+
+  tlacitko.textContent =
+    state.rezim === "technician" ? t.mode.toUser : t.mode.toTechnician;
 }
 
 function navigate(route) {
@@ -115,9 +182,11 @@ function navigate(route) {
 
 function paintNav() {
   el.nav.replaceChildren();
+  paintRezim();
 
   for (const [key, route] of Object.entries(ROUTES)) {
     if (route.hidden) continue;
+    if (route.technik && state.rezim !== "technician") continue;
 
     const active = key === state.route;
     el.nav.append(
@@ -142,6 +211,22 @@ function paintNav() {
 async function loadModel() {
   try {
     state.model = await api.model();
+
+    // Kdo není správce, technický režim nikdy nevidí.
+    const jeSpravce = state.model.user?.role === "admin";
+    if (!jeSpravce) state.rezim = "user";
+
+    nastavitOblibene(
+      (state.model.favorites || []).map((e) => e.id),
+      jeSpravce,
+      loadModel,
+    );
+
+    // Zvětšené ovládání pro starší uživatele a nástěnné panely.
+    el.view
+      ?.getRootNode?.()
+      ?.querySelector?.(".shell")
+      ?.classList.toggle("shell--velke", Boolean(state.model.bigControls));
     hideNotice();
     setStatus(true);
     await draw();

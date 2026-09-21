@@ -190,9 +190,12 @@ class ModelView(Sh4uView):
                     "role": self.role(request),
                 },
                 "preset": settings.preset if settings else "prehled",
-                "favorites": list(settings.favorites) if settings else [],
+                "bigControls": settings.big_controls if settings else False,
+                "favorites": home.favorites(),
                 "summary": home.summary(),
+                "roomSummaries": home.room_summaries(),
                 "rooms": home.rooms(),
+                "scenes": home.by_kind("scene")[:8],
             }
         )
 
@@ -933,6 +936,7 @@ class SettingsView(Sh4uView):
                 "adminUserId": settings.admin_user_id,
                 "kiosk": settings.kiosk,
                 "landing": settings.landing,
+                "bigControls": settings.big_controls,
                 "hasLayout": bool(
                     settings.layout["rooms"] or settings.layout["entities"]
                 ),
@@ -963,6 +967,12 @@ class SettingsView(Sh4uView):
             if not isinstance(kiosk, bool) or not isinstance(landing, bool):
                 raise ApiError("Neplatný požadavek.")
             await settings.set_kiosk(kiosk, landing)
+
+        if "bigControls" in payload:
+            hodnota = payload["bigControls"]
+            if not isinstance(hodnota, bool):
+                raise ApiError("Neplatný požadavek.")
+            await settings.set_big_controls(hodnota)
 
         if "adminUserId" in payload:
             novy = payload["adminUserId"]

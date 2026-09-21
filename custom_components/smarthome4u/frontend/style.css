@@ -1902,3 +1902,105 @@ textarea.input {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ------------------------------------------------------------------ */
+/* Stav domu                                                           */
+/* ------------------------------------------------------------------ */
+
+/* Stav se čte jako věty pod sebou. Číslo bez kontextu nikomu nic neřekne
+   a starší uživatelé podle výzkumů preferují víc textu než ikon. */
+.stav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-md);
+}
+
+.stav__radek {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap-md);
+  min-height: var(--sh-touch-target);
+  color: var(--sh-text-muted);
+}
+
+.stav__radek--on {
+  color: var(--sh-text);
+}
+
+.stav__glyf {
+  display: inline-flex;
+  flex: none;
+  color: var(--sh-text-faint);
+}
+
+.stav__radek--on .stav__glyf {
+  color: var(--sh-on);
+}
+
+.stav__text {
+  font-size: var(--sh-size-md);
+  line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------ */
+/* Karty místností                                                     */
+/* ------------------------------------------------------------------ */
+
+.cards--rooms {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.card--room {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sh-gap-xs);
+  min-height: 132px;
+  padding: var(--sh-gap-md);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.card--room .card__name {
+  font-size: var(--sh-size-lg);
+  -webkit-line-clamp: 1;
+}
+
+.card__floor {
+  margin-top: auto;
+  font-size: var(--sh-size-xs);
+  color: var(--sh-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Zvětšené ovládání                                                   */
+/* ------------------------------------------------------------------ */
+
+/* Podle výzkumů ovládání pro seniory: větší cíle, větší písmo a víc textu
+   než grafiky. Zapíná se v nastavení, protože pro ostatní je to zbytečně
+   velké. */
+.shell--velke {
+  --sh-touch-target: 60px;
+  --sh-size-xs: 0.875rem;
+  --sh-size-sm: 1rem;
+  --sh-size-md: 1.175rem;
+  --sh-size-lg: 1.45rem;
+  --sh-size-xl: 1.9rem;
+}
+
+.shell--velke .cards {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.shell--velke .card__hit {
+  min-height: 140px;
+}
+
+.shell--velke .icon--lg {
+  width: 34px;
+  height: 34px;
+}
