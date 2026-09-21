@@ -182,7 +182,7 @@ async def test_role_a_nastaveni(
 async def test_zmena_podoby_dashboardu(
     hass: HomeAssistant, frontend_je_pripraveny, hass_client
 ) -> None:
-    """Správce může přepnout podobu dashboardu, nehotovou ale ne."""
+    """Správce může přepnout podobu dashboardu. Neznámou backend odmítne."""
     assert await async_setup_component(hass, "http", {})
 
     entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
@@ -200,9 +200,15 @@ async def test_zmena_podoby_dashboardu(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["preset"] == "mistnosti"
 
-    # Půdorys se teprve připravuje.
+    # Půdorys je od 0.8.0 hotový.
     odpoved = await client.post(
         "/api/smarthome4u/settings", json={"preset": "pudorys"}
+    )
+    assert odpoved.status == 200
+
+    # Neznámou podobu ale backend odmítne.
+    odpoved = await client.post(
+        "/api/smarthome4u/settings", json={"preset": "neexistuje"}
     )
     assert odpoved.status == 400
 
@@ -251,3 +257,97 @@ async def test_prerazeni_entity(
 
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert najdi(model) is None
+
+
+async def test_pudorys(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Půdorys jde nahrát a rozmístit na něj zařízení."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("light.lampa", "off", {"supported_color_modes": ["onoff"]})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    prazdny = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert prazdny["image"] is None
+    assert prazdny["points"] == []
+
+    # Nejmenší platný PNG.
+    obrazek = (
+        "data:image/png;base64,"
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan/image", json={"data": obrazek}
+    )
+    assert odpoved.status == 200, await odpoved.text()
+
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"points": [{"entityId": "light.lampa", "x": 25, "y": 75}]},
+    )
+    assert odpoved.status == 200
+
+    plan = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert plan["image"].endswith(".png")
+    assert plan["points"][0]["x"] == 25
+
+    # Souřadnice mimo plochu se odmítnou.
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"points": [{"entityId": "light.lampa", "x": 500, "y": 0}]},
+    )
+    assert odpoved.status == 400
+
+
+async def test_automatizace_z_editoru(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Model z editoru se převede na automatizaci a zpátky."""
+    from custom_components.smarthome4u import builder
+
+    model = {
+        "alias": "Světlo na chodbě",
+        "when": [{"type": "state", "entity": "binary_sensor.pohyb", "to": "on"}],
+        "and": [],
+        "then": [
+            {"type": "device", "entity": "light.chodba", "command": "turn_on"},
+            {"type": "wait", "minutes": 3},
+            {"type": "device", "entity": "light.chodba", "command": "turn_off"},
+        ],
+        "mode": "restart",
+    }
+
+    _, config = builder.build(model)
+    assert config["alias"] == "Světlo na chodbě"
+    assert config["triggers"][0]["trigger"] == "state"
+    assert config["actions"][0]["action"] == "light.turn_on"
+    assert config["actions"][1]["delay"] == {"minutes": 3}
+
+    zpet = builder.parse(config)
+    assert zpet is not None
+    assert len(zpet["then"]) == 3
+    assert zpet["then"][1]["minutes"] == 3
+
+
+async def test_slozita_automatizace_se_neupravuje(
+    hass: HomeAssistant, frontend_je_pripraveny
+) -> None:
+    """Co editor nezná, se označí jako pokročilé a nesahá se na to."""
+    from custom_components.smarthome4u import builder
+
+    assert (
+        builder.parse(
+            {
+                "alias": "Složitá",
+                "triggers": [{"trigger": "webhook", "webhook_id": "x"}],
+                "actions": [{"action": "light.turn_on"}],
+            }
+        )
+        is None
+    )
