@@ -27,8 +27,15 @@ PRESET_PREHLED = "prehled"
 PRESET_MISTNOSTI = "mistnosti"
 PRESET_FUNKCE = "funkce"
 PRESET_PUDORYS = "pudorys"
+PRESET_PANEL = "panel"
 
-PRESETY = (PRESET_PREHLED, PRESET_MISTNOSTI, PRESET_FUNKCE, PRESET_PUDORYS)
+PRESETY = (
+    PRESET_PREHLED,
+    PRESET_MISTNOSTI,
+    PRESET_FUNKCE,
+    PRESET_PANEL,
+    PRESET_PUDORYS,
+)
 
 # Podoby, které jsou zatím jen připravené a nejdou vybrat.
 # Všechny podoby jsou hotové.

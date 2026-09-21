@@ -20,6 +20,7 @@ import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { renderFloorplan } from "./view-floorplan.js";
+import { renderPanel } from "./view-panel.js";
 import { icon, iconFor } from "./icons.js";
 import {
   h,
@@ -74,6 +75,11 @@ export async function renderHome(root, ctx) {
 
   if (ctx.editing) {
     pridat(root, listaUprav(ctx));
+  }
+
+  if (preset === "panel" && !ctx.editing) {
+    renderPanel(root, ctx);
+    return;
   }
 
   if (preset === "prehled" && !ctx.editing) {

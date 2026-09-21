@@ -2004,3 +2004,86 @@ textarea.input {
   width: 34px;
   height: 34px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Nástěnný panel                                                      */
+/* ------------------------------------------------------------------ */
+
+/* Postavené pro zeď. Čas a stav se musí přečíst z několika metrů. */
+.panelh {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sh-gap-md);
+  padding: var(--sh-gap-lg);
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-lg);
+}
+
+.panelh__cas-blok {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelh__cas {
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: var(--sh-weight-bold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.panelh__datum {
+  font-size: var(--sh-size-md);
+  color: var(--sh-text-muted);
+  text-transform: capitalize;
+}
+
+.panelh__stav {
+  margin: 0;
+  max-width: 44ch;
+  font-size: var(--sh-size-lg);
+  line-height: 1.4;
+  color: var(--sh-text-muted);
+  text-align: right;
+}
+
+/* Oranžová pro otevřená okna a odemčené dveře. Není to chyba, ale
+   je to něco, co má člověk před odchodem vidět. */
+.panel--warn {
+  border-color: var(--sh-warning);
+}
+
+.panel--warn .panel__glyph {
+  color: var(--sh-warning);
+}
+
+.hraje {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sh-gap-md);
+  background: var(--sh-surface-raised);
+  border-radius: var(--sh-radius-md);
+}
+
+.hraje__jmeno {
+  font-size: var(--sh-size-sm);
+  color: var(--sh-text-muted);
+}
+
+.hraje__skladba {
+  font-size: var(--sh-size-lg);
+  font-weight: var(--sh-weight-medium);
+}
+
+/* Na panelu jsou dlaždice větší, ať se dá trefit z dálky. */
+@media (min-width: 900px) {
+  .panelh + .panel .cards,
+  .panelh ~ .panel .cards {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}

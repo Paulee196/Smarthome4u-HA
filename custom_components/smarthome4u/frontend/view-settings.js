@@ -23,6 +23,7 @@ const PRESET_POPIS = {
   prehled: "prehled",
   mistnosti: "mistnosti",
   funkce: "funkce",
+  panel: "panel",
   pudorys: "pudorys",
 };
 

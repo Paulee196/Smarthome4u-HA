@@ -2,6 +2,20 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.1]
+
+### Přidáno
+
+- Pátá podoba dashboardu: Nástěnný panel. Velké hodiny, stav domu jednou
+  větou a karty, které se objeví jen když je co ukázat.
+- Kontextové karty: upozornění, otevřená okna a odemčené dveře v oranžové,
+  právě hrající přehrávač, rozsvícená světla se zhasnutím jedním tlačítkem.
+  Zavřený a zhasnutý dům žádné z těch karet nezobrazí.
+
+Inspirace: Flux-UI staví na tom, že se prvky objeví jen když jsou relevantní.
+Dashboard od jansindelar.com na tom, že panel je postavený pro zeď, ne do
+kapsy, a otevřená okna hlásí oranžovou. Obojí dává smysl a obojí je tady.
+
 ## [0.9.0]
 
 Přestavba dashboardů podle toho, co v diskuzích o Home Assistantu i jiných

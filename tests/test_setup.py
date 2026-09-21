@@ -176,6 +176,8 @@ async def test_role_a_nastaveni(
     nastaveni = await (await client.get("/api/smarthome4u/settings")).json()
     assert nastaveni["adminUserId"] == model["user"]["id"]
     assert "mistnosti" in nastaveni["presets"]
+    assert "panel" in nastaveni["presets"]
+    assert len(nastaveni["presets"]) == 5
     assert "light" in nastaveni["kinds"]
 
 

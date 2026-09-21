@@ -196,6 +196,8 @@ class ModelView(Sh4uView):
                 "roomSummaries": home.room_summaries(),
                 "rooms": home.rooms(),
                 "scenes": home.by_kind("scene")[:8],
+                "nowPlaying": home.now_playing(),
+                "attention": home.attention(),
             }
         )
 

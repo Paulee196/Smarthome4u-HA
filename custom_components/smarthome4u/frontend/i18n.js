@@ -440,6 +440,12 @@ export const t = {
     nothingToAdd: "Všechna zařízení už na plánu jsou.",
   },
 
+  panel: {
+    open: "Otevřeno a odemčeno",
+    nowPlaying: "Právě hraje",
+    lightsOn: "Rozsvícená světla",
+  },
+
   presets: {
     comingSoon: "Připravuje se",
     prehled: {
@@ -453,6 +459,10 @@ export const t = {
     funkce: {
       name: "Funkce",
       description: "Osvětlení, stínění, klima, bezpečnost",
+    },
+    panel: {
+      name: "Nástěnný panel",
+      description: "Velké ovládání, ukáže jen to, co se právě děje",
     },
     pudorys: {
       name: "Půdorys",

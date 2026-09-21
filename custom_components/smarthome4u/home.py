@@ -429,6 +429,44 @@ class Home:
                 vybrane.append(view)
         return vybrane
 
+    def now_playing(self) -> list[dict]:
+        """Co právě hraje.
+
+        Karta s přehrávačem se na panelu ukáže jen tehdy, když opravdu něco
+        hraje. Jinak jen zabírá místo.
+        """
+        return [
+            view
+            for view in self._visible()
+            if view["capability"].get("kind") == "media_player"
+            and view["state"] in ("playing", "paused")
+        ]
+
+    def attention(self) -> list[dict]:
+        """Co je otevřené nebo odemčené.
+
+        Taky se ukazuje jen když je co ukázat. Zavřený dům nepotřebuje
+        kartu, která říká, že je zavřený - to už je ve stavu nahoře.
+        """
+        nalezene = []
+
+        for view in self._visible():
+            kind = view["capability"].get("kind")
+            stav = view["state"]
+
+            if kind == "lock" and stav == "unlocked":
+                nalezene.append(view)
+            elif kind == "cover" and stav in ("open", "opening"):
+                nalezene.append(view)
+            elif (
+                kind == "binary_sensor"
+                and stav == "on"
+                and view["deviceClass"] in OPENING_CLASSES
+            ):
+                nalezene.append(view)
+
+        return nalezene
+
     def room_summaries(self) -> list[dict]:
         """Místnosti jako karty se stručným stavem.
 
