@@ -40,6 +40,8 @@ const CSS_ZASUVKA = `
     margin-right: 0 !important;
     margin-inline-start: 0 !important;
     margin-inline-end: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 `;
 
@@ -116,6 +118,21 @@ function odebrat(kde, id) {
   styl?.remove();
 }
 
+/* Panel v kiosku drží celé okno a roluje si obsah sám. Posuvník
+   dokumentu pod ním by byl jen pruh u pravého kraje, který nic nedělá. */
+function zamknoutRolovani(zamknout) {
+  try {
+    const korenDokumentu = document.documentElement;
+    if (zamknout) {
+      korenDokumentu.style.setProperty("overflow", "hidden", "important");
+    } else {
+      korenDokumentu.style.removeProperty("overflow");
+    }
+  } catch {
+    /* Bez zamčení zůstane u kraje posuvník. Nic víc se nestane. */
+  }
+}
+
 function uplatnit() {
   try {
     const host = skorapka();
@@ -131,6 +148,7 @@ function uplatnit() {
 
     if (zapnout) {
       vlozit(host, STYLE_ID, CSS_SKORAPKA);
+      zamknoutRolovani(true);
 
       if (prvek) {
         // Zásuvka si šířku drží na sobě, takže zvenčí ji přebije jen
@@ -141,6 +159,7 @@ function uplatnit() {
       }
     } else {
       odebrat(host, STYLE_ID);
+      zamknoutRolovani(false);
 
       if (prvek) {
         prvek.style.removeProperty("--mdc-drawer-width");

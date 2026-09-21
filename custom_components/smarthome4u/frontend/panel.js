@@ -119,74 +119,88 @@ class Smarthome4uPanel extends HTMLElement {
     this._uplatnitKiosk();
     window.addEventListener("sh4u-kiosk-changed", () => this._uplatnitKiosk());
 
-    // Zásuvka Home Assistantu se dosouvá se zpožděním, proto se měří
-    // ještě několikrát po sobě.
+    // Zásuvka Home Assistantu se dosouvá se zpožděním. Než se dosune,
+    // nemá smysl kontrolovat, jestli panel sedí.
     for (const za of [100, 400, 1200]) {
-      setTimeout(() => {
-        try {
-          this._srovnat();
-        } catch (error) {
-          console.warn("[Smarthome4u] Srovnání panelu:", error);
-        }
-      }, za);
+      setTimeout(() => this._zkontrolovat(), za);
     }
 
-    this._naZmenu = () => this._srovnat();
+    this._naZmenu = () => this._zkontrolovat();
     window.addEventListener("resize", this._naZmenu);
   }
 
   /* ---------------------------------------------------------------- */
 
-  /** Kiosk režim: panel zabere celou plochu, ne jen místo vedle lišty. */
+  /**
+   * Kiosk režim: panel zabere celé okno.
+   *
+   * Dřív se to řešilo měřením a záporným okrajem. Panel pak trčel ven
+   * ze své plochy a hostitel kolem něj vykreslil posuvníky. Tohle je
+   * jednodušší: panel se z rozvržení Home Assistantu vytrhne úplně
+   * a přilepí se na okno. Pak nezáleží na tom, jak široká je zásuvka.
+   */
   async _uplatnitKiosk() {
     try {
       const nastaveni = await api.kiosk();
-      const zapnuto = nastaveni.kiosk !== false;
-      this._shell?.classList.toggle("shell--kiosk", zapnuto);
-
-      if (zapnuto) this._srovnat();
-      else this._zrusitSrovnani();
+      this._kiosk = nastaveni.kiosk !== false;
     } catch {
-      /* Nepodařilo se zeptat. Necháme panel v běžném rozvržení. */
+      // Nepodařilo se zeptat. Kiosk je ve výchozím stavu zapnutý, ale
+      // hádat se tu nebudeme - zůstane, co platilo.
+      if (this._kiosk === undefined) return;
     }
+
+    this.classList.toggle("sh4u-kiosk", this._kiosk);
+    this._shell?.classList.toggle("shell--kiosk", this._kiosk);
+    if (!this._kiosk) this._nouzoveSrovnani(false);
+
+    this._zkontrolovat();
   }
 
   /**
-   * Srovná panel na levý okraj okna.
+   * Ověří, že panel opravdu drží celé okno.
    *
-   * Home Assistant si šířku zásuvky počítá po svém a mezi verzemi se to
-   * liší. Místo hádání, kterou proměnnou vynulovat, se prostě změří, kde
-   * panel doopravdy začíná, a ten rozdíl se srovná. Funguje to bez ohledu
-   * na to, co Home Assistant se svým rozvržením dělá.
+   * `position: fixed` selže, když má některý předek transform, filter
+   * nebo contain - pak se počítá od něj, ne od okna. Je to vzácné, ale
+   * pozná se to jedině změřením. Proto se neptáme, ale měříme.
    */
-  _srovnat() {
-    if (!this._shell) return;
+  _zkontrolovat() {
+    try {
+      if (!this._shell || !this._kiosk) return;
 
-    // Nejdřív zpět na výchozí, jinak bychom měřili už posunutý stav.
-    this._zrusitSrovnani();
+      const misto = this.getBoundingClientRect();
+      const sedi = misto.left <= 2 && misto.width >= window.innerWidth - 2;
 
-    const misto = this.getBoundingClientRect();
-    if (misto.left > 2) {
-      // Srovnává se samotný prvek panelu. Kdyby se posouval jeho vnitřek,
-      // mohl by ho hostitel oříznout.
-      this.style.display = "block";
-      this.style.marginInlineStart = `${-misto.left}px`;
-      this.style.width = `${window.innerWidth}px`;
+      if (sedi) {
+        this._nouzoveSrovnani(false);
+        return;
+      }
+
+      console.info(
+        "[Smarthome4u] kiosk: panel začíná na",
+        Math.round(misto.left),
+        "px a je široký",
+        Math.round(misto.width),
+        "z",
+        window.innerWidth,
+        "- sahám po náhradním řešení",
+      );
+      this._nouzoveSrovnani(true, misto.left);
+    } catch (error) {
+      console.warn("[Smarthome4u] Kontrola kiosku:", error);
     }
-
-    // Kdyby to někdy nevyšlo, tohle je jediné místo, kde se to pozná.
-    console.info(
-      "[Smarthome4u] kiosk: panel začínal na",
-      Math.round(misto.left),
-      "px, šířka okna",
-      window.innerWidth,
-    );
   }
 
-  _zrusitSrovnani() {
-    this.style.marginInlineStart = "";
-    this.style.width = "";
-    this.style.display = "";
+  /** Náhrada pro případ, že se panel na okno přilepit nedá. */
+  _nouzoveSrovnani(zapnout, odsazeni = 0) {
+    if (!zapnout) {
+      this.style.marginInlineStart = "";
+      this.style.width = "";
+      return;
+    }
+    if (odsazeni > 2) {
+      this.style.marginInlineStart = `${-odsazeni}px`;
+      this.style.width = `${window.innerWidth}px`;
+    }
   }
 
   _subscribe() {

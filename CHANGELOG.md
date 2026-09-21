@@ -2,6 +2,24 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.4]
+
+### Opraveno
+
+- Pruh s posuvníkem mezi navigací a obsahem je pryč. Postranní pruh měl
+  výšku celého okna, jenže panel celé okno nedrží - sedí v ploše, kterou
+  mu Home Assistant vyhradí. Pruh proto přetekl a dostal vlastní
+  posuvník, který neměl co posouvat. Nesouviselo to se zásuvkou
+  Home Assistantu, byla to naše chyba ve vzhledu.
+- Kiosk režim se dělá jinak. Dřív se panel měřil a přetahoval záporným
+  okrajem - tím trčel ven ze své plochy a hostitel kolem něj vykreslil
+  vodorovný posuvník. Teď se z rozvržení Home Assistantu vytrhne úplně
+  a přilepí se na okno. Pak nezáleží na tom, jak široká je zásuvka.
+- Posuvník dokumentu za panelem se v kiosku zamkne. Byl to jen pruh
+  u pravého kraje, který nic nedělal.
+- Měření zůstalo jako pojistka. Kdyby se panel na okno přilepit nedal,
+  pozná se to a nastoupí původní postup. Do konzole se napíše proč.
+
 ## [0.9.3]
 
 ### Odstraněno

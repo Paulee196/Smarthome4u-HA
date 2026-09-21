@@ -51,6 +51,30 @@ body {
   overflow-x: hidden;
 }
 
+/* Kiosk režim.
+ *
+ * Panel se vytrhne z rozvržení Home Assistantu a zabere celé okno. Tím
+ * přestane záležet na tom, jak široká je zásuvka, kde přesně plocha
+ * začíná a co si Home Assistant se svým rozvržením zrovna dělá.
+ *
+ * Bez z-indexu schválně: dialogy Home Assistantu vznikají později
+ * v dokumentu, takže zůstanou nad námi. */
+:host(.sh4u-kiosk) {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Panel drží okno sám, takže si obsah musí odrolovat sám. Roluje celá
+   kostra, ne vnitřek - jinak by posuvník visel uprostřed plochy, protože
+   obsah má omezenou šířku a je na střed. */
+:host(.sh4u-kiosk) .shell {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* Třídu nastavuje ui.js na .shell, ne na body - dialog se vkládá dovnitř
  * stínového stromu. */
 .no-scroll {
@@ -1425,18 +1449,28 @@ textarea.input {
     left: auto;
     right: auto;
     bottom: auto;
-    align-self: flex-start;
+    /* Žádné 100vh. Panel nesahá od kraje okna ke kraji - sedí v ploše,
+       kterou mu Home Assistant vyhradí. Kdyby byl pruh vysoký na celé
+       okno, přeteče a objeví se u něj posuvník, který nemá co posouvat.
+       Roztáhne se podle kostry a víc než okno nikdy nebude. */
+    align-self: stretch;
     flex: none;
     flex-direction: column;
     justify-content: flex-start;
     gap: var(--sh-gap-2xs);
     width: var(--sh-nav-width);
-    height: 100vh;
-    height: 100dvh;
+    max-height: 100dvh;
     padding: var(--sh-gap-lg) var(--sh-gap-sm);
     border-top: none;
     border-right: var(--sh-hairline) solid var(--sh-border);
     overflow-y: auto;
+  }
+
+  /* V kiosku roluje kostra. Pruh proto nesmí růst s obsahem - drží se
+     na výšku okna a zůstává nahoře. */
+  :host(.sh4u-kiosk) .nav {
+    align-self: flex-start;
+    height: 100%;
   }
 
   .nav__item {

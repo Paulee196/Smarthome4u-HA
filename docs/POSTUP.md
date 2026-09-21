@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.9.3
+**Aktuální verze:** 0.9.4
 **Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---
@@ -132,6 +132,17 @@ něčím jiným než našimi daty, spadlo to na `JSON.parse` a zákazník viděl
 anglický výpis z prohlížeče. Odpověď se teď rozebírá opatrně a každý stav
 má svoji českou větu. Vypršelý token se navíc obnoví a požadavek zopakuje,
 po výpadku se aplikace vrací sama.
+
+**Posuvník u navigace (0.9.4)** - postranní pruh měl `height: 100vh`,
+ale panel nedrží celé okno. Pruh přetekl svou plochu a dostal vlastní
+posuvník. Vypadalo to jako chyba kiosk režimu, byla to chyba ve vzhledu.
+Opraveno přes `align-self: stretch` a `max-height`.
+
+**Kiosk podruhé (0.9.4)** - měření a záporný okraj panel sice srovnaly,
+ale tím trčel ven ze své plochy a hostitel kolem něj vykreslil vodorovný
+posuvník. Teď je panel v kiosku `position: fixed; inset: 0`, takže na
+rozvržení Home Assistantu nezáleží. Měření zůstalo jako pojistka pro
+případ, že by předek vytvořil vlastní vztažný rámec.
 
 **Odznak spojení (0.9.3)** - ukazoval „Připojeno / Bez spojení" a nikomu
 neřekl, s čím se aplikace spojuje. Odstraněn. Aplikace běží v prohlížeči,
