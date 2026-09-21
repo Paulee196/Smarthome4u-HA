@@ -1207,6 +1207,41 @@ class FloorplanImageView(Sh4uView):
         return web.json_response({"ok": True, "image": f"{USER_URL}/{nazev}"})
 
 
+class FavoritesView(Sh4uView):
+    """Celý seznam často používaných.
+
+    Používá se při výměně jednoho místa i při přeskládání. Posílá se vždy
+    celý seznam, takže se nemůže rozejít pořadí s obsahem.
+    """
+
+    url = f"{API_BASE}/favorites"
+    name = "api:smarthome4u:favorites"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+
+        payload = await self.body(request)
+        seznam = payload.get("entities")
+
+        if not isinstance(seznam, list) or len(seznam) > 60:
+            raise ApiError("Neplatný seznam.")
+
+        ocistene = []
+        for entity_id in seznam:
+            if not isinstance(entity_id, str):
+                raise ApiError("Neplatný seznam.")
+            # Co už v Home Assistantu není, se tiše vynechá.
+            if self.hass.states.get(entity_id) is not None:
+                ocistene.append(entity_id)
+
+        await settings.set_favorites(ocistene)
+        return web.json_response({"ok": True})
+
+
 class ClassifyView(Sh4uView):
     """Ruční oprava zařazení entity.
 
@@ -1300,6 +1335,7 @@ VIEWS = (
     FloorplanImageView,
     ClassifyView,
     FavoriteView,
+    FavoritesView,
 )
 
 

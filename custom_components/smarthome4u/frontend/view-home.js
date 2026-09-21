@@ -21,6 +21,7 @@ import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { renderFloorplan } from "./view-floorplan.js";
 import { renderPanel } from "./view-panel.js";
+import { mrizkaOblibenych } from "./favorites.js";
 import { icon, iconFor } from "./icons.js";
 import {
   h,
@@ -77,12 +78,12 @@ export async function renderHome(root, ctx) {
     pridat(root, listaUprav(ctx));
   }
 
-  if (preset === "panel" && !ctx.editing) {
+  if (preset === "panel") {
     renderPanel(root, ctx);
     return;
   }
 
-  if (preset === "prehled" && !ctx.editing) {
+  if (preset === "prehled") {
     prehled(root, ctx);
     return;
   }
@@ -336,9 +337,13 @@ function prehled(root, ctx) {
   pridat(root, stavDomu(souhrn), upozorneni(souhrn));
 
   const oblibene = model.favorites || [];
-  if (oblibene.length) {
+  if (oblibene.length || ctx.editing) {
     root.append(
-      blok(t.home.favorites, "scenes", mrizkaKaret(oblibene)),
+      blok(t.home.favorites, "scenes", h("div", { class: "stack" }, [
+        ctx.editing &&
+          h("p", { class: "muted", text: t.favorites.hint }),
+        mrizkaOblibenych(ctx),
+      ])),
     );
   } else if (ctx.jeTechnik) {
     root.append(blok(t.home.favorites, "scenes", emptyState(t.home.noFavorites)));

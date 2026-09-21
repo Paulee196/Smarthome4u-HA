@@ -353,3 +353,46 @@ async def test_slozita_automatizace_se_neupravuje(
         )
         is None
     )
+
+
+async def test_vymena_oblibenych(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Často používané jdou uložit jako celý seznam a vyměnit místo."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("light.a", "off", {"supported_color_modes": ["onoff"]})
+    hass.states.async_set("light.b", "off", {"supported_color_modes": ["onoff"]})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    odpoved = await client.post(
+        "/api/smarthome4u/favorites", json={"entities": ["light.a"]}
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [e["id"] for e in model["favorites"]] == ["light.a"]
+
+    # Výměna místa je uložení celého seznamu s jiným obsahem.
+    odpoved = await client.post(
+        "/api/smarthome4u/favorites", json={"entities": ["light.b"]}
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [e["id"] for e in model["favorites"]] == ["light.b"]
+
+    # Co v Home Assistantu není, se tiše vynechá.
+    odpoved = await client.post(
+        "/api/smarthome4u/favorites",
+        json={"entities": ["light.b", "light.neexistuje"]},
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [e["id"] for e in model["favorites"]] == ["light.b"]

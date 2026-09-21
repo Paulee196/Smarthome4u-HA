@@ -241,6 +241,11 @@ class Settings:
     def favorites(self) -> list[str]:
         return self.data.setdefault("favorites", [])
 
+    async def set_favorites(self, seznam: list[str]) -> None:
+        """Celý seznam najednou - kvůli přeskládání a výměně míst."""
+        self.data["favorites"] = seznam
+        await self.save()
+
     async def toggle_favorite(self, entity_id: str) -> bool:
         oblibene = self.favorites
         if entity_id in oblibene:

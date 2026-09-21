@@ -16,6 +16,7 @@ import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { icon } from "./icons.js";
+import { mrizkaOblibenych } from "./favorites.js";
 import { h, button, emptyState, toast } from "./ui.js";
 
 export function renderPanel(root, ctx) {
@@ -43,13 +44,13 @@ export function renderPanel(root, ctx) {
   }
 
   const oblibene = model.favorites || [];
-  if (oblibene.length) {
+  if (oblibene.length || ctx.editing) {
     root.append(
-      blok(t.home.favorites, "home", h(
-        "div",
-        { class: "cards" },
-        oblibene.map((entity) => card(entity)),
-      )),
+      blok(t.home.favorites, "home", h("div", { class: "stack" }, [
+        ctx.editing &&
+          h("p", { class: "muted", text: t.favorites.hint }),
+        mrizkaOblibenych(ctx),
+      ])),
     );
   }
 

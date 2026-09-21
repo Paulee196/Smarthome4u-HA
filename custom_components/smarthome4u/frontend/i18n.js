@@ -446,6 +446,23 @@ export const t = {
     lightsOn: "Rozsvícená světla",
   },
 
+  picker: {
+    title: "Vyberte zařízení",
+    search: "Začněte psát název nebo místnost…",
+    nothing: "Nic takového jsme nenašli.",
+    more: (pocet) => `A dalších ${pocet}. Upřesněte hledání.`,
+  },
+
+  favorites: {
+    replace: "Vyměnit zařízení",
+    tapToReplace: "Klepnutím vyměníte",
+    add: "Přidat zařízení",
+    remove: "Odebrat z plochy",
+    hint:
+      "Klepnutím na dlaždici vyměníte zařízení. Přetažením změníte " +
+      "pořadí, křížkem dlaždici odeberete.",
+  },
+
   presets: {
     comingSoon: "Připravuje se",
     prehled: {

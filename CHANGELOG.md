@@ -2,6 +2,19 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.2]
+
+### Přidáno
+
+- Výběr zařízení s vyhledáváním. Píše se název nebo místnost, u každé
+  položky je vidět typ a kde je - samotný název často nestačí, protože
+  "Světlo" může být v každé místnosti jiné.
+- Často používané jdou v režimu úprav skládat po jednotlivých místech.
+  Klepnutí na dlaždici otevře výběr a zařízení se na tom místě vymění.
+  Přetažením se mění pořadí, křížkem se dlaždice odebere.
+- Prázdné místo s přerušovaným rámečkem pro přidání dalšího zařízení.
+- Nástěnný panel i Přehled jdou teď upravovat. Dřív režim úprav přeskakovaly.
+
 ## [0.9.1]
 
 ### Přidáno

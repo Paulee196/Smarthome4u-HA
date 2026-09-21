@@ -73,6 +73,7 @@ export const api = {
   saveLayout: (body) => request("POST", "layout", body),
   classify: (id, body) => request("POST", `entities/${enc(id)}/classify`, body),
   toggleFavorite: (id) => request("POST", `favorites/${enc(id)}`, {}),
+  saveFavorites: (entities) => request("POST", "favorites", { entities }),
 
   templates: () => request("GET", "templates"),
   createAutomation: (body) => request("POST", "automations", body),
