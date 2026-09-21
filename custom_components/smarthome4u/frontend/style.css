@@ -1840,3 +1840,72 @@ textarea.input {
   width: auto;
   min-width: var(--sh-touch-target);
 }
+
+/* ------------------------------------------------------------------ */
+/* Půdorys                                                             */
+/* ------------------------------------------------------------------ */
+
+.plan {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-lg);
+  overflow: hidden;
+  background: var(--sh-surface);
+}
+
+.plan__obrazek {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Vrstva s body leží přesně na obrázku, aby procenta seděla. */
+.plan__vrstva {
+  position: absolute;
+  inset: 0;
+}
+
+.plan__bod {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: var(--sh-touch-target);
+  min-height: var(--sh-touch-target);
+  padding: var(--sh-gap-xs);
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-md);
+  color: var(--sh-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.plan__bod--on {
+  color: var(--sh-on);
+  border-color: var(--sh-on);
+  background: var(--sh-on-glow);
+}
+
+.plan__bod--alert {
+  color: var(--sh-error);
+  border-color: var(--sh-error);
+}
+
+/* V úpravách se body přetahují, proto se vypnou gesta prohlížeče. */
+.plan__bod--edit {
+  cursor: grab;
+  touch-action: none;
+  border-style: dashed;
+}
+
+.plan__jmeno {
+  font-size: var(--sh-size-2xs, var(--sh-size-xs));
+  white-space: nowrap;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

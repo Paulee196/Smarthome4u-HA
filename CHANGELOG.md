@@ -2,6 +2,31 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.8.0]
+
+Dodělané věci ze zadání. Nic z toho zatím neběželo na reálném Home
+Assistantu - kontrola na GitHubu je zelená, ale ověřit to musíte vy.
+
+### Přidáno
+
+- Editor automatizací KDYŽ / A ZÁROVEŇ / PAK. Pět spouštěčů, tři podmínky,
+  šest akcí. Existující automatizaci lze otevřít a upravit.
+- Skládačka: stejný model zobrazený jako bloky pod sebou se spojnicí,
+  přetahování za úchyt. Obě cesty vyrobí v Home Assistantu totéž.
+- Pomocníci: vlastní záložka, vytváří se stejným průvodcem jako integrace.
+- Kamery: rozpoznají se a v dlaždici ukazují náhled.
+- Velikost dlaždice: normální, široká, vysoká, velká.
+- Půdorys bytu: nahrání plánku, rozmístění zařízení přetažením,
+  ovládání klepnutím. Souřadnice se ukládají v procentech, takže plán
+  sedí na telefonu i na nástěnném panelu.
+- Zatížení procesoru a paměti v nastavení.
+
+### Změněno
+
+- Půdorys už není označený jako připravovaný a jde vybrat.
+- Obrázek půdorysu se ukládá mimo složku integrace, takže přežije
+  aktualizaci přes HACS.
+
 ## [0.6.1]
 
 ### Opraveno

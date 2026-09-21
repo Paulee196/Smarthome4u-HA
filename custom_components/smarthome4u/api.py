@@ -6,9 +6,12 @@ nevolá libovolnou službu - povolené akce jsou v capability.py.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import logging
 import time
 from functools import wraps
+from pathlib import Path
 from typing import Any
 
 from aiohttp import web
@@ -23,7 +26,7 @@ from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
 from . import builder, capability, config_files, flows, storage, system, templates
-from .const import API_BASE, DOMAIN, LANGUAGE, VERSION
+from .const import API_BASE, DOMAIN, LANGUAGE, USER_DIR, USER_URL, VERSION
 from .home import Home
 
 _LOGGER = logging.getLogger(__name__)
@@ -1077,6 +1080,121 @@ class LayoutView(Sh4uView):
         return web.json_response({"ok": True})
 
 
+class FloorplanView(Sh4uView):
+    """Půdorys bytu - obrázek a rozmístění zařízení."""
+
+    url = f"{API_BASE}/floorplan"
+    name = "api:smarthome4u:floorplan"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            return web.json_response({"image": None, "points": []})
+
+        plan = settings.floorplan
+        return web.json_response(
+            {
+                "image": f"{USER_URL}/{plan['image']}" if plan["image"] else None,
+                "points": plan["points"],
+            }
+        )
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+
+        payload = await self.body(request)
+
+        if "points" in payload:
+            body = payload["points"]
+            if not isinstance(body, list) or len(body) > 200:
+                raise ApiError("Neplatné rozmístění.")
+
+            ocistene = []
+            for bod in body:
+                if not isinstance(bod, dict):
+                    raise ApiError("Neplatné rozmístění.")
+                entity_id = bod.get("entityId")
+                x = bod.get("x")
+                y = bod.get("y")
+                if not isinstance(entity_id, str):
+                    raise ApiError("Neplatné rozmístění.")
+                if not isinstance(x, (int, float)) or not 0 <= x <= 100:
+                    raise ApiError("Neplatné rozmístění.")
+                if not isinstance(y, (int, float)) or not 0 <= y <= 100:
+                    raise ApiError("Neplatné rozmístění.")
+                ocistene.append(
+                    {"entityId": entity_id, "x": round(x, 2), "y": round(y, 2)}
+                )
+
+            await settings.set_floorplan_points(ocistene)
+
+        return web.json_response({"ok": True})
+
+
+class FloorplanImageView(Sh4uView):
+    """Nahrání obrázku půdorysu.
+
+    Ukládá se mimo složku integrace, aby přežil aktualizaci přes HACS.
+    """
+
+    url = f"{API_BASE}/floorplan/image"
+    name = "api:smarthome4u:floorplan:image"
+
+    # Co Home Assistant bezpečně zobrazí v prohlížeči.
+    POVOLENE = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
+    MAX_BYTU = 8 * 1024 * 1024
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+
+        payload = await self.body(request)
+        data = payload.get("data")
+
+        if not isinstance(data, str) or not data.startswith("data:"):
+            raise ApiError("Vyberte prosím obrázek.")
+
+        hlavicka, _, telo = data.partition(",")
+        typ = hlavicka[5:].split(";")[0]
+
+        pripona = self.POVOLENE.get(typ)
+        if pripona is None:
+            raise ApiError("Podporujeme PNG, JPG a WEBP.")
+
+        try:
+            obsah = base64.b64decode(telo, validate=True)
+        except (ValueError, binascii.Error) as err:
+            raise ApiError("Obrázek se nepodařilo přečíst.") from err
+
+        if len(obsah) > self.MAX_BYTU:
+            raise ApiError("Obrázek je větší než 8 MB.")
+
+        slozka = Path(self.hass.config.path(USER_DIR))
+        nazev = f"pudorys.{pripona}"
+
+        def zapsat() -> None:
+            slozka.mkdir(parents=True, exist_ok=True)
+            # Staré přípony se uklidí, ať nezůstane viset neplatný soubor.
+            for stary in self.POVOLENE.values():
+                soubor = slozka / f"pudorys.{stary}"
+                if soubor.exists() and stary != pripona:
+                    soubor.unlink()
+            (slozka / nazev).write_bytes(obsah)
+
+        await self.hass.async_add_executor_job(zapsat)
+        await settings.set_floorplan_image(nazev)
+
+        return web.json_response({"ok": True, "image": f"{USER_URL}/{nazev}"})
+
+
 class ClassifyView(Sh4uView):
     """Ruční oprava zařazení entity.
 
@@ -1166,6 +1284,8 @@ VIEWS = (
     UpdateInstallView,
     KioskView,
     LayoutView,
+    FloorplanView,
+    FloorplanImageView,
     ClassifyView,
     FavoriteView,
 )

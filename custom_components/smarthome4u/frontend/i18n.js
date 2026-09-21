@@ -387,6 +387,22 @@ export const t = {
     diskFree: (gb) => `Volno ${gb} GB`,
   },
 
+  floorplan: {
+    title: "Půdorys",
+    upload: "Nahrát plánek",
+    uploadHint:
+      "Vyberte obrázek půdorysu bytu nebo domu. PNG, JPG nebo WEBP, " +
+      "nejvýš 8 MB.",
+    pickFile: "Vyberte prosím soubor.",
+    readFailed: "Soubor se nepodařilo přečíst.",
+    empty: "Zatím tu není žádný plánek. Nahrajte ho tlačítkem nahoře.",
+    emptyUser: "Správce zatím nenahrál plánek bytu.",
+    addDevice: "Přidat zařízení na plán",
+    addHint:
+      "Zařízení se objeví uprostřed plánu. Pak ho přetáhněte tam, kam patří.",
+    nothingToAdd: "Všechna zařízení už na plánu jsou.",
+  },
+
   presets: {
     comingSoon: "Připravuje se",
     prehled: {

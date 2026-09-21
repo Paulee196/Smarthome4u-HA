@@ -63,6 +63,9 @@ export const api = {
   deleteIntegration: (id) => request("POST", `integrations/${enc(id)}/delete`, {}),
 
   kiosk: () => request("GET", "kiosk"),
+  floorplan: () => request("GET", "floorplan"),
+  saveFloorplan: (body) => request("POST", "floorplan", body),
+  uploadFloorplan: (data) => request("POST", "floorplan/image", { data }),
   settings: () => request("GET", "settings"),
   saveSettings: (body) => request("POST", "settings", body),
   system: () => request("GET", "system"),

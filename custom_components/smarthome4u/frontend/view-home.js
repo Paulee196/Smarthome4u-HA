@@ -9,6 +9,7 @@ import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
+import { renderFloorplan } from "./view-floorplan.js";
 import { icon, iconFor } from "./icons.js";
 import {
   h,
@@ -51,9 +52,15 @@ function pridat(root, ...prvky) {
   }
 }
 
-export function renderHome(root, ctx) {
+export async function renderHome(root, ctx) {
   const model = ctx.model;
   const preset = model.preset || "prehled";
+
+  if (preset === "pudorys") {
+    if (ctx.editing) pridat(root, listaUprav(ctx));
+    await renderFloorplan(root, ctx);
+    return;
+  }
 
   if (ctx.editing) {
     pridat(root, listaUprav(ctx));

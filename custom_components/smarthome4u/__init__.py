@@ -30,6 +30,8 @@ from .const import (
     PANEL_URL,
     STATIC_URL,
     TAKEOVER_URL,
+    USER_DIR,
+    USER_URL,
     VERSION,
 )
 
@@ -129,6 +131,20 @@ async def _serve_files(hass: HomeAssistant, store: dict) -> bool:
             "Soubory rozhraní byly nejspíš zpřístupněné už dřív (%s). Pokračuji.",
             err,
         )
+
+    # Půdorys od uživatele leží mimo složku integrace, aby přežil aktualizaci.
+    uzivatelska = Path(hass.config.path(USER_DIR))
+    try:
+        await hass.async_add_executor_job(
+            lambda: uzivatelska.mkdir(parents=True, exist_ok=True)
+        )
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(USER_URL, str(uzivatelska), False)]
+        )
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Vlastní soubory: %s. Půdorys se nemusí zobrazit.", err)
 
     store["static"] = True
     _LOGGER.debug("Soubory rozhraní se servírují z %s", STATIC_URL)

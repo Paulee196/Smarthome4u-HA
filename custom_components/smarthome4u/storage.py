@@ -31,7 +31,8 @@ PRESET_PUDORYS = "pudorys"
 PRESETY = (PRESET_PREHLED, PRESET_MISTNOSTI, PRESET_FUNKCE, PRESET_PUDORYS)
 
 # Podoby, které jsou zatím jen připravené a nejdou vybrat.
-PRIPRAVUJE_SE = frozenset({PRESET_PUDORYS})
+# Všechny podoby jsou hotové.
+PRIPRAVUJE_SE: frozenset[str] = frozenset()
 
 VYCHOZI: dict[str, Any] = {
     # HA user ID účtu, který smí měnit nastavení. Ostatní jen ovládají dům.
@@ -46,6 +47,8 @@ VYCHOZI: dict[str, Any] = {
     # entity_id -> {"kind": "switch"} nebo {"hidden": true}
     "overrides": {},
     "favorites": [],
+    # Půdorys: obrázek a body se zařízeními v procentech plochy.
+    "floorplan": {"image": None, "points": []},
 }
 
 
@@ -192,6 +195,25 @@ class Settings:
         else:
             self.overrides.pop(entity_id, None)
 
+        await self.save()
+
+    # ------------------------------------------------------------------
+    # Půdorys
+    # ------------------------------------------------------------------
+
+    @property
+    def floorplan(self) -> dict[str, Any]:
+        plan = self.data.setdefault("floorplan", {})
+        plan.setdefault("image", None)
+        plan.setdefault("points", [])
+        return plan
+
+    async def set_floorplan_image(self, nazev: str | None) -> None:
+        self.floorplan["image"] = nazev
+        await self.save()
+
+    async def set_floorplan_points(self, body: list[dict]) -> None:
+        self.floorplan["points"] = body
         await self.save()
 
     # ------------------------------------------------------------------
