@@ -35,9 +35,22 @@ def entity_id_for_ref(hass: HomeAssistant, ref: str) -> str | None:
         return entity_id if hass.states.get(entity_id) is not None else None
 
     registry = er.async_get(hass)
-    for entry in registry.entities.values():
-        if entry.id == ref:
-            return entry.entity_id if hass.states.get(entry.entity_id) else None
+
+    # Registr si drží rejstřík podle svého ID. Procházet stovky entit
+    # při každém hledání by bylo zbytečné - a hledá se u každé oblíbené
+    # položky, u každého bodu v půdorysu a při každém sestavení modelu.
+    najit = getattr(registry.entities, "get_entry", None)
+    entry = najit(ref) if callable(najit) else None
+
+    if entry is None and not callable(najit):
+        # Starší Home Assistant rejstřík nemá. Pak nezbývá než projít.
+        entry = next(
+            (e for e in registry.entities.values() if e.id == ref),
+            None,
+        )
+
+    if entry is not None:
+        return entry.entity_id if hass.states.get(entry.entity_id) else None
 
     # Backward compatibility for data saved before stable refs existed.
     if hass.states.get(ref) is not None:

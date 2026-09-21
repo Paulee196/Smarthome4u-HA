@@ -432,6 +432,7 @@ async def test_oblibene_preziji_prejmenovani_entity(
     assert [e["ref"] for e in model["favorites"]] == [entry_record.id]
 
     # Co v Home Assistantu není, se tiše vynechá.
+    hass.states.async_set("light.b", "off", {"supported_color_modes": ["onoff"]})
     odpoved = await client.post(
         "/api/smarthome4u/favorites",
         json={"entities": ["light.b", "light.neexistuje"]},
@@ -736,3 +737,54 @@ async def test_svetlo_je_jen_svetlo(
     assert odpoved.status == 200
     await hass.async_block_till_done()
     assert len(volani) == 1
+
+
+async def test_migrace_dozene_reference_po_startu(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Uložená data ze starších verzí se převedou, až entity naběhnou.
+
+    Nastavení se čte při startu integrace, kdy většina entit ještě
+    neexistuje. Kdyby se převod odbyl jen tam, zůstala by stará data
+    navždy na entity_id.
+    """
+    assert await async_setup_component(hass, "http", {})
+
+    registry = er.async_get(hass)
+    zaznam = registry.async_get_or_create(
+        "light", "test", "stabilni-migrace", suggested_object_id="lampa"
+    )
+
+    # Nastavení, jaké po sobě nechala verze 0.10.1: klíčem je entity_id.
+    stara = storage.Settings(hass)
+    await stara.load()
+    stara.data["favorites"] = [zaznam.entity_id]
+    await stara.save()
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Entita naběhne až teď, po startu integrace.
+    hass.states.async_set(
+        zaznam.entity_id, "off", {"supported_color_modes": ["onoff"]}
+    )
+
+    settings = hass.data[DOMAIN]["settings"]
+    await settings.migrate_now()
+
+    assert settings.favorites == [zaznam.id]
+
+    # A převod se nesmí při opakování rozjet podruhé.
+    await settings.migrate_now()
+    assert settings.favorites == [zaznam.id]
+
+    # Po přejmenování ukazuje oblíbená položka pořád na tutéž entitu.
+    registry.async_update_entity(zaznam.entity_id, new_entity_id="light.jina")
+    hass.states.async_remove(zaznam.entity_id)
+    hass.states.async_set("light.jina", "off", {"supported_color_modes": ["onoff"]})
+
+    client = await hass_client()
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [e["id"] for e in model["favorites"]] == ["light.jina"]

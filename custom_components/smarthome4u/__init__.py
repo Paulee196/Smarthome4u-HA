@@ -64,6 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:  # noqa: BLE001 - poškozený soubor nesmí shodit start
             _LOGGER.exception("Nastavení se nepodařilo načíst, beru výchozí")
         store["settings"] = settings
+        _doplnit_reference(hass, settings)
 
     if not await _serve_files(hass, store):
         return False
@@ -101,6 +102,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(_reload))
     _LOGGER.info("Smarthome4u je připravené na /%s", PANEL_URL)
     return True
+
+
+def _doplnit_reference(hass: HomeAssistant, settings) -> None:
+    """Dožene převod uloženého rozvržení, až jsou entity načtené.
+
+    Při startu integrace ještě většina entit neexistuje, takže převod
+    na stabilní reference nemá co najít. Odloží se tedy na okamžik,
+    kdy je Home Assistant nastartovaný.
+    """
+    try:
+        from homeassistant.helpers.start import async_at_started
+    except ImportError:
+        _LOGGER.debug("Starší Home Assistant, převod referencí se neodloží")
+        return
+
+    async def _spustit(_event) -> None:
+        try:
+            await settings.migrate_now()
+        except Exception:  # noqa: BLE001 - převod nesmí shodit start
+            _LOGGER.exception("Převod uloženého rozvržení se nepodařil")
+
+    async_at_started(hass, _spustit)
 
 
 async def _serve_files(hass: HomeAssistant, store: dict) -> bool:

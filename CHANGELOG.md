@@ -2,6 +2,24 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.10.3]
+
+### Opraveno
+
+- Vydání 0.10.2 vyšlo s červenou kontrolou. Test oblíbených padal,
+  protože sám nevytvořil entitu, kterou pak očekával. Oprava je
+  v testu, ne ve funkci - převod na stabilní reference fungoval.
+- Převod uloženého rozvržení se teď dokončí. Běžel jen při startu
+  integrace, kdy většina entit ještě neexistuje, takže neměl co
+  převádět a data zůstávala na starých entity_id. Spustí se znovu,
+  až je Home Assistant nastartovaný.
+- Hledání entity podle reference procházelo celý registr. Teď používá
+  rejstřík Home Assistanta. Hledá se u každé oblíbené položky, u každého
+  bodu v půdorysu a při každém sestavení modelu.
+- Přeskládání dlaždic v místnosti skončilo chybou, když jedno zařízení
+  mezitím z Home Assistanta zmizelo. Odebraná zásuvka takhle znemožnila
+  uložit pořadí zbytku. Co už neexistuje, se tiše vynechá.
+
 ## [0.10.2]
 
 ### Opraveno

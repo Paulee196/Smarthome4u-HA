@@ -1106,9 +1106,15 @@ class LayoutView(Sh4uView):
                 raise ApiError("Neplatné pořadí zařízení.")
             if not all(isinstance(e, str) for e in entities):
                 raise ApiError("Neplatné pořadí zařízení.")
-            await settings.set_entity_order(
-                area_id, [ref for item in entities if (ref := self.entity_ref(item))]
-            )
+            # Co mezitím z Home Assistanta zmizelo, se tiše vynechá.
+            # Odmítnout celé přeskládání kvůli jedné odebrané zásuvce by
+            # znamenalo, že si správce po výměně zařízení pořadí neuloží.
+            poradi = []
+            for item in entities:
+                entity_ref = refs.normalize_ref(self.hass, item)
+                if entity_ref is not None:
+                    poradi.append(entity_ref)
+            await settings.set_entity_order(area_id, poradi)
 
         return web.json_response({"ok": True})
 

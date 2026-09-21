@@ -9,6 +9,7 @@ a nikdo nesahá na soubory ručně.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -87,6 +88,22 @@ class Settings:
 
     async def save(self) -> None:
         await self._store.async_save(self.data)
+
+    async def migrate_now(self) -> None:
+        """Dožene převod na stabilní reference, až jsou entity načtené.
+
+        Nastavení se čte při startu integrace, jenže v tu chvíli většina
+        integrací ještě neběží a jejich entity nejsou v hass.states. Převod
+        by tedy nenašel nic k převedení a uložená data by zůstala na starých
+        entity_id. Proto se to zavolá ještě jednou, až je Home Assistant
+        nastartovaný.
+        """
+        pred = json.dumps(self.data, sort_keys=True, default=str)
+        self._migrate_entity_ids()
+
+        if json.dumps(self.data, sort_keys=True, default=str) != pred:
+            await self.save()
+            _LOGGER.info("Uložené rozvržení převedeno na stabilní reference")
 
     def _migrate_entity_ids(self) -> None:
         """Convert old presentation data from entity_id to stable refs.
