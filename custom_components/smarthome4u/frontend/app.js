@@ -26,7 +26,7 @@ const ROUTES = {
   settings: { label: t.nav.settings, render: renderSettings, hidden: true },
 };
 
-const state = { model: null, route: "home" };
+const state = { model: null, route: "home", editing: false };
 let el = null;
 
 const ctx = {
@@ -36,6 +36,18 @@ const ctx = {
   refresh: loadModel,
   navigate,
   allEntities: () => (state.model?.rooms || []).flatMap((room) => room.entities),
+
+  get editing() {
+    return state.editing;
+  },
+  startEditing() {
+    state.editing = true;
+    navigate("home");
+  },
+  stopEditing() {
+    state.editing = false;
+    draw();
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -92,6 +104,7 @@ function onRouteChange() {
 
 function navigate(route) {
   if (!ROUTES[route]) route = "home";
+  if (route !== "home") state.editing = false;
   closeDialog();
   state.route = route;
 

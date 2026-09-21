@@ -224,14 +224,102 @@ export const t = {
 
   settings: {
     title: "Nastavení",
-    account: "Přihlášený uživatel",
-    system: "Systém",
-    haVersion: "Jádro Home Assistant",
-    appVersion: "Smarthome4u",
-    devices: "Zařízení celkem",
-    manage: "Správa",
-    manageHint: "Všechno se nastavuje přímo tady v aplikaci.",
+
+    account: "Účet",
     unknownUser: "Neznámý uživatel",
+    youAreAdmin: "Jste správce domácnosti. Můžete měnit vše.",
+    youAreUser: "Můžete ovládat dům. Nastavení mění správce.",
+    onlyAdmin: "Nastavení může měnit jen správce domácnosti.",
+
+    appearance: "Vzhled",
+    kiosk: "Kiosk režim",
+    kioskHint:
+      "Schová postranní lištu a horní pruh Home Assistantu, když je otevřené " +
+      "Smarthome4u. Vypnutím se Home Assistant vrátí do původní podoby.",
+    landing: "Po přihlášení otevřít Smarthome4u",
+    landingHint:
+      "Místo výchozího dashboardu Home Assistantu se rovnou otevře Smarthome4u.",
+
+    dashboard: "Dashboard",
+    dashboardHint: "Vyberte podobu. Rozvržení pak jde upravit přetažením.",
+    editDashboard: "Upravit rozvržení",
+    resetLayout: "Vrátit výchozí rozvržení",
+    resetLayoutHint:
+      "Zahodí se vaše pořadí a vše se vrátí podle Home Assistantu. " +
+      "Nic se nesmaže.",
+
+    admin: "Správce domácnosti",
+    adminHint:
+      "Správce nastavuje vše. Ostatní účty dům ovládají, ale nic nemění. " +
+      "Správcem může být jen administrátor Home Assistantu.",
+    adminAccount: "Účet správce",
+    adminChanged: "Správce změněn.",
+
+    system: "Systém",
+    appVersion: "Smarthome4u",
+    haVersion: "Home Assistant",
+    os: "Systém",
+    hostname: "Název zařízení",
+    devices: "Zařízení",
+    entities: "Funkce zařízení",
+    integrations: "Připojené systémy",
+    automations: "Automatizace",
+    allUpToDate: "Vše je aktuální.",
+    updatesWaiting: (n) =>
+      n === 1 ? "Čeká 1 aktualizace" : `Čekají aktualizace: ${n}`,
+    install: "Nainstalovat",
+    installStarted: "Aktualizace se spustila.",
+    installing: "Instaluje se…",
+    disk: "Místo na disku",
+    diskFree: (gb) => `Volno ${gb} GB`,
+  },
+
+  presets: {
+    comingSoon: "Připravuje se",
+    prehled: {
+      name: "Přehled",
+      description: "Souhrn domu, upozornění a rychlé akce",
+    },
+    mistnosti: {
+      name: "Místnosti",
+      description: "Ovládání po místnostech",
+    },
+    funkce: {
+      name: "Funkce",
+      description: "Osvětlení, stínění, klima, bezpečnost",
+    },
+    pudorys: {
+      name: "Půdorys",
+      description: "Plánek bytu s ovládáním",
+    },
+  },
+
+  editor: {
+    title: "Úprava rozvržení",
+    hint: "Přetažením změníte pořadí. Křížkem prvek schováte.",
+    done: "Hotovo",
+    hide: "Schovat",
+    reclassify: "Změnit typ",
+    reclassifyHint:
+      "Home Assistant hlásí jako světlo i kontrolky. Tady to můžete opravit.",
+    kind: "Typ zařízení",
+    keepAsIs: "Nechat, jak hlásí Home Assistant",
+    saved: "Rozvržení uloženo.",
+    kinds: {
+      light: "Světlo",
+      switch: "Zásuvka nebo vypínač",
+      cover: "Žaluzie nebo roleta",
+      climate: "Topení nebo klimatizace",
+      lock: "Zámek",
+      fan: "Ventilátor",
+      sensor: "Senzor s hodnotou",
+      binary_sensor: "Čidlo zapnuto/vypnuto",
+      media_player: "Přehrávač",
+      number: "Číselná hodnota",
+      select: "Výběr z možností",
+      button: "Tlačítko",
+      presence: "Přítomnost osoby",
+    },
   },
 
   empty: {

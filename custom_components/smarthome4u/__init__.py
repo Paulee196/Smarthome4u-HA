@@ -84,17 +84,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not await _register_panel(hass, panel_custom, frontend, hide_sidebar, landing):
         return False
 
-    # Schování lišty je příjemnost navíc. Když selže, rozhraní funguje dál.
-    if hide_sidebar or landing:
-        try:
-            frontend.add_extra_js_url(hass, TAKEOVER_URL)
-            _LOGGER.debug("Modul pro převzetí rozhraní je vložený")
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning(
-                "Lištu Home Assistantu se nepodařilo schovat (%s). "
-                "Rozhraní funguje dál, jen bude lišta vidět.",
-                err,
-            )
+    # Modul se vkládá vždy. Jestli se má lišta schovat, si přečte sám
+    # z našeho nastavení, takže přepnutí v aplikaci nevyžaduje restart.
+    try:
+        frontend.add_extra_js_url(hass, TAKEOVER_URL)
+        _LOGGER.debug("Modul pro převzetí rozhraní je vložený")
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning(
+            "Kiosk režim se nepodařilo zapnout (%s). "
+            "Rozhraní funguje dál, jen bude lišta vidět.",
+            err,
+        )
 
     entry.async_on_unload(entry.add_update_listener(_reload))
     _LOGGER.info("Smarthome4u je připravené na /%s", PANEL_URL)

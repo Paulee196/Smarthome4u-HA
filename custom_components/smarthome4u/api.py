@@ -22,7 +22,7 @@ from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
-from . import capability, config_files, flows, storage, templates
+from . import capability, config_files, flows, storage, system, templates
 from .const import API_BASE, DOMAIN, LANGUAGE, VERSION
 from .home import Home
 
@@ -850,6 +850,11 @@ class SettingsView(Sh4uView):
                 "presets": list(storage.PRESETY),
                 "unavailable": list(storage.PRIPRAVUJE_SE),
                 "adminUserId": settings.admin_user_id,
+                "kiosk": settings.kiosk,
+                "landing": settings.landing,
+                "hasLayout": bool(
+                    settings.layout["rooms"] or settings.layout["entities"]
+                ),
                 "users": [{"id": uid, "name": name} for uid, name in users.items()],
                 "kinds": list(capability.PRERADITELNE),
                 "overrides": settings.overrides,
@@ -871,6 +876,13 @@ class SettingsView(Sh4uView):
             except ValueError as err:
                 raise ApiError("Tahle podoba dashboardu zatím nejde vybrat.") from err
 
+        if "kiosk" in payload or "landing" in payload:
+            kiosk = payload.get("kiosk", settings.kiosk)
+            landing = payload.get("landing", settings.landing)
+            if not isinstance(kiosk, bool) or not isinstance(landing, bool):
+                raise ApiError("Neplatný požadavek.")
+            await settings.set_kiosk(kiosk, landing)
+
         if "adminUserId" in payload:
             novy = payload["adminUserId"]
             if not isinstance(novy, str) or not novy:
@@ -885,6 +897,95 @@ class SettingsView(Sh4uView):
                     "Home Assistantu."
                 )
             await settings.set_admin(novy)
+
+        return web.json_response({"ok": True})
+
+
+class SystemView(Sh4uView):
+    """Stav systému - verze, aktualizace, místo na disku."""
+
+    url = f"{API_BASE}/system"
+    name = "api:smarthome4u:system"
+
+    @handler
+    @admin
+    async def get(self, request: web.Request) -> web.Response:
+        return web.json_response(system.overview(self.hass))
+
+
+class UpdateInstallView(Sh4uView):
+    url = f"{API_BASE}/system/update/{{entity_id}}"
+    name = "api:smarthome4u:system:update"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request, entity_id: str) -> web.Response:
+        if not entity_id.startswith("update."):
+            raise ApiError("Tohle není aktualizace.")
+        if self.hass.states.get(entity_id) is None:
+            raise ApiError("Aktualizace už není k dispozici.", 404, "unknown_entity")
+
+        await self.hass.services.async_call(
+            "update", "install", {}, blocking=False, target={"entity_id": entity_id}
+        )
+        return web.json_response({"ok": True})
+
+
+class KioskView(Sh4uView):
+    """Čte takeover.js, který běží ve frontendu Home Assistantu.
+
+    Musí být dostupné i běžnému uživateli - jinak by se mu lišta neschovala.
+    """
+
+    url = f"{API_BASE}/kiosk"
+    name = "api:smarthome4u:kiosk"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        return web.json_response(
+            {
+                "kiosk": settings.kiosk if settings else True,
+                "landing": settings.landing if settings else True,
+            }
+        )
+
+
+class LayoutView(Sh4uView):
+    """Ruční rozvržení dashboardu z editoru."""
+
+    url = f"{API_BASE}/layout"
+    name = "api:smarthome4u:layout"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+
+        payload = await self.body(request)
+
+        if payload.get("reset"):
+            await settings.reset_layout()
+            return web.json_response({"ok": True})
+
+        if "rooms" in payload:
+            rooms = payload["rooms"]
+            if not isinstance(rooms, list) or not all(
+                isinstance(r, str) for r in rooms
+            ):
+                raise ApiError("Neplatné pořadí místností.")
+            await settings.set_room_order(rooms)
+
+        if "areaId" in payload and "entities" in payload:
+            area_id = payload["areaId"]
+            entities = payload["entities"]
+            if not isinstance(area_id, str) or not isinstance(entities, list):
+                raise ApiError("Neplatné pořadí zařízení.")
+            if not all(isinstance(e, str) for e in entities):
+                raise ApiError("Neplatné pořadí zařízení.")
+            await settings.set_entity_order(area_id, entities)
 
         return web.json_response({"ok": True})
 
@@ -972,6 +1073,10 @@ VIEWS = (
     ScenesView,
     SceneDeleteView,
     SettingsView,
+    SystemView,
+    UpdateInstallView,
+    KioskView,
+    LayoutView,
     ClassifyView,
     FavoriteView,
 )

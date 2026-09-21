@@ -2,6 +2,24 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.6.0]
+
+### Přidáno
+
+- Nastavení přestavěné na skutečné nastavení aplikace: Účet, Vzhled,
+  Dashboard, Správce domácnosti a Systém.
+- Kiosk režim jako přepínač v aplikaci, ve výchozím stavu zapnutý. Schová
+  postranní lištu i horní pruh Home Assistantu. Přepnutí platí hned,
+  bez restartu.
+- Sekce Systém: čekající aktualizace i s možností je odsud nainstalovat,
+  verze, počty zařízení a integrací, místo na disku.
+- Výběr podoby dashboardu přímo v nastavení, čtyři možnosti.
+- Editor rozvržení: přetažením se mění pořadí místností i dlaždic,
+  křížkem se prvek schová, šipkami se opraví typ zařízení.
+- Přetahování na Pointer Events, takže funguje myší i dotykem. HTML5 drag
+  and drop by na tabletu nefungoval.
+- Upozornění na domovské obrazovce mají vlastní zvýrazněný panel.
+
 ## [0.5.0]
 
 ### Opraveno

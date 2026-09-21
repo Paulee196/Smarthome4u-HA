@@ -1,6 +1,6 @@
 /* Domů - dashboard domácnosti.
  *
- * Dvě podoby stejných dat: podle místností a podle funkcí.
+ * Podobu volí správce v nastavení. Rozvržení jde upravit přetažením.
  * Členění na funkce je princip převzatý z instalačních systémů, ne jejich
  * vizuální kopie.
  */
@@ -8,8 +8,18 @@
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
-import { icon } from "./icons.js";
-import { h, button, emptyState, toast } from "./ui.js";
+import { povolitPretahovani } from "./dnd.js";
+import { icon, iconFor } from "./icons.js";
+import {
+  h,
+  button,
+  closeDialog,
+  dialog,
+  emptyState,
+  field,
+  selectInput,
+  toast,
+} from "./ui.js";
 
 const CATEGORIES = [
   { key: "lighting", kinds: ["light"] },
@@ -34,125 +44,160 @@ const SECURITY_CLASSES = new Set([
   "problem",
 ]);
 
-const VIEW_KEY = "sh4u.home.view";
-
 export function renderHome(root, ctx) {
   const model = ctx.model;
-  const summary = model.summary || {};
+  const preset = model.preset || "prehled";
 
-  root.append(introCard());
-  root.append(statsRow(summary));
-
-  if (summary.alerts?.length) {
-    root.append(
-      block(
-        t.home.alerts,
-        h(
-          "div",
-          { class: "cards" },
-          summary.alerts.map((entity) => card(entity)),
-        ),
-      ),
-    );
+  if (ctx.editing) {
+    root.append(listaUprav(ctx));
   }
 
-  root.append(
-    h("div", { class: "row" }, [
-      button(t.home.allLightsOff, () => turnAllLightsOff(model), "button--ghost"),
-    ]),
-  );
+  if (!ctx.editing && preset === "prehled") {
+    root.append(introCard());
+    root.append(statsRow(model.summary || {}));
+    root.append(upozorneni(model.summary || {}));
+    root.append(rychleAkce(model));
+  }
 
   if (!model.rooms.length) {
     root.append(emptyState(t.empty.text));
     return;
   }
 
-  const body = h("div", { class: "view" });
-  const mode = readMode();
+  const telo = h("div", { class: "view" });
+  root.append(telo);
 
-  root.append(modeSwitch(mode, (next) => {
-    writeMode(next);
-    body.replaceChildren(...buildSections(model, next));
-  }));
-  root.append(body);
+  const sekce =
+    preset === "funkce" ? podleFunkci(model, ctx) : podleMistnosti(model, ctx);
 
-  body.replaceChildren(...buildSections(model, mode));
-}
+  telo.replaceChildren(...sekce);
 
-/* ------------------------------------------------------------------ */
-/* Přepínač zobrazení                                                  */
-/* ------------------------------------------------------------------ */
-
-function readMode() {
-  try {
-    return localStorage.getItem(VIEW_KEY) === "functions" ? "functions" : "rooms";
-  } catch {
-    return "rooms";
+  if (ctx.editing) {
+    zapnoutPretahovaniMistnosti(telo, ctx);
   }
 }
 
-function writeMode(mode) {
-  try {
-    localStorage.setItem(VIEW_KEY, mode);
-  } catch {
-    /* Soukromé okno nebo zakázané úložiště - jen se to nezapamatuje. */
-  }
+/* ------------------------------------------------------------------ */
+/* Režim úprav                                                         */
+/* ------------------------------------------------------------------ */
+
+function listaUprav(ctx) {
+  return h("section", { class: "editbar" }, [
+    h("div", { class: "editbar__text" }, [
+      h("span", { class: "editbar__title", text: t.editor.title }),
+      h("span", { class: "editbar__hint", text: t.editor.hint }),
+    ]),
+    button(t.editor.done, () => ctx.stopEditing()),
+  ]);
 }
 
-function modeSwitch(mode, onChange) {
-  const wrap = h("div", { class: "segmented", role: "tablist" });
+function zapnoutPretahovaniMistnosti(telo, ctx) {
+  povolitPretahovani(telo, async (poradi) => {
+    try {
+      await api.saveLayout({ rooms: poradi });
+      toast(t.editor.saved);
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+}
 
-  for (const [key, label] of [
-    ["rooms", t.functions.byRooms],
-    ["functions", t.functions.byFunctions],
-  ]) {
-    const item = h("button", {
-      class: `segmented__item${mode === key ? " segmented__item--active" : ""}`,
+/** Dlaždice v režimu úprav - nespíná, jen se přetahuje a schovává. */
+function upravitelnaDlazdice(entity, ctx) {
+  const obal = h("div", { class: "card card--edit" }, [
+    h("div", { class: "card__hit" }, [
+      h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg")),
+      h("span", { class: "card__name", text: entity.name }),
+      h("span", {
+        class: "card__state",
+        text: t.editor.kinds[entity.capability?.kind] || "",
+      }),
+    ]),
+    h("button", {
+      class: "card__more card__more--danger",
       type: "button",
-      role: "tab",
-      "aria-selected": String(mode === key),
-      text: label,
-      onclick: () => {
-        if (readMode() === key) return;
-        wrap.querySelectorAll(".segmented__item").forEach((node) => {
-          node.classList.remove("segmented__item--active");
-          node.setAttribute("aria-selected", "false");
-        });
-        item.classList.add("segmented__item--active");
-        item.setAttribute("aria-selected", "true");
-        onChange(key);
-      },
-    });
-    wrap.append(item);
+      "aria-label": t.editor.hide,
+      text: "✕",
+      onclick: () => schovat(entity, ctx),
+    }),
+    h("button", {
+      class: "card__more card__more--left",
+      type: "button",
+      "aria-label": t.editor.reclassify,
+      text: "⇄",
+      onclick: () => zmenitTyp(entity, ctx),
+    }),
+  ]);
+
+  obal.dataset.dndKey = entity.id;
+  return obal;
+}
+
+async function schovat(entity, ctx) {
+  try {
+    await api.classify(entity.id, { hidden: true });
+    toast(t.notice.saved);
+    await ctx.refresh();
+  } catch (error) {
+    toast(error.message, true);
   }
-  return wrap;
+}
+
+function zmenitTyp(entity, ctx) {
+  const volby = [
+    { value: "", label: t.editor.keepAsIs },
+    ...Object.entries(t.editor.kinds).map(([value, label]) => ({
+      value,
+      label,
+    })),
+  ];
+  const vyber = selectInput(volby, entity.overridden ? entity.capability.kind : "");
+
+  dialog(
+    entity.name,
+    h("div", { class: "stack" }, [
+      h("p", { class: "muted", text: t.editor.reclassifyHint }),
+      field(t.editor.kind, vyber),
+    ]),
+    h("div", { class: "row" }, [
+      button(t.action.cancel, closeDialog, "button--ghost"),
+      button(t.action.save, async () => {
+        try {
+          await api.classify(entity.id, { kind: vyber.value || null });
+          closeDialog();
+          toast(t.notice.saved);
+          await ctx.refresh();
+        } catch (error) {
+          toast(error.message, true);
+        }
+      }),
+    ]),
+  );
 }
 
 /* ------------------------------------------------------------------ */
 /* Obsah                                                               */
 /* ------------------------------------------------------------------ */
 
-function buildSections(model, mode) {
-  return mode === "functions" ? byFunctions(model) : byRooms(model);
-}
-
-function byRooms(model) {
+function podleMistnosti(model, ctx) {
   return model.rooms.map((room) =>
     panel(
+      room.id,
       room.name || t.rooms.unassigned,
       room.floorName,
       icon("rooms"),
       room.entities,
+      ctx,
     ),
   );
 }
 
-function byFunctions(model) {
-  const all = model.rooms.flatMap((room) => room.entities);
-  const sections = [];
+function podleFunkci(model, ctx) {
+  const vse = model.rooms.flatMap((room) => room.entities);
+  const sekce = [];
 
   for (const category of CATEGORIES) {
-    const items = all.filter((entity) => {
+    const items = vse.filter((entity) => {
       const kind = entity.capability?.kind;
       if (category.kinds.includes(kind)) return true;
       if (category.safetyClasses && kind === "binary_sensor") {
@@ -162,42 +207,81 @@ function byFunctions(model) {
     });
 
     if (items.length) {
-      sections.push(
-        panel(t.functions[category.key], null, icon(category.key), items),
+      sekce.push(
+        panel(
+          category.key,
+          t.functions[category.key],
+          null,
+          icon(category.key),
+          items,
+          ctx,
+        ),
       );
     }
   }
 
-  return sections.length ? sections : [emptyState(t.empty.text)];
+  return sekce.length ? sekce : [emptyState(t.empty.text)];
 }
 
-function panel(title, subtitle, glyph, entities) {
-  return h("section", { class: "panel" }, [
+function panel(klic, title, subtitle, glyph, entities, ctx) {
+  const mrizka = h(
+    "div",
+    { class: "cards" },
+    entities.map((entity) =>
+      ctx.editing ? upravitelnaDlazdice(entity, ctx) : card(entity),
+    ),
+  );
+
+  const sekce = h("section", { class: "panel" }, [
     h("div", { class: "panel__head" }, [
       h("span", { class: "panel__glyph" }, glyph),
       h("h2", { class: "panel__title", text: title }),
       subtitle && h("span", { class: "panel__sub", text: subtitle }),
     ]),
+    mrizka,
+  ]);
+
+  if (klic) sekce.dataset.dndKey = klic;
+
+  if (ctx.editing) {
+    povolitPretahovani(mrizka, async (poradi) => {
+      try {
+        await api.saveLayout({ areaId: klic || "", entities: poradi });
+        toast(t.editor.saved);
+      } catch (error) {
+        toast(error.message, true);
+      }
+    });
+  }
+
+  return sekce;
+}
+
+/* ------------------------------------------------------------------ */
+/* Souhrn, upozornění a rychlé akce                                    */
+/* ------------------------------------------------------------------ */
+
+function upozorneni(summary) {
+  if (!summary.alerts?.length) return null;
+
+  return h("section", { class: "panel panel--alert" }, [
+    h("div", { class: "panel__head" }, [
+      h("span", { class: "panel__glyph" }, icon("security")),
+      h("h2", { class: "panel__title", text: t.home.alerts }),
+    ]),
     h(
       "div",
       { class: "cards" },
-      entities.map((entity) => card(entity)),
+      summary.alerts.map((entity) => card(entity)),
     ),
   ]);
 }
 
-function block(title, content) {
-  return h("section", { class: "panel" }, [
-    h("div", { class: "panel__head" }, [
-      h("h2", { class: "panel__title", text: title }),
-    ]),
-    content,
+function rychleAkce(model) {
+  return h("div", { class: "row" }, [
+    button(t.home.allLightsOff, () => zhasnoutVse(model), "button--ghost"),
   ]);
 }
-
-/* ------------------------------------------------------------------ */
-/* Souhrn a uvítání                                                    */
-/* ------------------------------------------------------------------ */
 
 function statsRow(summary) {
   return h("div", { class: "stats" }, [
@@ -246,7 +330,7 @@ function introCard() {
   return box;
 }
 
-async function turnAllLightsOff(model) {
+async function zhasnoutVse(model) {
   const lights = model.rooms
     .flatMap((room) => room.entities)
     .filter((entity) => entity.capability?.kind === "light" && entity.state === "on");

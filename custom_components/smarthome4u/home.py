@@ -203,12 +203,41 @@ class Home:
                     "floorId": floor.floor_id if floor else None,
                     "floorName": floor.name if floor else None,
                     "floorLevel": floor.level if floor else None,
-                    "entities": sorted(entities, key=_entity_sort_key),
+                    "entities": self._serad_entity(area_id, entities),
                 }
             )
 
         payload.sort(key=_room_sort_key)
-        return payload
+        return self._serad_mistnosti(payload)
+
+    # ------------------------------------------------------------------
+    # Ruční rozvržení
+    #
+    # Co správce přetáhl, má přednost. Co v uloženém pořadí není (nové
+    # zařízení), se přidá na konec podle výchozího řazení.
+    # ------------------------------------------------------------------
+
+    def _layout(self) -> dict:
+        if self.settings is None:
+            return {"rooms": [], "entities": {}}
+        return self.settings.layout
+
+    def _serad_entity(self, area_id: str | None, entities: list[dict]) -> list[dict]:
+        vychozi = sorted(entities, key=_entity_sort_key)
+        poradi = self._layout()["entities"].get(area_id or "", [])
+        if not poradi:
+            return vychozi
+
+        index = {entity_id: i for i, entity_id in enumerate(poradi)}
+        return sorted(vychozi, key=lambda v: index.get(v["id"], len(index)))
+
+    def _serad_mistnosti(self, rooms: list[dict]) -> list[dict]:
+        poradi = self._layout()["rooms"]
+        if not poradi:
+            return rooms
+
+        index = {area_id: i for i, area_id in enumerate(poradi)}
+        return sorted(rooms, key=lambda r: index.get(r["id"] or "", len(index)))
 
     def by_kind(self, kind: str) -> list[dict]:
         found = [

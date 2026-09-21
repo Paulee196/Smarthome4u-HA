@@ -1,8 +1,11 @@
-/* Převzetí rozhraní.
+/* Převzetí rozhraní - kiosk režim.
  *
  * Tenhle modul běží uvnitř frontendu Home Assistantu, ne v našem panelu.
- * Dělá dvě věci: schová postranní lištu, když je otevřené Smarthome4u,
+ * Schová postranní lištu i horní pruh, když je otevřené Smarthome4u,
  * a po přihlášení otevře Smarthome4u místo výchozího dashboardu.
+ *
+ * Zapnutí a vypnutí se čte z našeho nastavení, aby se to dalo přepnout
+ * přímo v aplikaci bez restartu Home Assistantu.
  *
  * Sahá do cizího DOM, který se může kdykoliv změnit. Proto je všechno
  * v try/catch a při jakékoliv nejistotě modul radši neudělá nic.
@@ -11,46 +14,82 @@
 
 const PANEL = "smarthome4u";
 const LANDED = "sh4u.landed";
-const STYLE_ID = "sh4u-hide-sidebar";
+const STYLE_ID = "sh4u-kiosk";
 
 const CSS = `
   ha-sidebar { display: none !important; }
   .mdc-drawer, ha-drawer > .mdc-drawer { width: 0 !important; }
   :host { --mdc-drawer-width: 0px !important; --app-drawer-width: 0px !important; }
   [slot="appContent"], .content { margin-inline-start: 0 !important; }
+  ha-menu-button, .header, app-header, app-toolbar { display: none !important; }
 `;
 
-function root() {
-  return document.querySelector("home-assistant")?.shadowRoot || null;
+let nastaveni = { kiosk: true, landing: true };
+
+/* ------------------------------------------------------------------ */
+/* Přístup do skořápky Home Assistantu                                 */
+/* ------------------------------------------------------------------ */
+
+function korenovyPrvek() {
+  return document.querySelector("home-assistant") || null;
 }
 
-function main() {
-  return root()?.querySelector("home-assistant-main")?.shadowRoot || null;
+function koren() {
+  return korenovyPrvek()?.shadowRoot || null;
 }
 
-function onPanel() {
+function skorapka() {
+  return koren()?.querySelector("home-assistant-main")?.shadowRoot || null;
+}
+
+function naPanelu() {
   return window.location.pathname.startsWith(`/${PANEL}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Načtení nastavení                                                   */
+/* ------------------------------------------------------------------ */
+
+async function nacistNastaveni() {
+  try {
+    const hass = korenovyPrvek()?.hass;
+    const token = hass?.auth?.data?.access_token;
+    if (!token) return;
+
+    const odpoved = await fetch("/api/smarthome4u/kiosk", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!odpoved.ok) return;
+
+    const data = await odpoved.json();
+    nastaveni = {
+      kiosk: data.kiosk !== false,
+      landing: data.landing !== false,
+    };
+  } catch {
+    /* Nepodařilo se zeptat. Zůstanou výchozí hodnoty. */
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Schování lišty                                                      */
 /* ------------------------------------------------------------------ */
 
-function apply() {
+function uplatnit() {
   try {
-    const host = main();
+    const host = skorapka();
     if (!host) return;
 
-    const existing = host.getElementById?.(STYLE_ID);
+    const stavajici = host.getElementById?.(STYLE_ID);
 
-    if (onPanel()) {
-      if (existing) return;
-      const style = document.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = CSS;
-      host.appendChild(style);
-    } else if (existing) {
-      existing.remove();
+    if (nastaveni.kiosk && naPanelu()) {
+      if (stavajici) return;
+      const styl = document.createElement("style");
+      styl.id = STYLE_ID;
+      styl.textContent = CSS;
+      host.appendChild(styl);
+    } else if (stavajici) {
+      stavajici.remove();
     }
   } catch {
     /* Home Assistant změnil strukturu. Necháme lištu být. */
@@ -61,8 +100,9 @@ function apply() {
 /* Přistání po přihlášení                                              */
 /* ------------------------------------------------------------------ */
 
-function land() {
+function pristani() {
   try {
+    if (!nastaveni.landing) return;
     if (sessionStorage.getItem(LANDED)) return;
 
     // Jen z kořene. Když uživatel míří jinam, nepřesměrováváme ho.
@@ -80,26 +120,33 @@ function land() {
 /* Start                                                               */
 /* ------------------------------------------------------------------ */
 
-function watch() {
-  apply();
+function sledovat() {
+  uplatnit();
 
-  window.addEventListener("location-changed", apply);
-  window.addEventListener("popstate", apply);
+  window.addEventListener("location-changed", uplatnit);
+  window.addEventListener("popstate", uplatnit);
 
   // Home Assistant překresluje skořápku i bez změny adresy.
-  const observer = new MutationObserver(apply);
-  const host = root();
-  if (host) observer.observe(host, { childList: true, subtree: false });
+  const pozorovatel = new MutationObserver(uplatnit);
+  const host = koren();
+  if (host) pozorovatel.observe(host, { childList: true, subtree: false });
+
+  // Změnu nastavení v aplikaci chceme poznat bez obnovení stránky.
+  window.addEventListener("sh4u-kiosk-changed", async () => {
+    await nacistNastaveni();
+    uplatnit();
+  });
 }
 
-function boot(attempt = 0) {
-  if (main()) {
-    land();
-    watch();
+async function start(pokus = 0) {
+  if (skorapka()) {
+    await nacistNastaveni();
+    pristani();
+    sledovat();
     return;
   }
   // Skořápka ještě není hotová. Zkusíme to chvíli, pak to vzdáme.
-  if (attempt < 50) setTimeout(() => boot(attempt + 1), 200);
+  if (pokus < 50) setTimeout(() => start(pokus + 1), 200);
 }
 
-boot();
+start();

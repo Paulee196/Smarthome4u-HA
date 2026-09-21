@@ -37,6 +37,12 @@ VYCHOZI: dict[str, Any] = {
     # HA user ID účtu, který smí měnit nastavení. Ostatní jen ovládají dům.
     "adminUserId": None,
     "preset": PRESET_PREHLED,
+    # Kiosk režim schová lištu i hlavičku Home Assistantu. Výchozí je zapnutý,
+    # protože Smarthome4u má být nadstavba, ne další položka v menu.
+    "kiosk": True,
+    "landing": True,
+    # Ruční rozvržení dashboardu. Prázdné znamená pořadí podle Home Assistantu.
+    "layout": {"rooms": [], "entities": {}},
     # entity_id -> {"kind": "switch"} nebo {"hidden": true}
     "overrides": {},
     "favorites": [],
@@ -105,6 +111,47 @@ class Settings:
         if preset not in PRESETY or preset in PRIPRAVUJE_SE:
             raise ValueError(preset)
         self.data["preset"] = preset
+        await self.save()
+
+    # ------------------------------------------------------------------
+    # Kiosk režim
+    # ------------------------------------------------------------------
+
+    @property
+    def kiosk(self) -> bool:
+        return bool(self.data.get("kiosk", True))
+
+    @property
+    def landing(self) -> bool:
+        return bool(self.data.get("landing", True))
+
+    async def set_kiosk(self, zapnuto: bool, landing: bool | None = None) -> None:
+        self.data["kiosk"] = bool(zapnuto)
+        if landing is not None:
+            self.data["landing"] = bool(landing)
+        await self.save()
+
+    # ------------------------------------------------------------------
+    # Rozvržení dashboardu
+    # ------------------------------------------------------------------
+
+    @property
+    def layout(self) -> dict[str, Any]:
+        ulozene = self.data.setdefault("layout", {})
+        ulozene.setdefault("rooms", [])
+        ulozene.setdefault("entities", {})
+        return ulozene
+
+    async def set_room_order(self, poradi: list[str]) -> None:
+        self.layout["rooms"] = poradi
+        await self.save()
+
+    async def set_entity_order(self, area_id: str, poradi: list[str]) -> None:
+        self.layout["entities"][area_id] = poradi
+        await self.save()
+
+    async def reset_layout(self) -> None:
+        self.data["layout"] = {"rooms": [], "entities": {}}
         await self.save()
 
     # ------------------------------------------------------------------

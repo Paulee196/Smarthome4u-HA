@@ -62,6 +62,14 @@ export const api = {
   flowAbort: (id) => request("POST", `integrations/flow/${enc(id)}/abort`, {}),
   deleteIntegration: (id) => request("POST", `integrations/${enc(id)}/delete`, {}),
 
+  settings: () => request("GET", "settings"),
+  saveSettings: (body) => request("POST", "settings", body),
+  system: () => request("GET", "system"),
+  installUpdate: (id) => request("POST", `system/update/${enc(id)}`, {}),
+  saveLayout: (body) => request("POST", "layout", body),
+  classify: (id, body) => request("POST", `entities/${enc(id)}/classify`, body),
+  toggleFavorite: (id) => request("POST", `favorites/${enc(id)}`, {}),
+
   templates: () => request("GET", "templates"),
   createAutomation: (body) => request("POST", "automations", body),
   deleteAutomation: (id) => request("POST", `automations/${enc(id)}/delete`, {}),

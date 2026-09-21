@@ -1560,3 +1560,91 @@ textarea.input {
     scroll-behavior: auto !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Režim úprav rozvržení                                               */
+/* ------------------------------------------------------------------ */
+
+.editbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sh-gap-md);
+  flex-wrap: wrap;
+  padding: var(--sh-gap-md);
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-accent);
+  border-radius: var(--sh-radius-lg);
+}
+
+.editbar__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.editbar__title {
+  font-weight: var(--sh-weight-medium);
+}
+
+.editbar__hint {
+  font-size: var(--sh-size-sm);
+  color: var(--sh-text-muted);
+}
+
+/* Dlaždice v úpravách nespíná, proto nemá stavy zapnuto. */
+.card--edit {
+  border-style: dashed;
+  cursor: grab;
+}
+
+.card--edit .card__hit {
+  pointer-events: none;
+}
+
+.card__more--danger {
+  color: var(--sh-error);
+}
+
+.card__more--left {
+  right: auto;
+  left: 0;
+}
+
+.picker--active {
+  border-color: var(--sh-accent);
+}
+
+.panel--alert {
+  border-color: var(--sh-error);
+}
+
+/* Pruh zaplnění disku se nehýbe, na rozdíl od průběhu instalace. */
+.progress__bar--static {
+  animation: none;
+  transform: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Přetahování                                                         */
+/* ------------------------------------------------------------------ */
+
+/* Během tažení nesmí prohlížeč posouvat stránku ani vybírat text. */
+.dnd--aktivni {
+  touch-action: none;
+  user-select: none;
+}
+
+.dnd--taheny {
+  position: relative;
+  z-index: 5;
+  opacity: 0.9;
+  cursor: grabbing;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.dnd__zastupce {
+  border: 1px dashed var(--sh-border);
+  border-radius: var(--sh-radius-md);
+}
