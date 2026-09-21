@@ -26,7 +26,11 @@ export const t = {
   status: {
     connecting: "Připojuji se",
     online: "Připojeno",
-    offline: "Bez spojení",
+    offline: "Home Assistant neodpovídá",
+    // Vysvětlení pod odznakem. Lidé se ptají, s čím se to spojuje.
+    explain:
+      "Aplikace běží v prohlížeči, Home Assistant na krabičce u vás doma. " +
+      "Tohle je spojení mezi nimi. Ven z domu nic nechodí.",
 
     // Stav domu se píše větou. Číslo bez kontextu nikomu nic neřekne.
     allLightsOff: "Nikde nesvítí.",
@@ -44,6 +48,26 @@ export const t = {
       pocet === 1
         ? `Otevřeno: ${jmena[0]}`
         : `Otevřeno je ${pocet} věcí. ${(jmena || []).join(", ")}`,
+  },
+
+  error: {
+    network:
+      "Home Assistant neodpovídá. Nejspíš se restartuje po aktualizaci. " +
+      "Počkejte chvíli a načtěte stránku znovu.",
+    session:
+      "Přihlášení vypršelo. Načtěte stránku znovu, Home Assistant vás " +
+      "přihlásí sám.",
+    forbidden: "Tohle smí měnit jen účet správce.",
+    missing:
+      "Tuhle část aplikace váš Home Assistant nezná. Aktualizujte " +
+      "Smarthome4u v HACS a restartujte Home Assistant.",
+    server:
+      "Home Assistant narazil na chybu. Podrobnosti jsou v jeho protokolu " +
+      "v Nastavení / Systém / Protokoly.",
+    badResponse:
+      "Odpověď z Home Assistantu nedává smysl. Bývá to proxy nebo " +
+      "přihlašovací stránka mezi prohlížečem a domem.",
+    generic: "Něco se nepovedlo.",
   },
 
   notice: {

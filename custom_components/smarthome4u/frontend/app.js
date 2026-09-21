@@ -229,12 +229,41 @@ async function loadModel() {
       ?.classList.toggle("shell--velke", Boolean(state.model.bigControls));
     hideNotice();
     setStatus(true);
+    zrusitOpakovani();
     await draw();
   } catch (error) {
     setStatus(false);
     showNotice(error.message || t.notice.offline, true);
     paintNav();
+    naplanovatOpakovani();
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Opakování po výpadku                                                */
+/* ------------------------------------------------------------------ */
+
+/* Home Assistant se po aktualizaci restartuje a je minutu nedostupný.
+   Nutit uživatele, aby v tu chvíli ručně načítal stránku, je zbytečné -
+   aplikace se zkusí vrátit sama. Odstup roste, ať to zbytečně neťuká. */
+const ODSTUPY = [3000, 5000, 10000, 20000, 30000];
+let pokus = 0;
+let cekani = null;
+
+function naplanovatOpakovani() {
+  if (cekani) return;
+  const za = ODSTUPY[Math.min(pokus, ODSTUPY.length - 1)];
+  pokus += 1;
+  cekani = setTimeout(() => {
+    cekani = null;
+    loadModel();
+  }, za);
+}
+
+function zrusitOpakovani() {
+  clearTimeout(cekani);
+  cekani = null;
+  pokus = 0;
 }
 
 async function draw() {
@@ -253,8 +282,12 @@ async function draw() {
 /* Stavové prvky                                                       */
 /* ------------------------------------------------------------------ */
 
+/* Odznak se ukazuje, jen když něco nehraje. Trvale svítící "Připojeno"
+   je jen šum - a navíc svádí k otázce, s čím se to vlastně spojuje. */
 function setStatus(online) {
   el.status.className = `status status--${online ? "online" : "offline"}`;
+  el.status.hidden = online;
+  el.status.title = t.status.explain;
   el.statusText.textContent = online ? t.status.online : t.status.offline;
 }
 

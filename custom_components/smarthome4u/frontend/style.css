@@ -237,6 +237,10 @@ body {
   white-space: nowrap;
 }
 
+.status[hidden] {
+  display: none;
+}
+
 .status__dot {
   width: var(--sh-dot);
   height: var(--sh-dot);

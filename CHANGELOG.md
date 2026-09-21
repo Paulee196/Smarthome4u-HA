@@ -2,6 +2,28 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.3]
+
+### Opraveno
+
+- Místo hlášky „Unexpected non-whitespace character after JSON" se teď
+  ukáže česky, co se stalo. Vypršelé přihlášení, restart Home Assistanta,
+  chybějící část aplikace i proxy mezi prohlížečem a domem mají každá
+  svoji větu a radu, co s tím.
+- Vypršelý přihlašovací token se obnoví sám a požadavek se zopakuje.
+  Token se navíc bere až v okamžiku odeslání, ne jednou při startu.
+- Po výpadku se aplikace zkouší vrátit sama - po 3, 5, 10, 20 a 30
+  vteřinách. Restart Home Assistanta po aktualizaci už nevyžaduje ruční
+  načtení stránky.
+
+### Změněno
+
+- Odznak spojení se ukazuje, jen když něco nehraje. Trvalé „Připojeno"
+  byl jen šum a svádělo to k otázce, s čím se aplikace vlastně spojuje.
+- „Bez spojení" se jmenuje „Home Assistant neodpovídá". Po najetí myší
+  se ukáže vysvětlení: aplikace běží v prohlížeči, Home Assistant doma
+  na krabičce, ven z domu nechodí nic.
+
 ## [0.9.2]
 
 ### Přidáno

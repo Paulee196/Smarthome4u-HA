@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.9.2
+**Aktuální verze:** 0.9.3
 **Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---
@@ -126,6 +126,12 @@ Přeměří se po 100, 400 a 1200 ms a při změně velikosti okna.
 
 **HACS ukazoval hash commitu (0.4.4)** - HACS čte čísla verzí z vydání, ne
 z tagů. Přidán `release.yml`, který z tagu `v*` vytvoří vydání.
+
+**Hláška o JSON místo chyby (0.9.3)** - když Home Assistant odpověděl
+něčím jiným než našimi daty, spadlo to na `JSON.parse` a zákazník viděl
+anglický výpis z prohlížeče. Odpověď se teď rozebírá opatrně a každý stav
+má svoji českou větu. Vypršelý token se navíc obnoví a požadavek zopakuje,
+po výpadku se aplikace vrací sama.
 
 ## Ověřeno na reálném Home Assistantu
 

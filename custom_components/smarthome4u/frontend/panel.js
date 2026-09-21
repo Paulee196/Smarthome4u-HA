@@ -29,7 +29,17 @@ class Smarthome4uPanel extends HTMLElement {
     this._hass = hass;
     if (!hass) return;
 
-    setAuth(hass.auth?.data?.access_token || hass.auth?.accessToken || null);
+    // Token se nebere teď, ale až v okamžiku odeslání - platí jen chvíli
+    // a mezitím ho Home Assistant několikrát vymění.
+    setAuth(
+      () => {
+        const auth = this._hass?.auth;
+        return auth?.data?.access_token || auth?.accessToken || null;
+      },
+      async () => {
+        await this._hass?.auth?.refreshAccessToken?.();
+      },
+    );
 
     if (!this._ready) {
       this._ready = true;
@@ -81,7 +91,7 @@ class Smarthome4uPanel extends HTMLElement {
             <h1 class="header__title" id="view-title">Domů</h1>
           </div>
           <div class="header__right">
-            <div class="status status--online" id="status">
+            <div class="status status--online" id="status" hidden>
               <span class="status__dot" aria-hidden="true"></span>
               <span id="status-text" role="status">Připojeno</span>
             </div>

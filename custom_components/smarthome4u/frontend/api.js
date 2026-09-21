@@ -1,37 +1,117 @@
 /* Komunikace s vlastním backendem.
  *
- * Frontend nikdy nemluví přímo s Home Assistantem. Token dostáváme od panelu,
- * nikde se neukládá a nikam se neposílá dál.
+ * "Backend" je Home Assistant ve vašem domě, nic venku. Aplikace běží
+ * v prohlížeči, Home Assistant běží na krabičce. Tahle dvě místa spolu
+ * musí mluvit, a tohle je ta linka.
+ *
+ * Token dostáváme od panelu. Nikde se neukládá a nikam se neposílá dál.
+ * Platí jen omezenou dobu, proto se bere vždy čerstvý těsně před odesláním
+ * a při odmítnutí se jednou obnoví.
  */
+
+import { t } from "./i18n.js";
 
 const BASE = "/api/smarthome4u/";
 
-let token = null;
+let ziskatToken = () => null;
+let obnovitToken = null;
 
-export function setAuth(value) {
-  token = value;
+/**
+ * Nastaví zdroj přihlašovacího tokenu.
+ *
+ * @param {(() => string|null)|string|null} zdroj funkce nebo rovnou token
+ * @param {(() => Promise<void>)|null} obnova zavolá se, když token vyprší
+ */
+export function setAuth(zdroj, obnova) {
+  ziskatToken = typeof zdroj === "function" ? zdroj : () => zdroj;
+  obnovitToken = typeof obnova === "function" ? obnova : null;
 }
 
-async function request(method, path, payload) {
+/** Chyba, která umí říct, co se stalo, aniž by to znělo jako výpis z konzole. */
+class ApiError extends Error {
+  constructor(zprava, stav, kod) {
+    super(zprava);
+    this.status = stav;
+    this.code = kod;
+  }
+}
+
+async function poslat(method, path, payload) {
   const headers = {};
+  const token = ziskatToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (payload) headers["Content-Type"] = "application/json";
 
-  const response = await fetch(BASE + path, {
+  return fetch(BASE + path, {
     method,
     headers,
     body: payload ? JSON.stringify(payload) : undefined,
+    // Kdyby token chyběl, vezme Home Assistant aspoň přihlášení z prohlížeče.
+    credentials: "same-origin",
+    // Odpověď nikdy z mezipaměti. Stav domu musí být čerstvý.
+    cache: "no-store",
   });
+}
+
+async function request(method, path, payload) {
+  let response;
+  try {
+    response = await poslat(method, path, payload);
+  } catch {
+    // Sem se dostaneme, když Home Assistant neodpovídá vůbec - typicky
+    // při restartu nebo při výpadku sítě.
+    throw new ApiError(t.error.network, 0);
+  }
+
+  // Vypršelé přihlášení jde spravit potichu: obnovit token a zkusit znovu.
+  if (response.status === 401 && obnovitToken) {
+    try {
+      await obnovitToken();
+      response = await poslat(method, path, payload);
+    } catch {
+      /* Když ani obnova nepomůže, spadne to o kus níž se srozumitelnou hláškou. */
+    }
+  }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  const data = rozebrat(text);
 
   if (!response.ok) {
-    const error = new Error(data.message || "Něco se nepovedlo.");
-    error.code = data.error;
-    throw error;
+    throw new ApiError(
+      data?.message || popisStavu(response.status),
+      response.status,
+      data?.error,
+    );
   }
+
+  if (data === null) {
+    // Odpověď přišla, ale není to naše data. Nejčastěji když mezi prohlížeč
+    // a Home Assistant vleze proxy nebo přihlašovací stránka.
+    console.warn("[Smarthome4u] Neočekávaná odpověď:", text.slice(0, 200));
+    throw new ApiError(t.error.badResponse, response.status);
+  }
+
   return data;
+}
+
+/** Vrátí data, nebo null. Nikdy nespadne - rozbitá odpověď není výjimka. */
+function rozebrat(text) {
+  if (!text) return {};
+  try {
+    const data = JSON.parse(text);
+    return data && typeof data === "object" ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Kódy stavů přeložené do řeči, které zákazník rozumí. */
+function popisStavu(stav) {
+  if (stav === 401) return t.error.session;
+  if (stav === 403) return t.error.forbidden;
+  if (stav === 404) return t.error.missing;
+  if (stav >= 500) return t.error.server;
+  return t.error.generic;
 }
 
 const enc = encodeURIComponent;
