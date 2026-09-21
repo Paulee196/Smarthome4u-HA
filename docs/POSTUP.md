@@ -3,9 +3,9 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 20. 9. 2026
-**Aktuální verze:** 0.4.1
-**Fáze:** v0.4 nadstavba - hotový kód, čeká na ověření na reálném HA
+**Poslední aktualizace:** 21. 9. 2026
+**Aktuální verze:** 0.9.2
+**Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---
 
@@ -72,6 +72,25 @@ z iframu by to nešlo.
       integraci, ověří registraci panelu, zavolají API a zkusí zakázanou akci
 - [x] Kontrola vypisuje skutečnou chybu jako anotaci, ne jen návratový kód
 
+### Vzhled a ovládání (v0.5 - v0.9)
+
+- [x] Designové proměnné v `tokens.css`, deklarované i na `:host` a `.shell`
+      (na samotném `:root` se ve stínovém stromu nechytnou)
+- [x] Pět předvoleb plochy: Přehled, Místnosti, Funkce, Nástěnný panel, Půdorys
+- [x] Přehled mluví větami o stavu domu, ne jen mřížkou entit
+- [x] Nástěnný panel je kontextový - karta se ukáže, jen když je co ukázat
+- [x] Půdorys s vlastním obrázkem a body, které se umísťují přetažením
+- [x] Režim technika a režim uživatele, přepínač v horní liště
+- [x] Role správce podle vzoru Loxone: nastavuje jeden účet, ostatní jen ovládají
+- [x] Režim úprav: přetahování prstem i myší, změna velikosti dlaždic
+- [x] Často používané - vlastní plocha správce, skládá se po jednotlivých místech
+- [x] Výběr zařízení s vyhledáváním podle názvu i místnosti
+- [x] Editor automatizací KDYŽ / A ZÁROVEŇ / PAK
+- [x] Skládačka automatizací v blocích
+- [x] Kiosk režim: skrytí obou lišt Home Assistantu a roztažení do celé šířky
+- [x] Nastavení aplikace včetně stavu Home Assistantu - verze, paměť, úložiště
+- [x] Vydání na GitHubu se tvoří samo z tagu, HACS podle něj nabídne aktualizaci
+
 ---
 
 ## Vyřešené potíže
@@ -86,17 +105,38 @@ srozumitelně místo pádu. Každý krok spuštění píše do logu.
 
 Testy v CI od té doby tenhle scénář ověřují na skutečném Home Assistantu.
 
-## Neověřeno - čeká na reálný Home Assistant
+**Proměnné vzhledu se nechytly (0.5.0)** - byly deklarované jen na `:root`.
+Ve stínovém stromu `:root` neodpovídá ničemu, takže každá barva i rozměr
+spadly na výchozí hodnotu prohlížeče. Proto rozhraní vypadalo špatně, i když
+styly existovaly. Opraveno deklarací na `:root, :host, .shell`.
 
-Kód projde hassfestem i importy proti skutečnému Home Assistantu, ale
-v0.4 nikdy neběžela.
+**Chybějící modul voluptuous_serialize (0.4.5)** - nejde s Home Assistantem
+automaticky. Doplněno do `requirements` v manifestu a do CI přibyla kontrola,
+která hlásí každý nedeklarovaný cizí import.
 
-- [ ] Integrace se přidá a panel se objeví v nabídce
-- [ ] Lišta Home Assistantu se schová
-- [ ] Po přihlášení se otevře Smarthome4u
+**Přetahování nefungovalo (0.8.1)** - `document.elementFromPoint()` vrací
+ve stínovém stromu jen hostitelský prvek, takže se nikdy nenašlo místo pod
+prstem. Opraveno přes `getRootNode().elementFromPoint()`.
+
+**Kiosk režim nechával pruh vlevo (0.8.2)** - lišta zmizela, ale panel se
+do uvolněného místa neroztáhl. Hádání proměnných Home Assistantu nikam
+nevedlo. Opraveno měřením: panel si zjistí `getBoundingClientRect().left`
+a o tu hodnotu se posune záporným okrajem, šířku vezme z `window.innerWidth`.
+Přeměří se po 100, 400 a 1200 ms a při změně velikosti okna.
+
+**HACS ukazoval hash commitu (0.4.4)** - HACS čte čísla verzí z vydání, ne
+z tagů. Přidán `release.yml`, který z tagu `v*` vytvoří vydání.
+
+## Ověřeno na reálném Home Assistantu
+
+Pavel má nadstavbu nainstalovanou přes HACS a hlásí zpět. Potvrzené věci:
+
+- [x] Integrace se přidá a panel se objeví v nabídce
+- [x] Lišta Home Assistantu se schová
+- [x] Po přihlášení se otevře Smarthome4u
 - [ ] Vypnutí voleb v Možnostech vrátí lištu zpět
-- [ ] Načtení místností, zařízení a stavů
-- [ ] Realtime - fyzický vypínač na zdi se projeví v rozhraní
+- [x] Načtení místností, zařízení a stavů
+- [x] Realtime - fyzický vypínač na zdi se projeví v rozhraní
 - [ ] Ovládací panel u světla, žaluzie, termostatu a zámku
 - [ ] Vytvoření a přejmenování místnosti
 - [ ] Přejmenování zařízení a přiřazení do místnosti
@@ -119,17 +159,14 @@ v0.4 nikdy neběžela.
 
 ## Vědomě neuděláno
 
-| Co chybí | Kdy |
+| Co chybí | Proč / kdy |
 |---|---|
-| Editor KDYŽ / POKUD / UDĚLEJ | v1.0 |
-| Úprava existující automatizace | v1.0 |
-| Čtyři šablony dashboardu, oblíbené, pořadí | v1.0 |
-| Vlastní datastore přes `Store` | v1.0 |
-| Technický režim a role | v1.0 |
-| Odebrání jednotlivého zařízení | v1.0, teď jen celá integrace |
-| Logo a ikona | až dodá Pavel |
-| Finální brand barvy | po auditu webu smarthome4u.cz |
-| Testy ovládání a průvodce integracemi | v1.0, teď je pokryté spuštění a API |
+| Pomocníci typu `input_boolean`, `input_number`, `input_select` | Home Assistant je neumí založit přes průvodce, jen přes svoje rozhraní. Jediná věc ze zadání, která zatím nejde. |
+| Úprava složité automatizace | Čte se, spouští a vypíná. Přepsat ji editorem by ji zjednodušilo a o něco přišla. |
+| Volné propojování bloků drátem | Skládačka jde zatím shora dolů. Dráty jako v Node-RED až bude jasné, že jsou potřeba. |
+| Odebrání jednotlivého zařízení | Jen celá integrace - nevratná operace patří tam, kde je celý kontext. |
+| Logo a ikona | Čeká na Pavla. |
+| Finální brand barvy | Po auditu webu smarthome4u.cz. |
 
 ---
 
@@ -150,8 +187,8 @@ v0.4 nikdy neběžela.
 
 ## Co se čeká na Pavlovi
 
-- [ ] Nainstalovat v0.4 podle README a projít seznam "Neověřeno"
-- [ ] Poslat screenshot a log, pokud něco selže
+- [ ] Projít pět předvoleb plochy a říct, která je pro zákazníky výchozí
+- [ ] Vyzkoušet režim úprav - výměnu zařízení a pořadí dlaždic
 - [ ] Dodat logo a ikonu
 - [ ] Rozhodnout, jestli chceme Smarthome4u zveřejnit v HACS
 
@@ -159,7 +196,5 @@ v0.4 nikdy neběžela.
 
 ## Další krok
 
-Ověřit v0.4 na reálném Home Assistantu.
-
-Pak v1.0: editor automatizací KDYŽ / POKUD / UDĚLEJ, šablony dashboardu
-s oblíbenými, technický režim a audit webu smarthome4u.cz pro finální barvy.
+Doladit vzhled podle zpětné vazby a pak v1.0: audit webu smarthome4u.cz
+pro finální barvy, logo a ikona.
