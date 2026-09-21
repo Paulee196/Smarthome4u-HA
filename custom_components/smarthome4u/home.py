@@ -413,6 +413,35 @@ class Home:
             "areaCount": len(areas.areas),
         }
 
+    def light_candidates(self) -> list[dict]:
+        """Vše, co Home Assistant hlásí v doméně light.
+
+        Správce tu vidí i to, co jsme zařadili jako spínač, a může nám to
+        vrátit. Bez tohohle seznamu by musel obcházet jednu dlaždici po
+        druhé a to u třiceti zásuvek nikdo dělat nebude.
+        """
+        areas = ar.async_get(self.hass)
+        seznam = []
+
+        for view in self._visible(technical=True):
+            if view["domain"] != "light":
+                continue
+
+            area = areas.async_get_area(view["areaId"]) if view["areaId"] else None
+            seznam.append(
+                {
+                    "id": view["id"],
+                    "name": view["name"],
+                    "room": area.name if area else None,
+                    "kind": view["capability"].get("kind"),
+                    "dimmable": bool(view["capability"].get("dimmable")),
+                    "overridden": view["overridden"],
+                }
+            )
+
+        seznam.sort(key=lambda p: ((p["room"] or "").lower(), p["name"].lower()))
+        return seznam
+
     def favorites(self) -> list[dict]:
         """Co si správce označil jako často používané.
 

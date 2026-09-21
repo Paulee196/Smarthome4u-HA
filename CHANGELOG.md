@@ -2,6 +2,22 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.10.1]
+
+### Opraveno
+
+- Světlo je jen to, co se umí stmívat, měnit teplotu bílé nebo barvu.
+  Home Assistant hlásí jako světlo i relé v prodlužce, zásuvku
+  u televize nebo kontrolku na ESP čidle. Co umí jen zapnout a vypnout,
+  se teď bere jako spínač a do počtu rozsvícených světel se nepočítá.
+- Nová sekce Nastavení / Co je světlo. Vypíše všechno, co Home Assistant
+  hlásí v doméně světel, a jedním přepnutím se to vrátí zpátky na světlo.
+  Relé u stropního světla se takhle vrátí za dvě klepnutí, ne obcházením
+  dlaždice po dlaždici.
+- Přeřazení světla na spínač dřív rozbilo ovládání. Volala se služba
+  switch.turn_on, jenže entita zůstala v doméně light a služba na ni
+  nedosáhla. Teď se volá služba vlastní domény.
+
 ## [0.10.0]
 
 ### Změněno

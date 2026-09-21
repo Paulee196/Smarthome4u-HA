@@ -2281,3 +2281,16 @@ textarea.input {
 .plocha--panel .stav__text {
   font-size: var(--sh-size-lg);
 }
+
+/* Řádek se zaškrtávátkem vlevo - seznam k odsouhlasení, ne dlaždice. */
+.tile--radek {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap-md);
+  cursor: pointer;
+}
+
+.tile--radek .tile__body {
+  flex: 1;
+  min-width: 0;
+}

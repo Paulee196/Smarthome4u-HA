@@ -16,7 +16,10 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_mock_service,
+)
 
 from custom_components.smarthome4u import storage
 from custom_components.smarthome4u.const import DOMAIN, PANEL_URL, STATIC_URL
@@ -530,3 +533,71 @@ async def test_plocha_po_blocich(
         json={"preset": "neexistuje", "blocks": []},
     )
     assert spatne.status == 400
+
+
+async def test_svetlo_je_jen_svetlo(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Co umí jen zapnout a vypnout, není světlo - dokud správce neřekne."""
+    assert await async_setup_component(hass, "http", {})
+
+    # Skutečné světlo: umí se stmívat.
+    hass.states.async_set(
+        "light.stropni", "on", {"supported_color_modes": ["brightness"]}
+    )
+    # Relé v prodlužce, které se hlásí jako světlo.
+    hass.states.async_set(
+        "light.prodluzka", "on", {"supported_color_modes": ["onoff"]}
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    model = await (await client.get("/api/smarthome4u/model")).json()
+
+    druhy = {
+        entity["id"]: entity["capability"]["kind"]
+        for room in model["rooms"]
+        for entity in room["entities"]
+    }
+    assert druhy["light.stropni"] == "light"
+    assert druhy["light.prodluzka"] == "switch"
+
+    # Do počtu rozsvícených světel se prodlužka nesmí počítat.
+    assert model["summary"]["lightsOn"] == 1
+
+    # Správce to může vrátit.
+    nastaveni = await (await client.get("/api/smarthome4u/settings")).json()
+    assert {p["id"] for p in nastaveni["lights"]} == {
+        "light.stropni",
+        "light.prodluzka",
+    }
+
+    odpoved = await client.post(
+        "/api/smarthome4u/entities/light.prodluzka/classify",
+        json={"kind": "light"},
+    )
+    assert odpoved.status == 200
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["summary"]["lightsOn"] == 2
+
+    # A vypnout musí jít pořád - služba se volá na doméně entity,
+    # ne na doméně, kterou jsme si o ní mysleli.
+    odpoved = await client.post(
+        "/api/smarthome4u/entities/light.prodluzka/classify",
+        json={"kind": "switch"},
+    )
+    assert odpoved.status == 200
+
+    volani = async_mock_service(hass, "light", "turn_off")
+    odpoved = await client.post(
+        "/api/smarthome4u/action",
+        json={"entityId": "light.prodluzka", "action": "turn_off"},
+    )
+    assert odpoved.status == 200
+    await hass.async_block_till_done()
+    assert len(volani) == 1

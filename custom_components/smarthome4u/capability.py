@@ -89,7 +89,27 @@ def _features(attributes: dict[str, Any]) -> int:
 
 
 def _light(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Rozhodne, jestli je to světlo, nebo jen něco, co se tak tváří.
+
+    Home Assistant hlásí jako světlo i relé v prodlužce, zásuvku, spínač
+    u televize nebo kontrolku na ESP čidle. Podle názvu to poznat nesmíme -
+    "Tv" nebo "LED indikace" není informace o typu.
+
+    Rozlišovací znamení je schopnost: skutečné světlo umí víc než zapnout
+    a vypnout. Umí se stmívat, měnit teplotu bílé nebo barvu. Co umí jen
+    zapnout a vypnout, je spínač.
+
+    Nepovedené případy existují - relé u stropního světla se takhle stane
+    spínačem. Proto to jde vrátit v Nastavení / Co je světlo, a proto si
+    takové entity neseme s příznakem, aby je bylo kde nabídnout.
+    """
     modes = set(attributes.get("supported_color_modes") or [])
+
+    if not modes & DIMMABLE_COLOR_MODES:
+        spinac = _switch(device_class, attributes)
+        spinac["fromLight"] = True
+        return spinac
+
     return {
         "kind": "light",
         "controllable": True,
@@ -516,8 +536,11 @@ def resolve_action(
 
 
 # Doména služby podle schopnosti, když se liší od domény entity.
+#
+# Spínač tu schválně není. Když se světlo přeřadí na spínač, entita
+# zůstane v doméně light a služba switch.turn_on na ni nedosáhne.
+# Zapnout a vypnout umí obě domény stejně, takže se volá ta vlastní.
 _BASE_DOMAIN = {
-    "switch": "switch",
     "scene": "scene",
     "script": "script",
     "automation": "automation",

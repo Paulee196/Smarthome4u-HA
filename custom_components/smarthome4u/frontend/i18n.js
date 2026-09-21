@@ -399,6 +399,15 @@ export const t = {
   },
 
   settings: {
+    whatIsLight: "Co je světlo",
+    whatIsLightHint:
+      "Home Assistant hlásí jako světlo i relé v prodlužce, zásuvku " +
+      "u televize nebo kontrolku na čidle. Co umí jen zapnout a vypnout, " +
+      "bereme jako spínač. Tady to můžete vrátit zpátky na světlo.",
+    noLights: "Home Assistant zatím nehlásí žádná světla.",
+    lightDimmable: "Světlo, umí se stmívat",
+    lightOnOff: "Světlo, jen zapnout a vypnout",
+    notLight: "Spínač, do světel se nepočítá",
     title: "Nastavení",
 
     account: "Účet",

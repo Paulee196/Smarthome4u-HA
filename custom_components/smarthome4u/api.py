@@ -947,6 +947,7 @@ class SettingsView(Sh4uView):
                 "users": [{"id": uid, "name": name} for uid, name in users.items()],
                 "kinds": list(capability.PRERADITELNE),
                 "overrides": settings.overrides,
+                "lights": self.home.light_candidates(),
             }
         )
 

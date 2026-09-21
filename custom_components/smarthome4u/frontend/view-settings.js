@@ -53,6 +53,7 @@ export async function renderSettings(root, ctx) {
 
   root.append(sekceVzhled(ctx, nastaveni));
   root.append(sekceDashboard(ctx, nastaveni));
+  root.append(sekceSvetla(ctx, nastaveni));
   root.append(sekceSpravce(ctx, nastaveni));
   root.append(await sekceSystem());
 }
@@ -117,6 +118,77 @@ function sekceVzhled(ctx, nastaveni) {
       t.settings.landingHint,
     ),
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Co je světlo                                                        */
+/* ------------------------------------------------------------------ */
+
+/* Home Assistant hlásí jako světlo i relé v prodlužce, zásuvku u televize
+   nebo kontrolku na ESP čidle. Rozhodujeme podle schopností - co umí jen
+   zapnout a vypnout, bereme jako spínač. Někdy se to netrefí, a tohle je
+   místo, kde se to opraví hromadně, ne po jedné dlaždici. */
+function sekceSvetla(ctx, nastaveni) {
+  const seznam = nastaveni.lights || [];
+
+  if (!seznam.length) {
+    return karta(t.settings.whatIsLight, "lighting", [
+      emptyState(t.settings.noLights),
+    ]);
+  }
+
+  const radky = h("div", { class: "stack" });
+
+  for (const polozka of seznam) {
+    radky.append(radekSvetla(ctx, polozka));
+  }
+
+  return karta(t.settings.whatIsLight, "lighting", [
+    h("p", { class: "muted", text: t.settings.whatIsLightHint }),
+    radky,
+  ]);
+}
+
+function radekSvetla(ctx, polozka) {
+  const jeSvetlo = polozka.kind === "light";
+
+  const prepinac = h("input", { class: "switch", type: "checkbox" });
+  prepinac.checked = jeSvetlo;
+
+  prepinac.addEventListener("change", async () => {
+    const kind = prepinac.checked ? "light" : "switch";
+    try {
+      await api.classify(polozka.id, { kind });
+      polozka.kind = kind;
+      popis.textContent = popisek(polozka);
+      toast(t.notice.saved);
+      await ctx.refresh();
+    } catch (error) {
+      // Zpátky, ať přepínač neukazuje něco, co se neuložilo.
+      prepinac.checked = jeSvetlo;
+      toast(error.message, true);
+    }
+  });
+
+  const popis = h("span", { class: "tile__state", text: popisek(polozka) });
+
+  return h("label", { class: "tile tile--radek" }, [
+    prepinac,
+    h("span", { class: "tile__body" }, [
+      h("span", {
+        class: "tile__name",
+        text: [polozka.room, polozka.name].filter(Boolean).join(" · "),
+      }),
+      popis,
+    ]),
+  ]);
+}
+
+function popisek(polozka) {
+  if (polozka.kind === "light") {
+    return polozka.dimmable ? t.settings.lightDimmable : t.settings.lightOnOff;
+  }
+  return t.settings.notLight;
 }
 
 /* ------------------------------------------------------------------ */
