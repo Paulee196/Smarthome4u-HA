@@ -43,8 +43,18 @@ class Smarthome4uPanel extends HTMLElement {
 
     if (!this._ready) {
       this._ready = true;
-      this._build();
-      this._subscribe();
+      // Panel žije uvnitř Home Assistanta. Když se nám něco nepovede,
+      // nesmí to vzít s sebou celou stránku.
+      try {
+        this._build();
+      } catch (error) {
+        console.error("[Smarthome4u] Rozhraní se nepodařilo postavit:", error);
+      }
+      try {
+        this._subscribe();
+      } catch (error) {
+        console.warn("[Smarthome4u] Živé změny stavů nejedou:", error);
+      }
     }
   }
 
@@ -91,10 +101,6 @@ class Smarthome4uPanel extends HTMLElement {
             <h1 class="header__title" id="view-title">Domů</h1>
           </div>
           <div class="header__right">
-            <div class="status status--online" id="status" hidden>
-              <span class="status__dot" aria-hidden="true"></span>
-              <span id="status-text" role="status">Připojeno</span>
-            </div>
             <button class="button button--ghost" type="button"
               id="settings-button">Nastavení</button>
           </div>
@@ -116,7 +122,13 @@ class Smarthome4uPanel extends HTMLElement {
     // Zásuvka Home Assistantu se dosouvá se zpožděním, proto se měří
     // ještě několikrát po sobě.
     for (const za of [100, 400, 1200]) {
-      setTimeout(() => this._srovnat(), za);
+      setTimeout(() => {
+        try {
+          this._srovnat();
+        } catch (error) {
+          console.warn("[Smarthome4u] Srovnání panelu:", error);
+        }
+      }, za);
     }
 
     this._naZmenu = () => this._srovnat();
@@ -182,12 +194,16 @@ class Smarthome4uPanel extends HTMLElement {
     if (!connection?.subscribeEvents) return;
 
     this._unsubscribe = connection.subscribeEvents((event) => {
-      const entityId = event?.data?.entity_id;
-      if (!entityId) return;
+      try {
+        const entityId = event?.data?.entity_id;
+        if (!entityId) return;
 
-      this._pending.add(entityId);
-      clearTimeout(this._timer);
-      this._timer = setTimeout(() => this._flush(), BATCH_MS);
+        this._pending.add(entityId);
+        clearTimeout(this._timer);
+        this._timer = setTimeout(() => this._flush(), BATCH_MS);
+      } catch (error) {
+        console.warn("[Smarthome4u] Změna stavu:", error);
+      }
     }, "state_changed");
   }
 

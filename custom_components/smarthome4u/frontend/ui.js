@@ -12,7 +12,11 @@ let host = null;
 export function setHost(root) {
   host = root;
   root.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeDialog();
+    try {
+      if (event.key === "Escape") closeDialog();
+    } catch {
+      /* Zavírání dialogu nesmí shodit obsluhu klávesnice. */
+    }
   });
 }
 
@@ -29,7 +33,8 @@ export function h(tag, props = {}, children = []) {
     if (key === "class") node.className = value;
     else if (key === "text") node.textContent = value;
     else if (key === "html") node.innerHTML = value;
-    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (key.startsWith("on"))
+      node.addEventListener(key.slice(2), obalit(value));
     else if (key === "dataset") Object.assign(node.dataset, value);
     else node.setAttribute(key, value === true ? "" : value);
   }
@@ -40,6 +45,29 @@ export function h(tag, props = {}, children = []) {
     node.append(child.nodeType ? child : document.createTextNode(String(child)));
   }
   return node;
+}
+
+/* Každá akce v aplikaci projde tudy. Když se něco nepovede, uživatel to
+   musí vidět - jinak mačká tlačítko znovu a zdánlivě se nic neděje.
+   Stejně tak se nesmí stát, že chyba v jednom tlačítku zastaví zbytek. */
+function obalit(handler) {
+  if (typeof handler !== "function") return handler;
+
+  return function (event) {
+    try {
+      const vysledek = handler.call(this, event);
+      if (vysledek && typeof vysledek.catch === "function") {
+        vysledek.catch(ohlasit);
+      }
+    } catch (error) {
+      ohlasit(error);
+    }
+  };
+}
+
+function ohlasit(error) {
+  console.error("[Smarthome4u]", error);
+  toast(error?.message || t.error.generic, true);
 }
 
 export function button(label, onClick, variant = "") {

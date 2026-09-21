@@ -4,6 +4,12 @@ Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
 ## [0.9.3]
 
+### Odstraněno
+
+- Odznak „Připojeno / Bez spojení" je pryč. Neříkal nic užitečného a
+  jen vyvolával otázku, s čím se aplikace spojuje. Spojuje se s vaším
+  Home Assistantem, nic jiného tam není.
+
 ### Opraveno
 
 - Místo hlášky „Unexpected non-whitespace character after JSON" se teď
@@ -12,17 +18,20 @@ Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
   svoji větu a radu, co s tím.
 - Vypršelý přihlašovací token se obnoví sám a požadavek se zopakuje.
   Token se navíc bere až v okamžiku odeslání, ne jednou při startu.
+  Tohle byla příčina, proč rozhraní po čase přestalo odpovídat.
 - Po výpadku se aplikace zkouší vrátit sama - po 3, 5, 10, 20 a 30
   vteřinách. Restart Home Assistanta po aktualizaci už nevyžaduje ruční
   načtení stránky.
 
-### Změněno
+### Odolnost
 
-- Odznak spojení se ukazuje, jen když něco nehraje. Trvalé „Připojeno"
-  byl jen šum a svádělo to k otázce, s čím se aplikace vlastně spojuje.
-- „Bez spojení" se jmenuje „Home Assistant neodpovídá". Po najetí myší
-  se ukáže vysvětlení: aplikace běží v prohlížeči, Home Assistant doma
-  na krabičce, ven z domu nechodí nic.
+- Každé tlačítko v aplikaci má záchytnou síť. Když akce selže, ukáže se
+  hláška. Dřív mohla tiše spadnout a vypadalo to, že tlačítko nefunguje.
+- Když se nevykreslí jedna sekce, zbytek aplikace jede dál. Místo prázdné
+  obrazovky je vysvětlení a tlačítko Zkusit znovu.
+- Chybějící prvek v rozhraní už neshodí start celé aplikace.
+- Jedna divná entita nezastaví promítání změn ze zbytku domu.
+- Nic z panelu nemůže shodit stránku Home Assistanta.
 
 ## [0.9.2]
 

@@ -24,14 +24,6 @@ export const t = {
   },
 
   status: {
-    connecting: "Připojuji se",
-    online: "Připojeno",
-    offline: "Home Assistant neodpovídá",
-    // Vysvětlení pod odznakem. Lidé se ptají, s čím se to spojuje.
-    explain:
-      "Aplikace běží v prohlížeči, Home Assistant na krabičce u vás doma. " +
-      "Tohle je spojení mezi nimi. Ven z domu nic nechodí.",
-
     // Stav domu se píše větou. Číslo bez kontextu nikomu nic neřekne.
     allLightsOff: "Nikde nesvítí.",
     lightsOn: (pocet, jmena) =>
@@ -68,6 +60,10 @@ export const t = {
       "Odpověď z Home Assistantu nedává smysl. Bývá to proxy nebo " +
       "přihlašovací stránka mezi prohlížečem a domem.",
     generic: "Něco se nepovedlo.",
+    view:
+      "Tuhle část se nepodařilo vykreslit. Zbytek aplikace funguje dál - " +
+      "vlevo se dá přepnout jinam.",
+    retry: "Zkusit znovu",
   },
 
   notice: {

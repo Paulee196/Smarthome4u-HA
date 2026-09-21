@@ -223,44 +223,6 @@ body {
 }
 
 /* Stav spojení. Tečka je jen doplněk, stav nese slovo vedle ní. */
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sh-gap-sm);
-  min-height: var(--sh-touch-target);
-  padding: 0 var(--sh-gap-md);
-  border: var(--sh-hairline) solid var(--sh-border);
-  border-radius: var(--sh-radius-pill);
-  background: var(--sh-surface);
-  font-size: var(--sh-size-sm);
-  color: var(--sh-text-muted);
-  white-space: nowrap;
-}
-
-.status[hidden] {
-  display: none;
-}
-
-.status__dot {
-  width: var(--sh-dot);
-  height: var(--sh-dot);
-  border-radius: var(--sh-radius-pill);
-  background: var(--sh-offline);
-  flex: none;
-}
-
-.status--online .status__dot {
-  background: var(--sh-success);
-}
-
-.status--offline .status__dot {
-  background: var(--sh-error);
-}
-
-.status--offline {
-  border-color: var(--sh-alert-line);
-  color: var(--sh-text);
-}
 
 /* ------------------------------------------------------------------ */
 /* Zprávy                                                              */

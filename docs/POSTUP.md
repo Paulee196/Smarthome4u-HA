@@ -133,6 +133,11 @@ anglický výpis z prohlížeče. Odpověď se teď rozebírá opatrně a každ�
 má svoji českou větu. Vypršelý token se navíc obnoví a požadavek zopakuje,
 po výpadku se aplikace vrací sama.
 
+**Odznak spojení (0.9.3)** - ukazoval „Připojeno / Bez spojení" a nikomu
+neřekl, s čím se aplikace spojuje. Odstraněn. Aplikace běží v prohlížeči,
+Home Assistant doma na krabičce, ven z domu nejde nic - odznak k tomu nic
+nepřidal. Když něco nehraje, řekne se to větou.
+
 ## Ověřeno na reálném Home Assistantu
 
 Pavel má nadstavbu nainstalovanou přes HACS a hlásí zpět. Potvrzené věci:

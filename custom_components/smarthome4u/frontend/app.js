@@ -76,7 +76,7 @@ const ctx = {
   },
   stopEditing() {
     state.editing = false;
-    draw();
+    bezpecne(draw());
   },
 };
 
@@ -86,8 +86,6 @@ const ctx = {
 
 export function mount(root) {
   el = {
-    status: root.getElementById("status"),
-    statusText: root.getElementById("status-text"),
     notice: root.getElementById("notice"),
     view: root.getElementById("view"),
     title: root.getElementById("view-title"),
@@ -96,9 +94,13 @@ export function mount(root) {
     settings: root.getElementById("settings-button"),
   };
 
-  el.version.textContent = APP_VERSION;
-  el.settings.textContent = t.nav.settings;
-  el.settings.addEventListener("click", () => navigate("settings"));
+  // Kdyby některý prvek chyběl, nesmí to shodit celý start. Radši ať
+  // chybí jeden popisek než aby zůstala prázdná obrazovka.
+  if (el.version) el.version.textContent = APP_VERSION;
+  if (el.settings) {
+    el.settings.textContent = t.nav.settings;
+    el.settings.addEventListener("click", () => navigate("settings"));
+  }
 
   try {
     if (localStorage.getItem(REZIM_KLIC) === "technician") {
@@ -110,7 +112,7 @@ export function mount(root) {
 
   state.route = readRoute();
   paintNav();
-  el.title.textContent = ROUTES[state.route].label;
+  if (el.title) el.title.textContent = ROUTES[state.route].label;
 
   window.addEventListener("location-changed", onRouteChange);
   window.addEventListener("popstate", onRouteChange);
@@ -118,9 +120,17 @@ export function mount(root) {
   loadModel();
 }
 
-/** Změny stavů, které přišly z připojení Home Assistantu přes panel. */
+/** Změny stavů, které přišly z připojení Home Assistantu přes panel.
+ *
+ * Chodí sem cokoliv, co se v domě hne. Jedna divná entita nesmí zastavit
+ * překreslování všech ostatních.
+ */
 export function applyIncoming(entities) {
-  applyStates(entities || []);
+  try {
+    applyStates(entities || []);
+  } catch (error) {
+    console.warn("[Smarthome4u] Změnu stavu se nepodařilo promítnout:", error);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,12 +150,20 @@ function onRouteChange() {
   if (next === state.route) return;
   state.route = next;
   closeDialog();
-  draw();
+  bezpecne(draw());
+}
+
+/** Slib, který nikdo nečeká. Bez tohohle skončí chyba v konzoli a nikde jinde. */
+function bezpecne(slib) {
+  Promise.resolve(slib).catch((error) => {
+    console.error("[Smarthome4u]", error);
+  });
 }
 
 /** Přepínač Uživatel / Technik. Vidí ho jen správce. */
 function paintRezim() {
   const jeSpravce = state.model?.user?.role === "admin";
+  if (!el.settings) return;
   el.settings.hidden = !jeSpravce;
 
   const koren = el.settings.getRootNode?.();
@@ -175,12 +193,18 @@ function navigate(route) {
   closeDialog();
   state.route = route;
 
-  const target = `${window.location.pathname}#/${route}`;
-  window.history.replaceState(null, "", target);
-  draw();
+  try {
+    const target = `${window.location.pathname}#/${route}`;
+    window.history.replaceState(null, "", target);
+  } catch {
+    /* Někde je historie zamčená. Adresa se jen nezmění, sekce se otevře. */
+  }
+
+  bezpecne(draw());
 }
 
 function paintNav() {
+  if (!el.nav) return;
   el.nav.replaceChildren();
   paintRezim();
 
@@ -228,11 +252,9 @@ async function loadModel() {
       ?.querySelector?.(".shell")
       ?.classList.toggle("shell--velke", Boolean(state.model.bigControls));
     hideNotice();
-    setStatus(true);
     zrusitOpakovani();
     await draw();
   } catch (error) {
-    setStatus(false);
     showNotice(error.message || t.notice.offline, true);
     paintNav();
     naplanovatOpakovani();
@@ -267,36 +289,55 @@ function zrusitOpakovani() {
 }
 
 async function draw() {
+  if (!el?.view) return;
+
   const route = ROUTES[state.route] || ROUTES.home;
 
-  clearWatchers();
+  try {
+    clearWatchers();
+  } catch (error) {
+    console.warn("[Smarthome4u] Úklid předchozí obrazovky:", error);
+  }
+
   el.view.replaceChildren();
-  el.title.textContent = route.label;
+  if (el.title) el.title.textContent = route.label;
   paintNav();
 
   if (!state.model) return;
-  await route.render(el.view, ctx);
+
+  // Když se jedna sekce nevykreslí, zbytek aplikace musí zůstat ovladatelný.
+  // Prázdná obrazovka bez vysvětlení je to nejhorší, co může nastat.
+  try {
+    await route.render(el.view, ctx);
+  } catch (error) {
+    console.error("[Smarthome4u] Sekce se nevykreslila:", error);
+    el.view.replaceChildren(
+      h("div", { class: "stack" }, [
+        h("p", { class: "muted", text: t.error.view }),
+        h("div", { class: "row" }, [
+          h("button", {
+            class: "button",
+            type: "button",
+            text: t.error.retry,
+            onclick: () => loadModel(),
+          }),
+        ]),
+      ]),
+    );
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Stavové prvky                                                       */
 /* ------------------------------------------------------------------ */
 
-/* Odznak se ukazuje, jen když něco nehraje. Trvale svítící "Připojeno"
-   je jen šum - a navíc svádí k otázce, s čím se to vlastně spojuje. */
-function setStatus(online) {
-  el.status.className = `status status--${online ? "online" : "offline"}`;
-  el.status.hidden = online;
-  el.status.title = t.status.explain;
-  el.statusText.textContent = online ? t.status.online : t.status.offline;
-}
-
 function showNotice(message, isError) {
+  if (!el.notice) return;
   el.notice.textContent = message;
   el.notice.className = isError ? "notice notice--error" : "notice";
   el.notice.hidden = false;
 }
 
 function hideNotice() {
-  el.notice.hidden = true;
+  if (el.notice) el.notice.hidden = true;
 }
