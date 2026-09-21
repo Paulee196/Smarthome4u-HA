@@ -211,6 +211,66 @@ def _select(device_class: str | None, attributes: dict[str, Any]) -> dict[str, A
     }
 
 
+def _text(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Textový pomocník. Ukládá krátkou poznámku nebo kód."""
+    return {
+        "kind": "text",
+        "controllable": True,
+        "min": attributes.get("min"),
+        "max": attributes.get("max"),
+        "pattern": attributes.get("pattern"),
+        "password": attributes.get("mode") == "password",
+    }
+
+
+def _datetime(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Pomocník s datem a časem.
+
+    Home Assistant umí tři podoby - jen datum, jen čas, nebo obojí. Pozná
+    se to podle příznaků, které si entita nese s sebou.
+    """
+    ma_datum = attributes.get("has_date")
+    ma_cas = attributes.get("has_time")
+
+    # Samostatné domény date a time příznaky nemají, tam to plyne z domény.
+    if ma_datum is None and ma_cas is None:
+        ma_datum = True
+        ma_cas = True
+
+    return {
+        "kind": "datetime",
+        "controllable": True,
+        "date": bool(ma_datum),
+        "time": bool(ma_cas),
+    }
+
+
+def _counter(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Počítadlo. Přičítá, odečítá a dá se vynulovat."""
+    return {
+        "kind": "counter",
+        "controllable": True,
+        "step": attributes.get("step") or 1,
+        "min": attributes.get("minimum"),
+        "max": attributes.get("maximum"),
+    }
+
+
+def _timer(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Odpočet. Spustí se, pozastaví a zruší."""
+    return {
+        "kind": "timer",
+        "controllable": True,
+        "duration": attributes.get("duration"),
+        "finishesAt": attributes.get("finishes_at"),
+    }
+
+
+def _schedule(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    """Týdenní rozvrh. Ukazuje, jestli zrovna platí. Mění se v pomocnících."""
+    return {"kind": "schedule", "controllable": False}
+
+
 def _media_player(
     device_class: str | None, attributes: dict[str, Any]
 ) -> dict[str, Any]:
@@ -254,6 +314,15 @@ _HANDLERS: dict[str, Callable[[str | None, dict[str, Any]], dict[str, Any]]] = {
     "input_number": _number,
     "select": _select,
     "input_select": _select,
+    "text": _text,
+    "input_text": _text,
+    "datetime": _datetime,
+    "date": _datetime,
+    "time": _datetime,
+    "input_datetime": _datetime,
+    "counter": _counter,
+    "timer": _timer,
+    "schedule": _schedule,
     "media_player": _media_player,
     "camera": _camera,
     "person": _presence,
@@ -330,6 +399,22 @@ _ACTIONS: dict[str, dict[str, tuple[str, str | None, str | None]]] = {
     "select": {
         "set": ("select_option", "option", "text"),
     },
+    "text": {
+        "set": ("set_value", "value", "text"),
+    },
+    "datetime": {
+        "set": ("set_value", "value", "text"),
+    },
+    "counter": {
+        "increment": ("increment", None, None),
+        "decrement": ("decrement", None, None),
+        "reset": ("reset", None, None),
+    },
+    "timer": {
+        "start": ("start", None, None),
+        "pause": ("pause", None, None),
+        "cancel": ("cancel", None, None),
+    },
     "media_player": {
         "play_pause": ("media_play_pause", None, None),
         "stop": ("media_stop", None, None),
@@ -343,6 +428,10 @@ _SERVICE_DOMAIN = {
     "input_number": "input_number",
     "input_select": "input_select",
     "input_button": "input_button",
+    "input_text": "input_text",
+    "input_datetime": "input_datetime",
+    "counter": "counter",
+    "timer": "timer",
 }
 
 
@@ -368,6 +457,10 @@ _PODLE_SCHOPNOSTI: dict[str, Callable[[str | None, dict[str, Any]], dict]] = {
     "number": _number,
     "select": _select,
     "button": _button,
+    "text": _text,
+    "datetime": _datetime,
+    "counter": _counter,
+    "timer": _timer,
     "presence": _presence,
 }
 

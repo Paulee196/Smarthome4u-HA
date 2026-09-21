@@ -13,6 +13,8 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from copy import deepcopy
+
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
@@ -66,13 +68,15 @@ class Settings:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self._store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
-        self.data: dict[str, Any] = dict(VYCHOZI)
+        # Hluboká kopie: layout i floorplan jsou vnořené slovníky. Mělká
+        # kopie by je sdílela s výchozími hodnotami a zápis by je přepsal.
+        self.data: dict[str, Any] = deepcopy(VYCHOZI)
 
     async def load(self) -> None:
         ulozene = await self._store.async_load()
         if isinstance(ulozene, dict):
             # Doplní klíče, které v uloženém souboru ještě nebyly.
-            self.data = {**VYCHOZI, **ulozene}
+            self.data = {**deepcopy(VYCHOZI), **ulozene}
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
     async def save(self) -> None:

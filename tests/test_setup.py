@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.smarthome4u import storage
 from custom_components.smarthome4u.const import DOMAIN, PANEL_URL, STATIC_URL
 
 
@@ -396,3 +397,78 @@ async def test_vymena_oblibenych(
 
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [e["id"] for e in model["favorites"]] == ["light.b"]
+
+
+async def test_kiosk_zustane_zapnuty(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Kiosk je ve výchozím stavu zapnutý a přepnutí přežije restart."""
+    assert await async_setup_component(hass, "http", {})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    # Bez jakéhokoliv nastavení musí být kiosk zapnutý.
+    stav = await (await client.get("/api/smarthome4u/kiosk")).json()
+    assert stav["kiosk"] is True
+
+    # Vypnutí a zapnutí se musí propsat do nastavení i do uloženého souboru.
+    assert (
+        await client.post("/api/smarthome4u/settings", json={"kiosk": False})
+    ).status == 200
+    stav = await (await client.get("/api/smarthome4u/kiosk")).json()
+    assert stav["kiosk"] is False
+
+    assert (
+        await client.post("/api/smarthome4u/settings", json={"kiosk": True})
+    ).status == 200
+
+    # Nová instance čte tentýž soubor - tohle je ten restart.
+    nove = storage.Settings(hass)
+    await nove.load()
+    assert nove.kiosk is True
+
+
+async def test_pomocnici_se_zobrazi(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Pomocníci z Home Assistanta nesmí propadnout sítem."""
+    assert await async_setup_component(hass, "http", {})
+
+    hass.states.async_set("input_text.poznamka", "ahoj", {"max": 100})
+    hass.states.async_set("input_datetime.budik", "2026-09-21 06:30:00",
+                          {"has_date": True, "has_time": True})
+    hass.states.async_set("counter.kava", "3", {"step": 1})
+    hass.states.async_set("timer.peceni", "idle", {"duration": "0:30:00"})
+    hass.states.async_set("schedule.topeni", "on", {})
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    model = await (await client.get("/api/smarthome4u/model")).json()
+
+    druhy = {
+        entity["id"]: entity["capability"]["kind"]
+        for room in model["rooms"]
+        for entity in room["entities"]
+    }
+
+    assert druhy.get("input_text.poznamka") == "text"
+    assert druhy.get("input_datetime.budik") == "datetime"
+    assert druhy.get("counter.kava") == "counter"
+    assert druhy.get("timer.peceni") == "timer"
+    assert druhy.get("schedule.topeni") == "schedule"
+
+    # A musí jít i ovládat, ne jen zobrazit.
+    odpoved = await client.post(
+        "/api/smarthome4u/action",
+        json={"entityId": "counter.kava", "action": "increment"},
+    )
+    assert odpoved.status == 200

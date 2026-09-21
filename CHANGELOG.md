@@ -2,6 +2,30 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.9.5]
+
+### Přidáno
+
+- Pomocníci z Home Assistanta se konečně zobrazují a ovládají: text,
+  datum a čas, počítadlo, odpočet a týdenní rozvrh. Dřív propadli sítem,
+  protože je aplikace neuměla zařadit, a tak je rovnou zahodila.
+- Tlačítko Upravit plochu je v hlavičce na obrazovce Domů. Dřív bylo
+  zahrabané v Nastavení a nikdo ho nenašel.
+
+### Změněno
+
+- Režim technika a uživatele se řídí přihlášeným účtem. Správce
+  domácnosti začíná v technickém režimu, ostatní v uživatelském.
+  Přepnutí platí do konce sezení, po dalším přihlášení zase rozhoduje
+  účet. Dřív si prohlížeč pamatoval poslední volbu natrvalo.
+- Věta o stavu domu vyjmenuje nejvýš tři věci a zbytek shrne. Osm
+  jmen za sebou nikdo nečte a na nástěnném panelu to byl odstavec.
+
+### Opraveno
+
+- Výchozí hodnoty nastavení se kopírovaly mělce, takže zápis do
+  rozvržení nebo půdorysu přepsal samotnou výchozí hodnotu.
+
 ## [0.9.4]
 
 ### Opraveno

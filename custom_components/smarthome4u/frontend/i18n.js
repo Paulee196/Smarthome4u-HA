@@ -6,6 +6,18 @@
  * Čeština ve vykání. Krátké věty, akční kroky.
  */
 
+/* Výčet, který se dá přečíst z dálky. Deset jmen za sebou už nikdo nečte
+   a na nástěnném panelu z toho je odstavec přes půl obrazovky. */
+const MAX_JMEN = 3;
+
+function vyjmenovat(jmena) {
+  const seznam = jmena || [];
+  if (seznam.length <= MAX_JMEN) return seznam.join(", ") + ".";
+
+  const zbytek = seznam.length - MAX_JMEN;
+  return `${seznam.slice(0, MAX_JMEN).join(", ")} a dalších ${zbytek}.`;
+}
+
 export const t = {
   appName: "Smarthome4u",
 
@@ -29,17 +41,17 @@ export const t = {
     lightsOn: (pocet, jmena) =>
       pocet === 1
         ? `Svítí ${jmena[0]}.`
-        : `Svítí ${pocet} světla. ${(jmena || []).join(", ")}`,
+        : `Svítí ${pocet === 2 || pocet === 3 || pocet === 4 ? pocet + " světla" : pocet + " světel"}. ${vyjmenovat(jmena)}`,
     allLocked: "Vše je zamčené.",
     unlocked: (pocet, jmena) =>
       pocet === 1
         ? `Odemčeno: ${jmena[0]}`
-        : `Odemčeno na ${pocet} místech. ${(jmena || []).join(", ")}`,
+        : `Odemčeno na ${pocet} místech. ${vyjmenovat(jmena)}`,
     allClosed: "Vše je zavřené.",
     open: (pocet, jmena) =>
       pocet === 1
         ? `Otevřeno: ${jmena[0]}`
-        : `Otevřeno je ${pocet} věcí. ${(jmena || []).join(", ")}`,
+        : `Otevřeno je ${pocet} věcí. ${vyjmenovat(jmena)}`,
   },
 
   error: {
@@ -512,6 +524,7 @@ export const t = {
     hint:
       "Chytněte prvek za ⠿ a přetáhněte. Křížkem ho schováte, " +
       "šipkami opravíte jeho typ.",
+    edit: "Upravit plochu",
     done: "Hotovo",
     hide: "Schovat",
     drag: "Přetáhnout",
@@ -543,6 +556,11 @@ export const t = {
       button: "Tlačítko",
       presence: "Přítomnost osoby",
       camera: "Kamera",
+      text: "Text",
+      datetime: "Datum a čas",
+      counter: "Počítadlo",
+      timer: "Odpočet",
+      schedule: "Týdenní rozvrh",
     },
   },
 
@@ -573,11 +591,22 @@ export const t = {
     playPause: "Přehrát nebo pozastavit",
     value: "Hodnota",
     option: "Volba",
+    date: "Datum",
+    time: "Čas",
+    plus: "Přidat",
+    minus: "Ubrat",
+    reset: "Vynulovat",
+    start: "Spustit",
+    pause: "Pozastavit",
+    cancel: "Zrušit",
     addFavorite: "Přidat mezi často používané",
     removeFavorite: "Odebrat z často používaných",
   },
 
   state: {
+    running: "Běží",
+    nowOn: "Právě platí",
+    nowOff: "Teď neplatí",
     on: "Zapnuto",
     off: "Vypnuto",
     unavailable: "Nedostupné",
@@ -691,6 +720,29 @@ export function describeState(entity) {
       const unit = attrs.unit_of_measurement || entity.capability?.unit;
       return { text: unit ? `${entity.state} ${unit}` : entity.state, tone: "off" };
     }
+
+    case "counter":
+      return { text: entity.state, tone: "off" };
+
+    case "timer":
+      if (entity.state === "active") {
+        return { text: t.state.running, tone: "on" };
+      }
+      if (entity.state === "paused") {
+        return { text: t.state.paused, tone: "off" };
+      }
+      return { text: t.state.idle, tone: "off" };
+
+    case "schedule":
+      return entity.state === "on"
+        ? { text: t.state.nowOn, tone: "on" }
+        : { text: t.state.nowOff, tone: "off" };
+
+    case "text":
+      return { text: entity.capability?.password ? "••••" : entity.state, tone: "off" };
+
+    case "datetime":
+      return { text: String(entity.state || "").replace("T", " "), tone: "off" };
 
     case "presence":
       return entity.state === "home"

@@ -15,6 +15,7 @@ import {
   numberInput,
   selectInput,
   slider,
+  textInput,
   toast,
 } from "./ui.js";
 
@@ -61,6 +62,8 @@ const PRIMARY = {
   script: () => ["run"],
   button: () => ["press"],
   lock: (e) => [e.state === "locked" ? "unlock" : "lock"],
+  // Odpočet: podle toho, co zrovna dělá, dává smysl jiné tlačítko.
+  timer: (e) => [e.state === "active" ? "pause" : "start"],
 };
 
 const HAS_DETAIL = new Set([
@@ -71,6 +74,10 @@ const HAS_DETAIL = new Set([
   "lock",
   "number",
   "select",
+  "text",
+  "datetime",
+  "counter",
+  "timer",
   "media_player",
 ]);
 
@@ -416,6 +423,65 @@ function buildControls(entity) {
       break;
     }
 
+    case "text": {
+      const vstup = textInput(entity.state === "unknown" ? "" : entity.state);
+      if (c.password) vstup.type = "password";
+      if (c.max) vstup.maxLength = c.max;
+      vstup.addEventListener("change", () => send(entity, "set", vstup.value));
+      parts.push(field(t.control.value, vstup));
+      break;
+    }
+
+    case "datetime": {
+      // Vlastní pole pro datum a pro čas. Pomocník může mít jen jedno
+      // z toho - pak se druhé nenabízí a hodnota se neskládá.
+      const [datum = "", cas = ""] = rozlozitDatumCas(entity.state, c);
+
+      const poleDatum = c.date ? textInput(datum) : null;
+      const poleCas = c.time ? textInput(cas) : null;
+      if (poleDatum) poleDatum.type = "date";
+      if (poleCas) poleCas.type = "time";
+
+      const odeslat = () => {
+        const hodnota = [poleDatum?.value, poleCas?.value]
+          .filter(Boolean)
+          .join(" ");
+        if (hodnota) send(entity, "set", hodnota);
+      };
+
+      if (poleDatum) {
+        poleDatum.addEventListener("change", odeslat);
+        parts.push(field(t.control.date, poleDatum));
+      }
+      if (poleCas) {
+        poleCas.addEventListener("change", odeslat);
+        parts.push(field(t.control.time, poleCas));
+      }
+      break;
+    }
+
+    case "counter":
+      parts.push(
+        h("div", { class: "row" }, [
+          button(t.control.minus, () => send(entity, "decrement"), "button--ghost"),
+          button(t.control.plus, () => send(entity, "increment")),
+          button(t.control.reset, () => send(entity, "reset"), "button--ghost"),
+        ]),
+      );
+      break;
+
+    case "timer":
+      parts.push(
+        h("div", { class: "row" }, [
+          entity.state !== "active" && button(t.control.start, () => send(entity, "start")),
+          entity.state === "active" &&
+            button(t.control.pause, () => send(entity, "pause")),
+          entity.state !== "idle" &&
+            button(t.control.cancel, () => send(entity, "cancel"), "button--ghost"),
+        ]),
+      );
+      break;
+
     case "media_player":
       parts.push(
         h("div", { class: "row" }, [
@@ -441,6 +507,20 @@ function buildControls(entity) {
   }
 
   return parts;
+}
+
+/* Home Assistant posílá "2026-09-21 18:30:00", "2026-09-21" nebo "18:30:00"
+   podle toho, co pomocník umí. Rozebereme to podle mezery, ne podle formátu -
+   tvar se může mezi verzemi lišit a hádat ho nemá smysl. */
+function rozlozitDatumCas(stav, schopnosti) {
+  if (!stav || stav === "unknown" || stav === "unavailable") return ["", ""];
+
+  const casti = String(stav).split(/[ T]/);
+  if (schopnosti.date && schopnosti.time) {
+    return [casti[0] || "", (casti[1] || "").slice(0, 5)];
+  }
+  if (schopnosti.date) return [casti[0] || "", ""];
+  return ["", (casti[0] || "").slice(0, 5)];
 }
 
 function onOffRow(entity) {

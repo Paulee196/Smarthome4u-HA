@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.9.4
+**Aktuální verze:** 0.9.5
 **Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---

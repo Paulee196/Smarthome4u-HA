@@ -37,6 +37,9 @@ const ROUTES = {
   },
 };
 
+/* Režim se neukládá natrvalo. Vychází z toho, kdo je přihlášený:
+   správce domácnosti začíná v technickém režimu, ostatní v uživatelském.
+   Přepnutí platí do konce sezení, po dalším přihlášení se zase řídí účtem. */
 const REZIM_KLIC = "sh4u.rezim";
 
 const state = { model: null, route: "home", editing: false, rezim: "user" };
@@ -63,9 +66,9 @@ const ctx = {
   prepnoutRezim() {
     state.rezim = state.rezim === "technician" ? "user" : "technician";
     try {
-      localStorage.setItem(REZIM_KLIC, state.rezim);
+      sessionStorage.setItem(REZIM_KLIC, state.rezim);
     } catch {
-      /* Soukromé okno. Režim se jen nezapamatuje. */
+      /* Soukromé okno. Režim vydrží jen do překreslení. */
     }
     state.editing = false;
     navigate("home");
@@ -102,14 +105,6 @@ export function mount(root) {
     el.settings.addEventListener("click", () => navigate("settings"));
   }
 
-  try {
-    if (localStorage.getItem(REZIM_KLIC) === "technician") {
-      state.rezim = "technician";
-    }
-  } catch {
-    /* Soukromé okno. Zůstane uživatelský režim. */
-  }
-
   state.route = readRoute();
   paintNav();
   if (el.title) el.title.textContent = ROUTES[state.route].label;
@@ -131,6 +126,17 @@ export function applyIncoming(entities) {
   } catch (error) {
     console.warn("[Smarthome4u] Změnu stavu se nepodařilo promítnout:", error);
   }
+}
+
+/** Co si správce přepnul v tomhle sezení. Jinak technický režim. */
+function zapamatovanyRezim() {
+  try {
+    const ulozeny = sessionStorage.getItem(REZIM_KLIC);
+    if (ulozeny === "user" || ulozeny === "technician") return ulozeny;
+  } catch {
+    /* Soukromé okno. */
+  }
+  return "technician";
 }
 
 /* ------------------------------------------------------------------ */
@@ -187,6 +193,36 @@ function paintRezim() {
     state.rezim === "technician" ? t.mode.toUser : t.mode.toTechnician;
 }
 
+/** Úprava plochy. Patří do hlavičky, ne zahrabaná v nastavení. */
+function paintUpravit() {
+  if (!el.settings) return;
+
+  const koren = el.settings.getRootNode?.();
+  let tlacitko = koren?.getElementById?.("uprava-button");
+
+  const jeSpravce = state.model?.user?.role === "admin";
+  const jdeUpravit = state.route === "home" && jeSpravce;
+
+  if (!jdeUpravit) {
+    tlacitko?.remove();
+    return;
+  }
+
+  if (!tlacitko) {
+    tlacitko = h("button", {
+      class: "button",
+      type: "button",
+      id: "uprava-button",
+      onclick: () => (state.editing ? ctx.stopEditing() : ctx.startEditing()),
+    });
+    const prvni = koren?.getElementById?.("rezim-button") || el.settings;
+    prvni.parentElement?.insertBefore(tlacitko, prvni);
+  }
+
+  tlacitko.textContent = state.editing ? t.editor.done : t.editor.edit;
+  tlacitko.className = state.editing ? "button" : "button button--ghost";
+}
+
 function navigate(route) {
   if (!ROUTES[route]) route = "home";
   if (route !== "home") state.editing = false;
@@ -207,6 +243,7 @@ function paintNav() {
   if (!el.nav) return;
   el.nav.replaceChildren();
   paintRezim();
+  paintUpravit();
 
   for (const [key, route] of Object.entries(ROUTES)) {
     if (route.hidden) continue;
@@ -236,9 +273,11 @@ async function loadModel() {
   try {
     state.model = await api.model();
 
-    // Kdo není správce, technický režim nikdy nevidí.
+    // Režim se řídí přihlášeným účtem. Správce domácnosti nastavuje,
+    // takže začíná v technickém režimu. Kdo není správce, technický
+    // režim nevidí vůbec - a to ani když si ho někdo zkusil uložit.
     const jeSpravce = state.model.user?.role === "admin";
-    if (!jeSpravce) state.rezim = "user";
+    state.rezim = jeSpravce ? zapamatovanyRezim() : "user";
 
     nastavitOblibene(
       (state.model.favorites || []).map((e) => e.id),
