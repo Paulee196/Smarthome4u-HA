@@ -108,6 +108,9 @@
   --sh-rail: 3px;
 
   /* --- Dotykové cíle. Nikdy nesnižovat pod 44 px. --- */
+  /* Stín přetahovaného prvku. */
+  --sh-drag-shadow: 0 12px 32px rgb(0 0 0 / 55%);
+
   --sh-touch-target: 44px;
   --sh-focus-width: 2px;
   --sh-focus-offset: 2px;

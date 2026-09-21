@@ -75,21 +75,39 @@ async function nacistNastaveni() {
 /* Schování lišty                                                      */
 /* ------------------------------------------------------------------ */
 
+function zasuvka() {
+  return skorapka()?.querySelector("ha-drawer") || null;
+}
+
 function uplatnit() {
   try {
     const host = skorapka();
     if (!host) return;
 
     const stavajici = host.getElementById?.(STYLE_ID);
+    const zapnout = nastaveni.kiosk && naPanelu();
 
-    if (nastaveni.kiosk && naPanelu()) {
-      if (stavajici) return;
+    if (zapnout && !stavajici) {
       const styl = document.createElement("style");
       styl.id = STYLE_ID;
       styl.textContent = CSS;
       host.appendChild(styl);
-    } else if (stavajici) {
+    } else if (!zapnout && stavajici) {
       stavajici.remove();
+    }
+
+    // Samotné schování lišty nestačí - zásuvka si drží šířku a obsah
+    // zůstane odsunutý. Šířku má v proměnné na svém vlastním prvku, takže
+    // se musí přepsat přímo tam. Zvenčí přes selektor to neprojde.
+    const prvek = zasuvka();
+    if (!prvek) return;
+
+    if (zapnout) {
+      prvek.style.setProperty("--mdc-drawer-width", "0px", "important");
+      prvek.style.setProperty("--app-drawer-width", "0px", "important");
+    } else {
+      prvek.style.removeProperty("--mdc-drawer-width");
+      prvek.style.removeProperty("--app-drawer-width");
     }
   } catch {
     /* Home Assistant změnil strukturu. Necháme lištu být. */

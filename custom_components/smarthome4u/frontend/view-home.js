@@ -8,7 +8,7 @@
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
-import { povolitPretahovani } from "./dnd.js";
+import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { icon, iconFor } from "./icons.js";
 import {
   h,
@@ -44,19 +44,29 @@ const SECURITY_CLASSES = new Set([
   "problem",
 ]);
 
+/** append(null) by do stránky vložil text "null". */
+function pridat(root, ...prvky) {
+  for (const prvek of prvky) {
+    if (prvek) root.append(prvek);
+  }
+}
+
 export function renderHome(root, ctx) {
   const model = ctx.model;
   const preset = model.preset || "prehled";
 
   if (ctx.editing) {
-    root.append(listaUprav(ctx));
+    pridat(root, listaUprav(ctx));
   }
 
   if (!ctx.editing && preset === "prehled") {
-    root.append(introCard());
-    root.append(statsRow(model.summary || {}));
-    root.append(upozorneni(model.summary || {}));
-    root.append(rychleAkce(model));
+    pridat(
+      root,
+      introCard(),
+      statsRow(model.summary || {}),
+      upozorneni(model.summary || {}),
+      rychleAkce(model),
+    );
   }
 
   if (!model.rooms.length) {
@@ -105,6 +115,12 @@ function zapnoutPretahovaniMistnosti(telo, ctx) {
 /** Dlaždice v režimu úprav - nespíná, jen se přetahuje a schovává. */
 function upravitelnaDlazdice(entity, ctx) {
   const obal = h("div", { class: "card card--edit" }, [
+    h("span", {
+      class: "dnd__uchyt",
+      "data-dnd-handle": "",
+      "aria-label": t.editor.drag,
+      text: "⠿",
+    }),
     h("div", { class: "card__hit" }, [
       h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg")),
       h("span", { class: "card__name", text: entity.name }),
@@ -129,7 +145,7 @@ function upravitelnaDlazdice(entity, ctx) {
     }),
   ]);
 
-  obal.dataset.dndKey = entity.id;
+  obal.setAttribute(ATRIBUT_KLICE, entity.id);
   return obal;
 }
 
@@ -234,6 +250,13 @@ function panel(klic, title, subtitle, glyph, entities, ctx) {
 
   const sekce = h("section", { class: "panel" }, [
     h("div", { class: "panel__head" }, [
+      ctx.editing &&
+        h("span", {
+          class: "dnd__uchyt",
+          "data-dnd-handle": "",
+          "aria-label": t.editor.drag,
+          text: "⠿",
+        }),
       h("span", { class: "panel__glyph" }, glyph),
       h("h2", { class: "panel__title", text: title }),
       subtitle && h("span", { class: "panel__sub", text: subtitle }),
@@ -241,7 +264,7 @@ function panel(klic, title, subtitle, glyph, entities, ctx) {
     mrizka,
   ]);
 
-  if (klic) sekce.dataset.dndKey = klic;
+  if (klic) sekce.setAttribute(ATRIBUT_KLICE, klic);
 
   if (ctx.editing) {
     povolitPretahovani(mrizka, async (poradi) => {

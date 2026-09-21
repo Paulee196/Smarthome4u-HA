@@ -36,6 +36,7 @@ export function h(tag, props = {}, children = []) {
 
   for (const child of [].concat(children)) {
     if (child === null || child === undefined || child === false) continue;
+    if (child === "") continue;
     node.append(child.nodeType ? child : document.createTextNode(String(child)));
   }
   return node;

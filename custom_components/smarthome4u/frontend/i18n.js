@@ -296,9 +296,12 @@ export const t = {
 
   editor: {
     title: "Úprava rozvržení",
-    hint: "Přetažením změníte pořadí. Křížkem prvek schováte.",
+    hint:
+      "Chytněte prvek za ⠿ a přetáhněte. Křížkem ho schováte, " +
+      "šipkami opravíte jeho typ.",
     done: "Hotovo",
     hide: "Schovat",
+    drag: "Přetáhnout",
     reclassify: "Změnit typ",
     reclassifyHint:
       "Home Assistant hlásí jako světlo i kontrolky. Tady to můžete opravit.",

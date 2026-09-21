@@ -2,6 +2,28 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.6.1]
+
+### Opraveno
+
+- Kiosk režim schoval lištu Home Assistantu, ale obsah se přes její místo
+  neroztáhl. Vlevo zůstával prázdný pruh. Panel teď v kiosk režimu vystoupí
+  z rozvržení a zabere celou plochu, a zásuvce Home Assistantu se navíc
+  vynuluje šířka přímo na jejím prvku.
+- Na domovské obrazovce se místy zobrazoval text "null". Prázdná sekce se
+  vkládala do stránky jako slovo.
+- Přetahování v editoru nefungovalo. Tažený prvek byl sám pod kurzorem,
+  takže se nikdy nenašel soused, pod který se má vložit. A na dotyku to
+  přebíjelo posouvání stránky.
+
+### Změněno
+
+- Přetahuje se za úchyt v rohu dlaždice, ne za celou dlaždici. V režimu
+  úprav tak jde prstem normálně scrollovat.
+- Tažený prvek plave nad stránkou a na jeho místě zůstane zástupce
+  s přerušovaným rámečkem, takže je vidět, kam prvek spadne.
+- Místnosti se přetahují za úchyt v jejich hlavičce.
+
 ## [0.6.0]
 
 ### Přidáno

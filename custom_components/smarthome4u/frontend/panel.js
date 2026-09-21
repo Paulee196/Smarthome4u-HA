@@ -91,11 +91,25 @@ class Smarthome4uPanel extends HTMLElement {
     `;
     root.append(shell);
 
+    this._shell = shell;
     setHost(root);
     mount(root);
+
+    this._uplatnitKiosk();
+    window.addEventListener("sh4u-kiosk-changed", () => this._uplatnitKiosk());
   }
 
   /* ---------------------------------------------------------------- */
+
+  /** Kiosk režim: panel zabere celou plochu, ne jen místo vedle lišty. */
+  async _uplatnitKiosk() {
+    try {
+      const nastaveni = await api.kiosk();
+      this._shell?.classList.toggle("shell--kiosk", nastaveni.kiosk !== false);
+    } catch {
+      /* Nepodařilo se zeptat. Necháme panel v běžném rozvržení. */
+    }
+  }
 
   _subscribe() {
     const connection = this._hass?.connection;

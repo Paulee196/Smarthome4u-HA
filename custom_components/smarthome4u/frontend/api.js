@@ -62,6 +62,7 @@ export const api = {
   flowAbort: (id) => request("POST", `integrations/flow/${enc(id)}/abort`, {}),
   deleteIntegration: (id) => request("POST", `integrations/${enc(id)}/delete`, {}),
 
+  kiosk: () => request("GET", "kiosk"),
   settings: () => request("GET", "settings"),
   saveSettings: (body) => request("POST", "settings", body),
   system: () => request("GET", "system"),

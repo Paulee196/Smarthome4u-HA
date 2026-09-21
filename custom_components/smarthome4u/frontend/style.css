@@ -1627,24 +1627,80 @@ textarea.input {
 }
 
 /* ------------------------------------------------------------------ */
+/* Kiosk režim                                                         */
+/* ------------------------------------------------------------------ */
+
+/* Nestačí schovat lištu Home Assistantu - obsah se musí přes její místo
+   roztáhnout. Proto panel vystoupí z rozvržení a zabere celou plochu. */
+.shell--kiosk {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background: var(--sh-bg);
+  overflow: hidden;
+}
+
+.shell--kiosk .main {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 900px) {
+  .shell--kiosk .nav {
+    height: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Přetahování                                                         */
 /* ------------------------------------------------------------------ */
 
-/* Během tažení nesmí prohlížeč posouvat stránku ani vybírat text. */
-.dnd--aktivni {
+/* Tahá se za úchyt, ne za celou dlaždici. Jen on vypíná gesta prohlížeče,
+   takže se v režimu úprav dá pořád normálně scrollovat prstem. */
+.dnd__uchyt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--sh-touch-target);
+  height: var(--sh-touch-target);
+  color: var(--sh-text-faint);
+  font-size: var(--sh-size-lg);
+  line-height: 1;
+  cursor: grab;
   touch-action: none;
   user-select: none;
 }
 
-.dnd--taheny {
-  position: relative;
-  z-index: 5;
-  opacity: 0.9;
+.dnd__uchyt:active {
   cursor: grabbing;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  color: var(--sh-accent);
 }
 
+/* Úchyt dlaždice sedí v rohu, aby nebral místo obsahu. */
+.card--edit .dnd__uchyt {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.dnd--aktivni {
+  user-select: none;
+}
+
+/* Tažený prvek plave nad stránkou. pointer-events vypíná JavaScript,
+   jinak by pod prstem nikdy nenašel souseda. */
+.dnd--taheny {
+  z-index: 10;
+  opacity: 0.92;
+  box-shadow: var(--sh-drag-shadow);
+}
+
+/* Zástupce drží místo v mřížce a ukazuje, kam prvek spadne. */
 .dnd__zastupce {
-  border: 1px dashed var(--sh-border);
+  border: 2px dashed var(--sh-accent);
   border-radius: var(--sh-radius-md);
+  background: var(--sh-surface);
 }

@@ -3,16 +3,21 @@
  * Postavené na Pointer Events, ne na HTML5 drag and drop. Ten na dotykových
  * zařízeních nefunguje a Smarthome4u musí jít upravit i na tabletu.
  *
- * Princip: po chvíli držení se prvek zvedne, ostatní se před ním rozestoupí
- * a po puštění se uloží nové pořadí.
+ * Tahá se za úchyt, ne za celou dlaždici. Díky tomu jde v režimu úprav
+ * normálně scrollovat prstem a nemusí se hádat, jestli uživatel táhne,
+ * nebo posouvá stránku.
+ *
+ * Postup: přetahovaný prvek se vyjme z toku a plave nad stránkou, na jeho
+ * místě zůstane zástupce stejné velikosti. Zástupce se přesouvá mezi
+ * sousedy podle toho, kde je prst. Po puštění se prvek vrátí na místo
+ * zástupce.
  */
 
-// Jak dlouho se musí držet, než se přetahování spustí. Kratší doba by
-// brala klepnutí, delší by působila zaseknutě.
-const DRZENI_MS = 220;
+/** Prvek, za který se tahá. Musí mít v CSS touch-action: none. */
+export const ATRIBUT_UCHYTU = "data-dnd-handle";
 
-// O kolik se smí prst pohnout, než se držení zruší jako posouvání stránky.
-const TOLERANCE_PX = 10;
+/** Prvek, který se přesouvá. Jeho hodnota je klíč do uloženého pořadí. */
+export const ATRIBUT_KLICE = "data-dnd-key";
 
 /**
  * Zapne přetahování v kontejneru.
@@ -24,140 +29,142 @@ const TOLERANCE_PX = 10;
 export function povolitPretahovani(kontejner, onZmena) {
   let tazeny = null;
   let zastupce = null;
-  let casovac = null;
-  let start = null;
-  let posunY = 0;
-  let posunX = 0;
-
-  function klic(prvek) {
-    return prvek?.dataset?.dndKey || null;
-  }
+  let uchyt = null;
+  let pointerId = null;
+  let zacatek = { x: 0, y: 0 };
 
   function poradi() {
     return [...kontejner.children]
-      .map(klic)
-      .filter((hodnota) => hodnota !== null);
-  }
-
-  function zrusit() {
-    clearTimeout(casovac);
-    casovac = null;
-
-    if (tazeny) {
-      tazeny.classList.remove("dnd--taheny");
-      tazeny.style.transform = "";
-      tazeny = null;
-    }
-    if (zastupce) {
-      zastupce.remove();
-      zastupce = null;
-    }
-    kontejner.classList.remove("dnd--aktivni");
-    start = null;
+      .map((prvek) => prvek.getAttribute(ATRIBUT_KLICE))
+      .filter(Boolean);
   }
 
   function zvednout(prvek, udalost) {
-    tazeny = prvek;
-    kontejner.classList.add("dnd--aktivni");
-    prvek.classList.add("dnd--taheny");
+    const misto = prvek.getBoundingClientRect();
 
-    // Zástupce drží místo, aby se mřížka nepřeskládala pod rukou.
     zastupce = document.createElement("div");
     zastupce.className = "dnd__zastupce";
-    zastupce.style.height = `${prvek.offsetHeight}px`;
+    zastupce.style.width = `${misto.width}px`;
+    zastupce.style.height = `${misto.height}px`;
+    prvek.after(zastupce);
 
-    posunX = udalost.clientX;
-    posunY = udalost.clientY;
+    // Prvek vyjmeme z toku, aby se mřížka pod rukou nepřeskládala.
+    prvek.classList.add("dnd--taheny");
+    prvek.style.position = "fixed";
+    prvek.style.left = `${misto.left}px`;
+    prvek.style.top = `${misto.top}px`;
+    prvek.style.width = `${misto.width}px`;
+    prvek.style.height = `${misto.height}px`;
+    // Bez tohohle by elementFromPoint vracel pořád jen jeho samotného.
+    prvek.style.pointerEvents = "none";
+
+    kontejner.classList.add("dnd--aktivni");
+    tazeny = prvek;
+    zacatek = { x: udalost.clientX, y: udalost.clientY };
 
     if (navigator.vibrate) navigator.vibrate(10);
   }
 
   function presunout(udalost) {
-    if (!tazeny) return;
-
-    const dx = udalost.clientX - posunX;
-    const dy = udalost.clientY - posunY;
+    const dx = udalost.clientX - zacatek.x;
+    const dy = udalost.clientY - zacatek.y;
     tazeny.style.transform = `translate(${dx}px, ${dy}px)`;
 
-    // Který sourozenec je právě pod prstem.
     const pod = document
       .elementFromPoint(udalost.clientX, udalost.clientY)
-      ?.closest("[data-dnd-key]");
+      ?.closest(`[${ATRIBUT_KLICE}]`);
 
     if (!pod || pod === tazeny || pod.parentElement !== kontejner) return;
 
-    const deti = [...kontejner.children];
-    const kamIndex = deti.indexOf(pod);
-    const odkudIndex = deti.indexOf(tazeny);
+    // Podle toho, jestli je prst v horní nebo dolní polovině souseda,
+    // se zástupce vloží před něj nebo za něj.
+    const misto = pod.getBoundingClientRect();
+    const zaPolovinou =
+      udalost.clientY > misto.top + misto.height / 2 ||
+      udalost.clientX > misto.left + misto.width / 2;
 
-    if (kamIndex === odkudIndex) return;
+    if (zaPolovinou) pod.after(zastupce);
+    else pod.before(zastupce);
+  }
 
-    // Vložíme před nebo za podle směru pohybu.
-    if (kamIndex > odkudIndex) {
-      pod.after(tazeny);
-    } else {
-      pod.before(tazeny);
+  function uklidit() {
+    if (tazeny) {
+      tazeny.classList.remove("dnd--taheny");
+      tazeny.removeAttribute("style");
+    }
+    zastupce?.remove();
+    kontejner.classList.remove("dnd--aktivni");
+
+    if (uchyt && pointerId !== null) {
+      try {
+        uchyt.releasePointerCapture(pointerId);
+      } catch {
+        /* Ukazatel už mohl být uvolněný. */
+      }
     }
 
-    // Posun se počítá od nové pozice, jinak prvek odskočí.
-    posunX = udalost.clientX;
-    posunY = udalost.clientY;
-    tazeny.style.transform = "";
+    tazeny = null;
+    zastupce = null;
+    uchyt = null;
+    pointerId = null;
   }
 
   function pustit() {
-    if (!tazeny) {
-      zrusit();
+    if (!tazeny || !zastupce) {
+      uklidit();
       return;
     }
+
+    // Prvek se vrátí do toku přesně na místo zástupce.
+    zastupce.replaceWith(tazeny);
+
     const nove = poradi();
-    zrusit();
+    uklidit();
     onZmena(nove);
   }
 
   function naStisk(udalost) {
-    // Jen hlavní tlačítko myši nebo dotyk.
     if (udalost.button !== undefined && udalost.button !== 0) return;
 
-    const prvek = udalost.target.closest("[data-dnd-key]");
+    const u = udalost.target.closest(`[${ATRIBUT_UCHYTU}]`);
+    if (!u) return;
+
+    const prvek = u.closest(`[${ATRIBUT_KLICE}]`);
     if (!prvek || prvek.parentElement !== kontejner) return;
 
-    start = { x: udalost.clientX, y: udalost.clientY, prvek };
-    casovac = setTimeout(() => {
-      if (start) zvednout(start.prvek, udalost);
-    }, DRZENI_MS);
+    udalost.preventDefault();
+
+    uchyt = u;
+    pointerId = udalost.pointerId;
+    try {
+      u.setPointerCapture(pointerId);
+    } catch {
+      /* Starší prohlížeč. Poslouchání na okně to zachytí taky. */
+    }
+
+    zvednout(prvek, udalost);
   }
 
   function naPohyb(udalost) {
-    if (tazeny) {
-      udalost.preventDefault();
-      presunout(udalost);
-      return;
-    }
-
-    if (!start) return;
-
-    // Uživatel posouvá stránku, ne přetahuje.
-    const vzdalenost =
-      Math.abs(udalost.clientX - start.x) + Math.abs(udalost.clientY - start.y);
-    if (vzdalenost > TOLERANCE_PX) zrusit();
+    if (!tazeny) return;
+    udalost.preventDefault();
+    presunout(udalost);
   }
 
   function naPusteni() {
     if (tazeny) pustit();
-    else zrusit();
   }
 
   kontejner.addEventListener("pointerdown", naStisk);
   window.addEventListener("pointermove", naPohyb, { passive: false });
   window.addEventListener("pointerup", naPusteni);
-  window.addEventListener("pointercancel", zrusit);
+  window.addEventListener("pointercancel", uklidit);
 
   return () => {
-    zrusit();
+    uklidit();
     kontejner.removeEventListener("pointerdown", naStisk);
     window.removeEventListener("pointermove", naPohyb);
     window.removeEventListener("pointerup", naPusteni);
-    window.removeEventListener("pointercancel", zrusit);
+    window.removeEventListener("pointercancel", uklidit);
   };
 }
