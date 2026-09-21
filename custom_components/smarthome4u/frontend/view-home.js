@@ -165,7 +165,7 @@ function upravitelnaDlazdice(entity, ctx) {
     }),
   ]);
 
-  obal.setAttribute(ATRIBUT_KLICE, entity.id);
+  obal.setAttribute(ATRIBUT_KLICE, entity.ref || entity.id);
   return obal;
 }
 
@@ -177,7 +177,7 @@ async function zmenitVelikost(entity, ctx) {
     VELIKOSTI[(VELIKOSTI.indexOf(entity.size || "") + 1) % VELIKOSTI.length];
 
   try {
-    await api.saveLayout({ entityId: entity.id, size: dalsi });
+    await api.saveLayout({ entityRef: entity.ref || entity.id, size: dalsi });
     toast(t.editor.sizes[dalsi || "normal"]);
     await ctx.refresh();
   } catch (error) {

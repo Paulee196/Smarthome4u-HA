@@ -15,7 +15,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import floor_registry as fr
 
-from . import capability
+from . import capability, refs
 
 # Pořadí, v jakém se zobrazují schopnosti v místnosti.
 KIND_ORDER = {
@@ -77,13 +77,15 @@ class Home:
         """Velikost dlaždice zvolená správcem."""
         if self.settings is None:
             return None
-        return self.settings.layout["sizes"].get(entity_id)
+        entity_ref = refs.ref_for_entity(self.hass, entity_id)
+        return self.settings.layout["sizes"].get(entity_ref)
 
     def _override(self, entity_id: str) -> dict:
         """Ruční oprava zařazení od správce."""
         if self.settings is None:
             return {}
-        return self.settings.overrides.get(entity_id, {})
+        entity_ref = refs.ref_for_entity(self.hass, entity_id)
+        return self.settings.overrides.get(entity_ref, {})
 
     # ------------------------------------------------------------------
     # Jedna entita
@@ -134,7 +136,7 @@ class Home:
         return {
             "id": state.entity_id,
             # Persistentní identita. entity_id je jen měnitelný atribut.
-            "ref": entry.id if entry else None,
+            "ref": entry.id if entry else refs.ref_for_entity(self.hass, state.entity_id),
             "name": name,
             "domain": domain,
             "deviceClass": device_class,
@@ -240,8 +242,8 @@ class Home:
         if not poradi:
             return vychozi
 
-        index = {entity_id: i for i, entity_id in enumerate(poradi)}
-        return sorted(vychozi, key=lambda v: index.get(v["id"], len(index)))
+        index = {entity_ref: i for i, entity_ref in enumerate(poradi)}
+        return sorted(vychozi, key=lambda v: index.get(v["ref"], len(index)))
 
     def _serad_mistnosti(self, rooms: list[dict]) -> list[dict]:
         poradi = self._layout()["rooms"]
@@ -452,7 +454,10 @@ class Home:
             return []
 
         vybrane = []
-        for entity_id in self.settings.favorites:
+        for entity_ref in self.settings.favorites:
+            entity_id = refs.entity_id_for_ref(self.hass, entity_ref)
+            if entity_id is None:
+                continue
             view = self.entity(entity_id)
             if view is not None:
                 vybrane.append(view)

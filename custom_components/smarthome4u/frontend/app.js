@@ -53,12 +53,14 @@ const ctx = {
   navigate,
   allEntities: () => (state.model?.rooms || []).flatMap((room) => room.entities),
 
-  /* Bloky si drží jen entity_id, aby přežily přejmenování i výměnu
-     zařízení. Zbytek se dohledá v modelu až při vykreslení. */
-  entityById: (id) =>
+  entityRef: (entity) => entity?.ref || entity?.id,
+
+  /* Bloky a další uložené rozvržení drží stabilní ref. Aktuální entity_id
+     se dohledá v modelu až při vykreslení a ovládání. */
+  entityByRef: (ref) =>
     (state.model?.rooms || [])
       .flatMap((room) => room.entities)
-      .find((entity) => entity.id === id) || null,
+      .find((entity) => entity.ref === ref || entity.id === ref) || null,
 
   get editing() {
     return state.editing;
@@ -287,7 +289,7 @@ async function loadModel() {
     state.rezim = jeSpravce ? zapamatovanyRezim() : "user";
 
     nastavitOblibene(
-      (state.model.favorites || []).map((e) => e.id),
+      (state.model.favorites || []).map((e) => e.ref || e.id),
       jeSpravce,
       loadModel,
     );

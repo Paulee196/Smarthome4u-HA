@@ -53,7 +53,12 @@ export async function renderFloorplan(root, ctx) {
 /* ------------------------------------------------------------------ */
 
 function platno(ctx, plan) {
-  const vse = new Map(ctx.allEntities().map((e) => [e.id, e]));
+  const vse = new Map(
+    ctx.allEntities().flatMap((e) => [
+      [e.id, e],
+      [e.ref || e.id, e],
+    ]),
+  );
 
   const obrazek = h("img", {
     class: "plan__obrazek",
@@ -65,7 +70,7 @@ function platno(ctx, plan) {
   const platno = h("div", { class: "plan" }, [obrazek, vrstva]);
 
   for (const bod of plan.points) {
-    const entity = vse.get(bod.entityId);
+    const entity = vse.get(bod.entityRef || bod.entityId);
     if (!entity) continue;
     vrstva.append(znacka(ctx, plan, bod, entity, platno));
   }
@@ -193,11 +198,11 @@ function precist(soubor) {
 /* ------------------------------------------------------------------ */
 
 function pridatBod(ctx, plan) {
-  const jiz = new Set(plan.points.map((b) => b.entityId));
+  const jiz = new Set(plan.points.map((b) => b.entityRef || b.entityId));
   const nabidka = ctx
     .allEntities()
-    .filter((e) => e.capability?.controllable && !jiz.has(e.id))
-    .map((e) => ({ value: e.id, label: e.name }));
+    .filter((e) => e.capability?.controllable && !jiz.has(e.ref || e.id))
+    .map((e) => ({ value: e.ref || e.id, label: e.name }));
 
   if (!nabidka.length) {
     toast(t.floorplan.nothingToAdd, true);
@@ -216,7 +221,7 @@ function pridatBod(ctx, plan) {
       button(t.action.cancel, closeDialog, "button--ghost"),
       button(t.action.add, async () => {
         // Nové zařízení přistane uprostřed, správce ho pak přetáhne.
-        plan.points.push({ entityId: vyber.value, x: 50, y: 50 });
+        plan.points.push({ entityRef: vyber.value, x: 50, y: 50 });
 
         try {
           await api.saveFloorplan({ points: plan.points });

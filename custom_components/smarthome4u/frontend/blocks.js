@@ -70,7 +70,7 @@ const JEDNOU = new Set(["clock", "status", "rooms", "actions"]);
  * - panel     hodiny a stav velkým písmem, čitelné z dálky
  */
 export function vychozi(preset, model) {
-  const oblibene = (model.favorites || []).map((e) => e.id);
+  const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
 
   if (preset === "panel") {
     return [

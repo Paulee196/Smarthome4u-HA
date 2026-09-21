@@ -22,9 +22,9 @@ const MAX_VYSLEDKU = 60;
  * @param {object} ctx kontext aplikace
  * @param {object} volby
  * @param {string} [volby.nadpis]
- * @param {string} [volby.vybrane] entity_id, které je vybrané teď
+ * @param {string} [volby.vybrane] stabilní ref, který je vybraný teď
  * @param {(entity: object) => boolean} [volby.filtr] co se smí nabídnout
- * @param {(entityId: string) => void} volby.onVyber
+ * @param {(entityRef: string) => void} volby.onVyber
  */
 export function vybratZarizeni(ctx, volby) {
   const { nadpis, vybrane, filtr, onVyber } = volby;
@@ -75,6 +75,7 @@ export function vybratZarizeni(ctx, volby) {
   }
 
   function polozka(entity) {
+    const entityRef = entity.ref || entity.id;
     const mistnost = mistnosti.get(entity.id);
     const typ = t.editor.kinds[entity.capability?.kind] || "";
     const popis = [typ, mistnost].filter(Boolean).join(" · ");
@@ -82,11 +83,13 @@ export function vybratZarizeni(ctx, volby) {
     return h(
       "button",
       {
-        class: `tile tile--volba${entity.id === vybrane ? " tile--active" : ""}`,
+        class: `tile tile--volba${
+          entityRef === vybrane || entity.id === vybrane ? " tile--active" : ""
+        }`,
         type: "button",
         onclick: () => {
           closeDialog();
-          onVyber(entity.id);
+          onVyber(entityRef);
         },
       },
       [

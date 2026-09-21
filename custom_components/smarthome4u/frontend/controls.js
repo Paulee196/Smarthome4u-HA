@@ -264,7 +264,8 @@ export function openControls(entity) {
 function paticka(entity) {
   if (!stav.admin) return null;
 
-  const jeOblibene = stav.favorites.includes(entity.id);
+  const entityRef = entity.ref || entity.id;
+  const jeOblibene = stav.favorites.includes(entityRef);
 
   return h("div", { class: "row" }, [
     button(

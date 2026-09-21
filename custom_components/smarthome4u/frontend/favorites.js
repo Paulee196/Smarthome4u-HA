@@ -16,13 +16,13 @@ import { h } from "./ui.js";
 
 /**
  * @param {object} ctx kontext aplikace
- * @param {string[]} ids entity_id v pořadí, jak mají být
+ * @param {string[]} ids stabilní entity refs v pořadí, jak mají být
  * @param {(ids: string[]) => void} onZmena zavolá se s novým seznamem
  */
 export function mrizkaZarizeni(ctx, ids, onZmena) {
   const seznam = ids || [];
   const zarizeni = seznam
-    .map((id) => ctx.entityById(id))
+    .map((id) => ctx.entityByRef(id))
     .filter(Boolean);
 
   if (!ctx.editing) {
@@ -68,11 +68,12 @@ function misto(ctx, entity, seznam, onZmena) {
       type: "button",
       "aria-label": t.favorites.remove,
       text: "✕",
-      onclick: () => onZmena(seznam.filter((id) => id !== entity.id)),
+      onclick: () =>
+        onZmena(seznam.filter((id) => id !== (entity.ref || entity.id))),
     }),
   ]);
 
-  obal.setAttribute(ATRIBUT_KLICE, entity.id);
+  obal.setAttribute(ATRIBUT_KLICE, entity.ref || entity.id);
   return obal;
 }
 
@@ -98,9 +99,9 @@ function prazdneMisto(ctx, seznam, onZmena) {
 function vymenit(ctx, entity, seznam, onZmena) {
   vybratZarizeni(ctx, {
     nadpis: t.favorites.replace,
-    vybrane: entity.id,
+    vybrane: entity.ref || entity.id,
     onVyber: (novy) =>
-      onZmena(seznam.map((id) => (id === entity.id ? novy : id))),
+      onZmena(seznam.map((id) => (id === (entity.ref || entity.id) ? novy : id))),
   });
 }
 
@@ -110,7 +111,7 @@ function pridat(ctx, seznam, onZmena) {
   vybratZarizeni(ctx, {
     nadpis: t.favorites.add,
     filtr: (entity) =>
-      !uz.has(entity.id) && entity.capability?.kind !== "unsupported",
+      !uz.has(entity.ref || entity.id) && entity.capability?.kind !== "unsupported",
     onVyber: (novy) => onZmena([...seznam, novy]),
   });
 }

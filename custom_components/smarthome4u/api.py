@@ -25,7 +25,7 @@ from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
-from . import builder, capability, config_files, flows, storage, system, templates
+from . import builder, capability, config_files, flows, refs, storage, system, templates
 from .const import API_BASE, DOMAIN, LANGUAGE, USER_DIR, USER_URL, VERSION
 from .home import Home
 
@@ -139,6 +139,23 @@ class Sh4uView(HomeAssistantView):
             raise ApiError(
                 "Tohle může měnit jen správce domácnosti.", 403, "forbidden"
             )
+
+    def entity_ref(self, value: Any) -> str:
+        """Accept a stable ref or old entity_id and return a valid ref."""
+        if not isinstance(value, str):
+            raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
+        entity_ref = refs.normalize_ref(self.hass, value)
+        if entity_ref is None:
+            raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
+        return entity_ref
+
+    def entity_id_from_ref(self, value: Any) -> str:
+        if not isinstance(value, str):
+            raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
+        entity_id = refs.entity_id_for_ref(self.hass, value)
+        if entity_id is None:
+            raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
+        return entity_id
 
     async def body(self, request: web.Request) -> dict[str, Any]:
         try:
@@ -1074,14 +1091,13 @@ class LayoutView(Sh4uView):
                 raise ApiError("Neplatné pořadí místností.")
             await settings.set_room_order(rooms)
 
-        if "size" in payload and "entityId" in payload:
-            entity_id = payload["entityId"]
+        entity_key = payload.get("entityRef", payload.get("entityId"))
+        if "size" in payload and entity_key is not None:
+            entity_ref = self.entity_ref(entity_key)
             size = payload["size"]
-            if not isinstance(entity_id, str):
-                raise ApiError("Neplatný požadavek.")
             if size not in (None, "", "wide", "tall", "big"):
                 raise ApiError("Takovou velikost neznáme.")
-            await settings.set_size(entity_id, size or None)
+            await settings.set_size(entity_ref, size or None)
 
         if "areaId" in payload and "entities" in payload:
             area_id = payload["areaId"]
@@ -1090,7 +1106,9 @@ class LayoutView(Sh4uView):
                 raise ApiError("Neplatné pořadí zařízení.")
             if not all(isinstance(e, str) for e in entities):
                 raise ApiError("Neplatné pořadí zařízení.")
-            await settings.set_entity_order(area_id, entities)
+            await settings.set_entity_order(
+                area_id, [ref for item in entities if (ref := self.entity_ref(item))]
+            )
 
         return web.json_response({"ok": True})
 
@@ -1108,10 +1126,24 @@ class FloorplanView(Sh4uView):
             return web.json_response({"image": None, "points": []})
 
         plan = settings.floorplan
+        body = []
+        for point in plan["points"]:
+            entity_ref = point.get("entityRef") or point.get("entityId")
+            entity_id = refs.entity_id_for_ref(self.hass, entity_ref)
+            if entity_id is None:
+                continue
+            body.append(
+                {
+                    "entityRef": refs.normalize_ref(self.hass, entity_ref),
+                    "entityId": entity_id,
+                    "x": point.get("x"),
+                    "y": point.get("y"),
+                }
+            )
         return web.json_response(
             {
                 "image": f"{USER_URL}/{plan['image']}" if plan["image"] else None,
-                "points": plan["points"],
+                "points": body,
             }
         )
 
@@ -1133,17 +1165,16 @@ class FloorplanView(Sh4uView):
             for bod in body:
                 if not isinstance(bod, dict):
                     raise ApiError("Neplatné rozmístění.")
-                entity_id = bod.get("entityId")
+                entity_ref = bod.get("entityRef", bod.get("entityId"))
                 x = bod.get("x")
                 y = bod.get("y")
-                if not isinstance(entity_id, str):
-                    raise ApiError("Neplatné rozmístění.")
+                entity_ref = self.entity_ref(entity_ref)
                 if not isinstance(x, (int, float)) or not 0 <= x <= 100:
                     raise ApiError("Neplatné rozmístění.")
                 if not isinstance(y, (int, float)) or not 0 <= y <= 100:
                     raise ApiError("Neplatné rozmístění.")
                 ocistene.append(
-                    {"entityId": entity_id, "x": round(x, 2), "y": round(y, 2)}
+                    {"entityRef": entity_ref, "x": round(x, 2), "y": round(y, 2)}
                 )
 
             await settings.set_floorplan_points(ocistene)
@@ -1263,9 +1294,10 @@ class DashboardView(Sh4uView):
             if isinstance(entity, list):
                 # Co už v Home Assistantu není, se tiše vynechá.
                 novy["entities"] = [
-                    eid
-                    for eid in entity[:MAX_V_BLOKU]
-                    if isinstance(eid, str) and self.hass.states.get(eid)
+                    ref
+                    for item in entity[:MAX_V_BLOKU]
+                    if isinstance(item, str)
+                    and (ref := refs.normalize_ref(self.hass, item)) is not None
                 ]
 
             ocistene.append(novy)
@@ -1298,12 +1330,13 @@ class FavoritesView(Sh4uView):
             raise ApiError("Neplatný seznam.")
 
         ocistene = []
-        for entity_id in seznam:
-            if not isinstance(entity_id, str):
+        for item in seznam:
+            if not isinstance(item, str):
                 raise ApiError("Neplatný seznam.")
             # Co už v Home Assistantu není, se tiše vynechá.
-            if self.hass.states.get(entity_id) is not None:
-                ocistene.append(entity_id)
+            entity_ref = refs.normalize_ref(self.hass, item)
+            if entity_ref is not None:
+                ocistene.append(entity_ref)
 
         await settings.set_favorites(ocistene)
         return web.json_response({"ok": True})
@@ -1339,7 +1372,7 @@ class ClassifyView(Sh4uView):
         if hidden is not None and not isinstance(hidden, bool):
             raise ApiError("Neplatný požadavek.")
 
-        await settings.set_override(entity_id, kind, hidden)
+        await settings.set_override(self.entity_ref(entity_id), kind, hidden)
         return web.json_response({"ok": True})
 
 
@@ -1357,7 +1390,7 @@ class FavoriteView(Sh4uView):
         if self.hass.states.get(entity_id) is None:
             raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
 
-        pridano = await settings.toggle_favorite(entity_id)
+        pridano = await settings.toggle_favorite(self.entity_ref(entity_id))
         return web.json_response({"ok": True, "favorite": pridano})
 
 

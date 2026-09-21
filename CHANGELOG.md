@@ -2,6 +2,20 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.10.2]
+
+### Opraveno
+
+- Úpravy dashboardu, oblíbené, velikosti dlaždic a body v půdorysu se ukládají
+  přes stabilní identitu z registru entit, ne přes měnitelné `entity_id`.
+  Když se entita přejmenuje v Home Assistantu, Smarthome4u si ji znovu najde
+  a rozvržení se nerozpadne.
+- Starší uložená data z verzí 0.10.1 a níž se při startu převedou na stabilní
+  reference. Entity, které zrovna v Home Assistantu nejsou, se nemažou
+  destruktivně.
+- Frontend dál ovládá zařízení přes aktuální `entity_id`, ale rozvržení,
+  oblíbené a výběry ukládá přes stabilní `ref`.
+
 ## [0.10.1]
 
 ### Opraveno

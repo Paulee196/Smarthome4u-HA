@@ -18,6 +18,7 @@ from copy import deepcopy
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
+from . import refs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class Settings:
 
     def __init__(self, hass: HomeAssistant) -> None:
         self._store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self.hass = hass
         # Hluboká kopie: layout i floorplan jsou vnořené slovníky. Mělká
         # kopie by je sdílela s výchozími hodnotami a zápis by je přepsal.
         self.data: dict[str, Any] = deepcopy(VYCHOZI)
@@ -80,10 +82,78 @@ class Settings:
         if isinstance(ulozene, dict):
             # Doplní klíče, které v uloženém souboru ještě nebyly.
             self.data = {**deepcopy(VYCHOZI), **ulozene}
+        self._migrate_entity_ids()
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
     async def save(self) -> None:
         await self._store.async_save(self.data)
+
+    def _migrate_entity_ids(self) -> None:
+        """Convert old presentation data from entity_id to stable refs.
+
+        The migration is intentionally best-effort. Missing entities are kept in
+        their old form and later ignored by API/model cleanup instead of losing
+        the user's layout during a temporary outage.
+        """
+
+        def norm(value: Any) -> Any:
+            if not isinstance(value, str):
+                return value
+            return refs.normalize_ref(self.hass, value) or value
+
+        layout = self.data.setdefault("layout", {})
+        sizes = layout.setdefault("sizes", {})
+        if isinstance(sizes, dict):
+            layout["sizes"] = {norm(key): value for key, value in sizes.items()}
+
+        entities = layout.setdefault("entities", {})
+        if isinstance(entities, dict):
+            layout["entities"] = {
+                area_id: [norm(item) for item in order if isinstance(item, str)]
+                for area_id, order in entities.items()
+                if isinstance(order, list)
+            }
+
+        overrides = self.data.setdefault("overrides", {})
+        if isinstance(overrides, dict):
+            self.data["overrides"] = {
+                norm(key): value for key, value in overrides.items()
+            }
+
+        favorites = self.data.setdefault("favorites", [])
+        if isinstance(favorites, list):
+            self.data["favorites"] = [
+                norm(item) for item in favorites if isinstance(item, str)
+            ]
+
+        floorplan = self.data.setdefault("floorplan", {})
+        points = floorplan.setdefault("points", [])
+        if isinstance(points, list):
+            fixed = []
+            for point in points:
+                if not isinstance(point, dict):
+                    continue
+                ref = point.get("entityRef") or point.get("entityId")
+                fixed.append(
+                    {
+                        "entityRef": norm(ref),
+                        "x": point.get("x"),
+                        "y": point.get("y"),
+                    }
+                )
+            floorplan["points"] = fixed
+
+        dashboard = self.data.setdefault("dashboard", {})
+        if isinstance(dashboard, dict):
+            for blocks in dashboard.values():
+                if not isinstance(blocks, list):
+                    continue
+                for block in blocks:
+                    entity_refs = block.get("entities") if isinstance(block, dict) else None
+                    if isinstance(entity_refs, list):
+                        block["entities"] = [
+                            norm(item) for item in entity_refs if isinstance(item, str)
+                        ]
 
     # ------------------------------------------------------------------
     # Správce
@@ -193,12 +263,12 @@ class Settings:
         self.layout["entities"][area_id] = poradi
         await self.save()
 
-    async def set_size(self, entity_id: str, size: str | None) -> None:
+    async def set_size(self, entity_ref: str, size: str | None) -> None:
         """Velikost dlaždice. None znamená výchozí."""
         if size:
-            self.layout["sizes"][entity_id] = size
+            self.layout["sizes"][entity_ref] = size
         else:
-            self.layout["sizes"].pop(entity_id, None)
+            self.layout["sizes"].pop(entity_ref, None)
         await self.save()
 
     async def reset_layout(self) -> None:
@@ -214,10 +284,10 @@ class Settings:
         return self.data.setdefault("overrides", {})
 
     async def set_override(
-        self, entity_id: str, kind: str | None, hidden: bool | None
+        self, entity_ref: str, kind: str | None, hidden: bool | None
     ) -> None:
         """Uloží, že se entita má brát jinak, než jak ji hlásí Home Assistant."""
-        zaznam = dict(self.overrides.get(entity_id, {}))
+        zaznam = dict(self.overrides.get(entity_ref, {}))
 
         if kind is None:
             zaznam.pop("kind", None)
@@ -230,9 +300,9 @@ class Settings:
             zaznam["hidden"] = hidden
 
         if zaznam:
-            self.overrides[entity_id] = zaznam
+            self.overrides[entity_ref] = zaznam
         else:
-            self.overrides.pop(entity_id, None)
+            self.overrides.pop(entity_ref, None)
 
         await self.save()
 
@@ -268,13 +338,13 @@ class Settings:
         self.data["favorites"] = seznam
         await self.save()
 
-    async def toggle_favorite(self, entity_id: str) -> bool:
+    async def toggle_favorite(self, entity_ref: str) -> bool:
         oblibene = self.favorites
-        if entity_id in oblibene:
-            oblibene.remove(entity_id)
+        if entity_ref in oblibene:
+            oblibene.remove(entity_ref)
             pridano = False
         else:
-            oblibene.append(entity_id)
+            oblibene.append(entity_ref)
             pridano = True
         await self.save()
         return pridano

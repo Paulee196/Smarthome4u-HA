@@ -15,6 +15,7 @@ from unittest.mock import patch
 import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -392,6 +393,44 @@ async def test_vymena_oblibenych(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [e["id"] for e in model["favorites"]] == ["light.b"]
 
+
+async def test_oblibene_preziji_prejmenovani_entity(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Oblíbené se vážou na registry ID, ne na měnitelné entity_id."""
+    assert await async_setup_component(hass, "http", {})
+
+    registry = er.async_get(hass)
+    entry_record = registry.async_get_or_create(
+        "light", "test", "stable-a", suggested_object_id="lampa"
+    )
+    hass.states.async_set(
+        entry_record.entity_id, "off", {"supported_color_modes": ["onoff"]}
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    assert (
+        await client.post(
+            "/api/smarthome4u/favorites",
+            json={"entities": [entry_record.entity_id]},
+        )
+    ).status == 200
+
+    registry.async_update_entity(
+        entry_record.entity_id, new_entity_id="light.nova_lampa"
+    )
+    hass.states.async_remove(entry_record.entity_id)
+    hass.states.async_set("light.nova_lampa", "off", {"supported_color_modes": ["onoff"]})
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert [e["id"] for e in model["favorites"]] == ["light.nova_lampa"]
+    assert [e["ref"] for e in model["favorites"]] == [entry_record.id]
+
     # Co v Home Assistantu není, se tiše vynechá.
     odpoved = await client.post(
         "/api/smarthome4u/favorites",
@@ -518,7 +557,7 @@ async def test_plocha_po_blocich(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [b["type"] for b in model["blocks"]] == ["status", "entities"]
     # Co v Home Assistantu není, se tiše vynechá.
-    assert model["blocks"][1]["entities"] == ["light.a"]
+    assert model["blocks"][1]["entities"] == ["entity:light.a"]
     assert model["blocks"][1]["title"] == "Moje"
 
     # Nová instance čte tentýž soubor - tohle je ten restart.
@@ -534,6 +573,101 @@ async def test_plocha_po_blocich(
         json={"preset": "neexistuje", "blocks": []},
     )
     assert spatne.status == 400
+
+
+async def test_bloky_preziji_prejmenovani_entity(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Dashboard bloky drží stabilní ref a dohledají nový entity_id."""
+    assert await async_setup_component(hass, "http", {})
+
+    registry = er.async_get(hass)
+    entry_record = registry.async_get_or_create(
+        "light", "test", "stable-block", suggested_object_id="pracovna"
+    )
+    hass.states.async_set(
+        entry_record.entity_id, "off", {"supported_color_modes": ["onoff"]}
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+
+    odpoved = await client.post(
+        "/api/smarthome4u/dashboard",
+        json={
+            "preset": "prehled",
+            "blocks": [
+                {
+                    "id": "b1",
+                    "type": "entities",
+                    "title": "Pracovna",
+                    "entities": [entry_record.entity_id],
+                }
+            ],
+        },
+    )
+    assert odpoved.status == 200, await odpoved.text()
+
+    registry.async_update_entity(
+        entry_record.entity_id, new_entity_id="light.pracovna_nova"
+    )
+    hass.states.async_remove(entry_record.entity_id)
+    hass.states.async_set(
+        "light.pracovna_nova", "off", {"supported_color_modes": ["onoff"]}
+    )
+
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["blocks"][0]["entities"] == [entry_record.id]
+    assert any(
+        entity["id"] == "light.pracovna_nova" and entity["ref"] == entry_record.id
+        for room in model["rooms"]
+        for entity in room["entities"]
+    )
+
+
+async def test_pudorys_prezije_prejmenovani_entity(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Body půdorysu se ukládají přes ref a vrací aktuální entity_id."""
+    assert await async_setup_component(hass, "http", {})
+
+    registry = er.async_get(hass)
+    entry_record = registry.async_get_or_create(
+        "light", "test", "stable-plan", suggested_object_id="bod"
+    )
+    hass.states.async_set(
+        entry_record.entity_id, "off", {"supported_color_modes": ["onoff"]}
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client()
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"points": [{"entityId": entry_record.entity_id, "x": 10, "y": 20}]},
+    )
+    assert odpoved.status == 200, await odpoved.text()
+
+    registry.async_update_entity(entry_record.entity_id, new_entity_id="light.bod_novy")
+    hass.states.async_remove(entry_record.entity_id)
+    hass.states.async_set("light.bod_novy", "off", {"supported_color_modes": ["onoff"]})
+
+    plan = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert plan["points"] == [
+        {
+            "entityRef": entry_record.id,
+            "entityId": "light.bod_novy",
+            "x": 10,
+            "y": 20,
+        }
+    ]
 
 
 async def test_svetlo_je_jen_svetlo(

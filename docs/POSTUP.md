@@ -4,7 +4,7 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.10.1
+**Aktuální verze:** 0.10.2
 **Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
 
 ---
@@ -18,6 +18,7 @@ dalo navázat z jakéhokoliv počítače.
 | Závazné zadání | `docs/ZADANI.md` |
 | Pravidla pro vývoj | `CLAUDE.md` |
 | Napojení na HA | `docs/HA_COMPATIBILITY.md` |
+| Aktuální kritická oprava | `docs/CLAUDE_DASHBOARD_FIX.md` |
 
 ---
 
@@ -218,5 +219,8 @@ Pavel má nadstavbu nainstalovanou přes HACS a hlásí zpět. Potvrzené věci:
 
 ## Další krok
 
-Doladit vzhled podle zpětné vazby a pak v1.0: audit webu smarthome4u.cz
-pro finální barvy, logo a ikona.
+Nejdřív opravit kritickou produktovou smlouvu v
+`docs/CLAUDE_DASHBOARD_FIX.md`: stabilní reference místo `entity_id`, rozdělení
+rolí uživatel/technik/admin a jasnou navaznost Smarthome4u dashboardu na Home
+Assistant. Teprve potom doladit vzhled podle zpětné vazby a pak v1.0: audit
+webu smarthome4u.cz pro finální barvy, logo a ikona.
