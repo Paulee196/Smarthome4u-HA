@@ -50,6 +50,11 @@ class Smarthome4uPanel extends HTMLElement {
       this._unsubscribe = null;
     }
     clearTimeout(this._timer);
+
+    if (this._naZmenu) {
+      window.removeEventListener("resize", this._naZmenu);
+      this._naZmenu = null;
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -97,6 +102,15 @@ class Smarthome4uPanel extends HTMLElement {
 
     this._uplatnitKiosk();
     window.addEventListener("sh4u-kiosk-changed", () => this._uplatnitKiosk());
+
+    // Zásuvka Home Assistantu se dosouvá se zpožděním, proto se měří
+    // ještě několikrát po sobě.
+    for (const za of [100, 400, 1200]) {
+      setTimeout(() => this._srovnat(), za);
+    }
+
+    this._naZmenu = () => this._srovnat();
+    window.addEventListener("resize", this._naZmenu);
   }
 
   /* ---------------------------------------------------------------- */
@@ -105,10 +119,52 @@ class Smarthome4uPanel extends HTMLElement {
   async _uplatnitKiosk() {
     try {
       const nastaveni = await api.kiosk();
-      this._shell?.classList.toggle("shell--kiosk", nastaveni.kiosk !== false);
+      const zapnuto = nastaveni.kiosk !== false;
+      this._shell?.classList.toggle("shell--kiosk", zapnuto);
+
+      if (zapnuto) this._srovnat();
+      else this._zrusitSrovnani();
     } catch {
       /* Nepodařilo se zeptat. Necháme panel v běžném rozvržení. */
     }
+  }
+
+  /**
+   * Srovná panel na levý okraj okna.
+   *
+   * Home Assistant si šířku zásuvky počítá po svém a mezi verzemi se to
+   * liší. Místo hádání, kterou proměnnou vynulovat, se prostě změří, kde
+   * panel doopravdy začíná, a ten rozdíl se srovná. Funguje to bez ohledu
+   * na to, co Home Assistant se svým rozvržením dělá.
+   */
+  _srovnat() {
+    if (!this._shell) return;
+
+    // Nejdřív zpět na výchozí, jinak bychom měřili už posunutý stav.
+    this._zrusitSrovnani();
+
+    const misto = this.getBoundingClientRect();
+    if (misto.left > 2) {
+      // Srovnává se samotný prvek panelu. Kdyby se posouval jeho vnitřek,
+      // mohl by ho hostitel oříznout.
+      this.style.display = "block";
+      this.style.marginInlineStart = `${-misto.left}px`;
+      this.style.width = `${window.innerWidth}px`;
+    }
+
+    // Kdyby to někdy nevyšlo, tohle je jediné místo, kde se to pozná.
+    console.info(
+      "[Smarthome4u] kiosk: panel začínal na",
+      Math.round(misto.left),
+      "px, šířka okna",
+      window.innerWidth,
+    );
+  }
+
+  _zrusitSrovnani() {
+    this.style.marginInlineStart = "";
+    this.style.width = "";
+    this.style.display = "";
   }
 
   _subscribe() {

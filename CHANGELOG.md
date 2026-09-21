@@ -2,6 +2,20 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.8.2]
+
+### Opraveno
+
+- Kiosk režim lištu schoval, ale vlevo zůstával prázdný pruh. Třikrát jsem
+  se pokusil uhodnout, kterou proměnnou Home Assistant pro šířku zásuvky
+  používá, a pokaždé špatně. Teď se místo hádání změří, kde panel doopravdy
+  začíná, a ten rozdíl se srovná. Funguje to bez ohledu na to, co Home
+  Assistant se svým rozvržením dělá a jak se to mezi verzemi mění.
+- Měří se znovu po změně velikosti okna a třikrát po startu, protože
+  zásuvka se dosouvá se zpožděním.
+- Do konzole prohlížeče se zapíše naměřený odsazení. Kdyby to zase
+  nevyšlo, je to jediné místo, kde se to pozná.
+
 ## [0.8.1]
 
 ### Opraveno
