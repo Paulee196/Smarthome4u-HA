@@ -22,7 +22,7 @@ from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
-from . import capability, config_files, flows, storage, system, templates
+from . import builder, capability, config_files, flows, storage, system, templates
 from .const import API_BASE, DOMAIN, LANGUAGE, VERSION
 from .home import Home
 
@@ -509,22 +509,44 @@ def _level(value: Any) -> int:
 # ----------------------------------------------------------------------
 
 
-async def _integration_names(hass: HomeAssistant) -> dict[str, str]:
-    """Názvy integrací. Načte se jednou a zůstane v paměti."""
+async def _integration_catalog(hass: HomeAssistant) -> list[dict]:
+    """Co jde přidat průvodcem. Manifestů jsou stovky, načítá se to jednou.
+
+    Entity a systémové integrace se nenabízejí - laika by jen mátly.
+    Pomocníci zůstávají, jen se poznají podle typu.
+    """
     store = hass.data.setdefault(DOMAIN, {})
-    if "names" in store:
-        return store["names"]
+    if "catalog" in store:
+        return store["catalog"]
 
     domains = await async_get_config_flows(hass)
     loaded = await async_get_integrations(hass, domains)
 
-    names = {
-        domain: getattr(item, "name", domain)
-        for domain, item in loaded.items()
-        if not isinstance(item, Exception)
-    }
+    katalog: list[dict] = []
+    names: dict[str, str] = {}
+
+    for domain, item in loaded.items():
+        if isinstance(item, Exception):
+            continue
+
+        name = getattr(item, "name", domain) or domain
+        typ = getattr(item, "integration_type", None) or "integration"
+        names[domain] = name
+
+        if typ in ("entity", "system"):
+            continue
+        katalog.append({"domain": domain, "name": name, "type": typ})
+
+    katalog.sort(key=lambda polozka: polozka["name"].lower())
+    store["catalog"] = katalog
     store["names"] = names
-    return names
+    return katalog
+
+
+async def _integration_names(hass: HomeAssistant) -> dict[str, str]:
+    """Názvy integrací podle domény."""
+    await _integration_catalog(hass)
+    return hass.data.get(DOMAIN, {}).get("names", {})
 
 
 async def _render(hass: HomeAssistant, result: dict) -> web.Response:
@@ -643,12 +665,13 @@ class AvailableView(Sh4uView):
     @handler
     @admin
     async def get(self, request: web.Request) -> web.Response:
-        names = await _integration_names(self.hass)
-        available = [
-            {"domain": domain, "name": name} for domain, name in names.items()
-        ]
-        available.sort(key=lambda item: item["name"].lower())
-        return web.json_response({"available": available})
+        katalog = await _integration_catalog(self.hass)
+        return web.json_response(
+            {
+                "available": [i for i in katalog if i["type"] != "helper"],
+                "helpers": [i for i in katalog if i["type"] == "helper"],
+            }
+        )
 
 
 class FlowStartView(Sh4uView):
@@ -747,6 +770,61 @@ class AutomationsView(Sh4uView):
         config["id"] = automation_id
         await config_files.save_automation(self.hass, config)
         return web.json_response({"ok": True, "id": automation_id})
+
+
+class AutomationBuildView(Sh4uView):
+    """Vytvoření a úprava automatizace z editoru.
+
+    Stejný model používá jednoduchý editor KDYŽ / A ZÁROVEŇ / PAK i skládačka,
+    takže obě cesty vyrobí stejnou automatizaci.
+    """
+
+    url = f"{API_BASE}/automations/build"
+    name = "api:smarthome4u:automations:build"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request) -> web.Response:
+        payload = await self.body(request)
+        model = payload.get("model")
+        if not isinstance(model, dict):
+            raise ApiError("Chybí popis automatizace.")
+
+        try:
+            automation_id, config = builder.build(model)
+        except builder.BuilderError as err:
+            raise ApiError(str(err)) from err
+
+        await config_files.save_automation(self.hass, config)
+        return web.json_response({"ok": True, "id": automation_id})
+
+
+class AutomationModelView(Sh4uView):
+    """Načte automatizaci zpátky do editoru.
+
+    Co se nevejde do našeho modelu, se neupravuje. Nikdy nic
+    nezjednodušujeme destruktivně.
+    """
+
+    url = f"{API_BASE}/automations/{{automation_id}}/model"
+    name = "api:smarthome4u:automation:model"
+
+    @handler
+    @admin
+    async def get(self, request: web.Request, automation_id: str) -> web.Response:
+        config = await config_files.read_automation(self.hass, automation_id)
+        if config is None:
+            raise ApiError(
+                "Tuhle automatizaci jsme nenašli. Možná vznikla jinde.",
+                404,
+                "unknown_automation",
+            )
+
+        model = builder.parse(config)
+        if model is None:
+            return web.json_response({"advanced": True, "alias": config.get("alias")})
+
+        return web.json_response({"advanced": False, "model": model})
 
 
 class AutomationDeleteView(Sh4uView):
@@ -978,6 +1056,15 @@ class LayoutView(Sh4uView):
                 raise ApiError("Neplatné pořadí místností.")
             await settings.set_room_order(rooms)
 
+        if "size" in payload and "entityId" in payload:
+            entity_id = payload["entityId"]
+            size = payload["size"]
+            if not isinstance(entity_id, str):
+                raise ApiError("Neplatný požadavek.")
+            if size not in (None, "", "wide", "tall", "big"):
+                raise ApiError("Takovou velikost neznáme.")
+            await settings.set_size(entity_id, size or None)
+
         if "areaId" in payload and "entities" in payload:
             area_id = payload["areaId"]
             entities = payload["entities"]
@@ -1069,6 +1156,8 @@ VIEWS = (
     FlowAbortView,
     EntryDeleteView,
     AutomationsView,
+    AutomationBuildView,
+    AutomationModelView,
     AutomationDeleteView,
     ScenesView,
     SceneDeleteView,

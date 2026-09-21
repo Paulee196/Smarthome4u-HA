@@ -67,6 +67,19 @@ def _remove(items: list[dict], item_id: str, key: str = "id") -> list[dict]:
     ]
 
 
+async def read_automation(hass: HomeAssistant, automation_id: str) -> dict | None:
+    """Načte jednu automatizaci k úpravě."""
+    path = hass.config.path(AUTOMATIONS)
+
+    def work() -> dict | None:
+        for polozka in _read(path):
+            if isinstance(polozka, dict) and polozka.get("id") == automation_id:
+                return polozka
+        return None
+
+    return await hass.async_add_executor_job(work)
+
+
 async def save_automation(hass: HomeAssistant, config: dict) -> None:
     path = hass.config.path(AUTOMATIONS)
 

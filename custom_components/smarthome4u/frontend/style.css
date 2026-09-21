@@ -1704,3 +1704,109 @@ textarea.input {
   border-radius: var(--sh-radius-md);
   background: var(--sh-surface);
 }
+
+/* ------------------------------------------------------------------ */
+/* Editor automatizací                                                 */
+/* ------------------------------------------------------------------ */
+
+.builder__sekce {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-sm);
+  padding: var(--sh-gap-md);
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-md);
+}
+
+.builder__hlava {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* KDYŽ, A ZÁROVEŇ a PAK se čtou jako štítky, ne jako nadpisy. */
+.builder__stitek {
+  font-size: var(--sh-size-xs);
+  font-weight: var(--sh-weight-bold);
+  letter-spacing: 0.1em;
+  color: var(--sh-accent);
+}
+
+.builder__napoveda {
+  font-size: var(--sh-size-xs);
+  color: var(--sh-text-muted);
+}
+
+.builder__krok {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap-sm);
+  padding: var(--sh-gap-sm);
+  background: var(--sh-surface-raised);
+  border-radius: var(--sh-radius-sm);
+}
+
+.builder__krok-hlava {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap-sm);
+}
+
+.builder__krok-hlava .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.builder__pole {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sh-gap-sm);
+}
+
+@media (min-width: 560px) {
+  .builder__pole {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Velikosti dlaždic a kamera                                          */
+/* ------------------------------------------------------------------ */
+
+/* Velikost si volí správce v editoru. Na úzkém telefonu se širší
+   dlaždice roztáhne přes obě místa, vyšší zůstane vysoká. */
+.card--wide {
+  grid-column: span 2;
+}
+
+.card--tall .card__hit {
+  min-height: 180px;
+}
+
+.card--big {
+  grid-column: span 2;
+}
+
+.card--big .card__hit {
+  min-height: 180px;
+}
+
+/* Náhled z kamery vyplní horní část dlaždice. */
+.card__nahled {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--sh-radius-sm);
+  background: var(--sh-surface);
+}
+
+.card--tall .card__nahled,
+.card--big .card__nahled {
+  height: 150px;
+}
+
+/* Tlačítko velikosti sedí mezi ostatními v horní hraně dlaždice. */
+.card__more--mid {
+  right: var(--sh-touch-target);
+}

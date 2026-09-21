@@ -42,7 +42,7 @@ VYCHOZI: dict[str, Any] = {
     "kiosk": True,
     "landing": True,
     # Ruční rozvržení dashboardu. Prázdné znamená pořadí podle Home Assistantu.
-    "layout": {"rooms": [], "entities": {}},
+    "layout": {"rooms": [], "entities": {}, "sizes": {}},
     # entity_id -> {"kind": "switch"} nebo {"hidden": true}
     "overrides": {},
     "favorites": [],
@@ -140,6 +140,7 @@ class Settings:
         ulozene = self.data.setdefault("layout", {})
         ulozene.setdefault("rooms", [])
         ulozene.setdefault("entities", {})
+        ulozene.setdefault("sizes", {})
         return ulozene
 
     async def set_room_order(self, poradi: list[str]) -> None:
@@ -150,8 +151,16 @@ class Settings:
         self.layout["entities"][area_id] = poradi
         await self.save()
 
+    async def set_size(self, entity_id: str, size: str | None) -> None:
+        """Velikost dlaždice. None znamená výchozí."""
+        if size:
+            self.layout["sizes"][entity_id] = size
+        else:
+            self.layout["sizes"].pop(entity_id, None)
+        await self.save()
+
     async def reset_layout(self) -> None:
-        self.data["layout"] = {"rooms": [], "entities": {}}
+        self.data["layout"] = {"rooms": [], "entities": {}, "sizes": {}}
         await self.save()
 
     # ------------------------------------------------------------------

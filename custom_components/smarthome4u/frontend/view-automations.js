@@ -3,6 +3,7 @@
 import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { row } from "./controls.js";
+import { otevritEditor, upravitAutomatizaci } from "./view-builder.js";
 import {
   h,
   button,
@@ -29,7 +30,7 @@ export async function renderAutomations(root, ctx) {
 
   root.append(
     h("div", { class: "row row--end" }, [
-      button(t.automations.create, () => pickTemplate(ctx), "button--ghost"),
+      button(t.automations.create, () => vybratZpusob(ctx), ""),
     ]),
   );
 
@@ -69,6 +70,15 @@ function automationRow(ctx, automation) {
   if (id) {
     extras.push(
       h("button", {
+        class: "tile__more",
+        type: "button",
+        "aria-label": t.action.rename,
+        text: "✎",
+        onclick: () => upravitAutomatizaci(ctx, id),
+      }),
+    );
+    extras.push(
+      h("button", {
         class: "tile__more tile__more--danger",
         type: "button",
         "aria-label": t.action.delete,
@@ -93,6 +103,28 @@ function automationRow(ctx, automation) {
 /* ------------------------------------------------------------------ */
 /* Průvodce vytvořením                                                 */
 /* ------------------------------------------------------------------ */
+
+function vybratZpusob(ctx) {
+  const volba = (nadpis, popis, akce) =>
+    h("button", { class: "picker", type: "button", onclick: akce }, [
+      h("span", { class: "picker__name", text: nadpis }),
+      h("span", { class: "picker__desc", text: popis }),
+    ]);
+
+  dialog(
+    t.builder.pickWay,
+    h("div", { class: "stack" }, [
+      volba(t.builder.waySimple.name, t.builder.waySimple.description, () => {
+        closeDialog();
+        otevritEditor(ctx);
+      }),
+      volba(t.builder.wayTemplate.name, t.builder.wayTemplate.description, () => {
+        closeDialog();
+        pickTemplate(ctx);
+      }),
+    ]),
+  );
+}
 
 async function pickTemplate(ctx) {
   let data;

@@ -85,6 +85,33 @@ def _host(hass: HomeAssistant) -> dict[str, Any] | None:
     }
 
 
+def _stats(hass: HomeAssistant) -> dict[str, Any] | None:
+    """Zatížení procesoru a paměti. Jen tam, kde běží Supervisor."""
+    try:
+        from homeassistant.components import hassio
+    except ImportError:
+        return None
+
+    try:
+        if not hassio.is_hassio(hass):
+            return None
+        stats = hassio.get_core_stats(hass) or {}
+    except Exception:  # noqa: BLE001 - starší Home Assistant tohle nemá
+        return None
+
+    cpu = stats.get("cpu_percent")
+    pamet = stats.get("memory_percent")
+    if cpu is None and pamet is None:
+        return None
+
+    return {
+        "cpuPercent": round(cpu) if isinstance(cpu, (int, float)) else None,
+        "memoryPercent": round(pamet) if isinstance(pamet, (int, float)) else None,
+        "memoryUsage": stats.get("memory_usage"),
+        "memoryLimit": stats.get("memory_limit"),
+    }
+
+
 def _counts(hass: HomeAssistant) -> dict[str, int]:
     devices = dr.async_get(hass)
     entities = er.async_get(hass)
@@ -106,5 +133,6 @@ def overview(hass: HomeAssistant) -> dict[str, Any]:
         "timezone": str(hass.config.time_zone),
         "counts": _counts(hass),
         "host": _host(hass),
+        "stats": _stats(hass),
         "updates": updates(hass),
     }

@@ -263,6 +263,18 @@ async function sekceSystem() {
     obsah.push(disk(info.host));
   }
 
+  if (info.stats) {
+    if (info.stats.cpuPercent !== null && info.stats.cpuPercent !== undefined) {
+      obsah.push(mira(t.settings.cpu, info.stats.cpuPercent));
+    }
+    if (
+      info.stats.memoryPercent !== null &&
+      info.stats.memoryPercent !== undefined
+    ) {
+      obsah.push(mira(t.settings.memory, info.stats.memoryPercent));
+    }
+  }
+
   return karta(t.settings.system, "automations", obsah);
 }
 
@@ -301,6 +313,20 @@ function radekAktualizace(aktualizace) {
       ]),
     ]),
     tlacitko,
+  ]);
+}
+
+/** Jednoduchý ukazatel v procentech. */
+function mira(popis, procenta) {
+  const pruh = h("span", { class: "progress__bar progress__bar--static" });
+  pruh.style.width = procenta + "%";
+
+  return h("div", { class: "field" }, [
+    h("div", { class: "field__row" }, [
+      h("span", { class: "field__label", text: popis }),
+      h("span", { class: "field__value", text: procenta + " %" }),
+    ]),
+    h("div", { class: "progress" }, pruh),
   ]);
 }
 

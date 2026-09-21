@@ -230,7 +230,9 @@ def addable(manifests: list[dict], handlers: list[str]) -> list[dict]:
     Pomocné integrace a věci bez zařízení se nenabízejí - laika by jen mátly.
     """
     allowed = set(handlers)
-    hidden_types = {"entity", "system", "helper"}
+    # Entity a systémové integrace uživatele jen matou. Pomocníci zůstávají,
+    # jen se označí typem, aby šli zobrazit ve vlastní sekci.
+    hidden_types = {"entity", "system"}
 
     result = [
         {

@@ -7,7 +7,7 @@ import { api } from "./api.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { icon } from "./icons.js";
-import { renderIntegrations } from "./view-integrations.js";
+import { renderIntegrations, renderHelpers } from "./view-integrations.js";
 import {
   h,
   button,
@@ -30,6 +30,7 @@ export async function renderDevices(root, ctx) {
     writeTab(tab);
     body.replaceChildren();
     if (tab === "integrations") await renderIntegrations(body, ctx);
+    else if (tab === "helpers") await renderHelpers(body, ctx);
     else await renderDeviceList(body, ctx);
   };
 
@@ -41,9 +42,8 @@ export async function renderDevices(root, ctx) {
 
 function readTab() {
   try {
-    return localStorage.getItem(TAB_KEY) === "integrations"
-      ? "integrations"
-      : "devices";
+    const ulozeny = localStorage.getItem(TAB_KEY);
+    return ["integrations", "helpers"].includes(ulozeny) ? ulozeny : "devices";
   } catch {
     return "devices";
   }
@@ -63,6 +63,7 @@ function tabs(active, onChange) {
   for (const [key, label] of [
     ["devices", t.integrations.tabDevices],
     ["integrations", t.integrations.tabIntegrations],
+    ["helpers", t.integrations.tabHelpers],
   ]) {
     const item = h("button", {
       class: `segmented__item${active === key ? " segmented__item--active" : ""}`,

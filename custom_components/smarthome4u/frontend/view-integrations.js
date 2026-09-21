@@ -18,6 +18,19 @@ import {
   toast,
 } from "./ui.js";
 
+export async function renderHelpers(root, ctx) {
+  root.append(
+    h("div", { class: "row row--end" }, [
+      button(t.integrations.addHelper, () => openCatalog(ctx, true), ""),
+    ]),
+  );
+  root.append(
+    panel(t.integrations.helpers, [
+      h("p", { class: "muted", text: t.integrations.helpersHint }),
+    ]),
+  );
+}
+
 export async function renderIntegrations(root, ctx) {
   let data;
   try {
@@ -156,15 +169,16 @@ const POPULAR = [
   "sonoff",
 ];
 
-async function openCatalog(ctx) {
+async function openCatalog(ctx, pomocnici = false) {
   const body = h("div", { class: "stack" }, [
     h("p", { class: "muted", text: t.integrations.loading }),
   ]);
-  dialog(t.integrations.add, body);
+  dialog(pomocnici ? t.integrations.addHelper : t.integrations.add, body);
 
   let available;
   try {
-    available = (await api.availableIntegrations()).available;
+    const odpoved = await api.availableIntegrations();
+    available = pomocnici ? odpoved.helpers : odpoved.available;
   } catch (error) {
     body.replaceChildren(h("p", { class: "form-error", text: error.message }));
     return;

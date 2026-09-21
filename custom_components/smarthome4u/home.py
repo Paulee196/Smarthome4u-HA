@@ -26,6 +26,7 @@ KIND_ORDER = {
     "lock": 4,
     "fan": 5,
     "media_player": 6,
+    "camera": 6,
     "number": 7,
     "select": 8,
     "button": 9,
@@ -56,6 +57,7 @@ FORWARDED_ATTRIBUTES = (
     "unit_of_measurement",
     "volume_level",
     "media_title",
+    "entity_picture",
 )
 
 HIDDEN_CATEGORIES = {"config", "diagnostic"}
@@ -67,6 +69,12 @@ class Home:
     def __init__(self, hass: HomeAssistant, settings=None) -> None:
         self.hass = hass
         self.settings = settings
+
+    def _velikost(self, entity_id: str) -> str | None:
+        """Velikost dlaždice zvolená správcem."""
+        if self.settings is None:
+            return None
+        return self.settings.layout["sizes"].get(entity_id)
 
     def _override(self, entity_id: str) -> dict:
         """Ruční oprava zařazení od správce."""
@@ -133,6 +141,7 @@ class Home:
             "available": state.state not in ("unavailable", "unknown"),
             "capability": schopnost,
             "overridden": bool(oprava.get("kind")),
+            "size": self._velikost(state.entity_id),
             "attributes": {
                 key: attributes[key]
                 for key in FORWARDED_ATTRIBUTES

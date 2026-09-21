@@ -223,6 +223,14 @@ def _media_player(
     }
 
 
+def _camera(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "kind": "camera",
+        "controllable": False,
+        "entityPicture": attributes.get("entity_picture"),
+    }
+
+
 def _presence(device_class: str | None, attributes: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "presence", "controllable": False}
 
@@ -247,6 +255,7 @@ _HANDLERS: dict[str, Callable[[str | None, dict[str, Any]], dict[str, Any]]] = {
     "select": _select,
     "input_select": _select,
     "media_player": _media_player,
+    "camera": _camera,
     "person": _presence,
     "device_tracker": _presence,
 }
@@ -355,6 +364,7 @@ _PODLE_SCHOPNOSTI: dict[str, Callable[[str | None, dict[str, Any]], dict]] = {
     "sensor": _sensor,
     "binary_sensor": _binary_sensor,
     "media_player": _media_player,
+    "camera": _camera,
     "number": _number,
     "select": _select,
     "button": _button,

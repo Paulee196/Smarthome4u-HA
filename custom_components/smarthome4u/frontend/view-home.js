@@ -143,10 +143,33 @@ function upravitelnaDlazdice(entity, ctx) {
       text: "⇄",
       onclick: () => zmenitTyp(entity, ctx),
     }),
+    h("button", {
+      class: "card__more card__more--mid",
+      type: "button",
+      "aria-label": t.editor.size,
+      text: "⤢",
+      onclick: () => zmenitVelikost(entity, ctx),
+    }),
   ]);
 
   obal.setAttribute(ATRIBUT_KLICE, entity.id);
   return obal;
+}
+
+/* Velikost se přepíná dokola, ať se nemusí otevírat další dialog. */
+const VELIKOSTI = ["", "wide", "tall", "big"];
+
+async function zmenitVelikost(entity, ctx) {
+  const dalsi =
+    VELIKOSTI[(VELIKOSTI.indexOf(entity.size || "") + 1) % VELIKOSTI.length];
+
+  try {
+    await api.saveLayout({ entityId: entity.id, size: dalsi });
+    toast(t.editor.sizes[dalsi || "normal"]);
+    await ctx.refresh();
+  } catch (error) {
+    toast(error.message, true);
+  }
 }
 
 async function schovat(entity, ctx) {

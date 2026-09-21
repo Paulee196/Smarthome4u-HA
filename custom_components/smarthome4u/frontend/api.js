@@ -73,6 +73,9 @@ export const api = {
 
   templates: () => request("GET", "templates"),
   createAutomation: (body) => request("POST", "automations", body),
+  buildAutomation: (model) => request("POST", "automations/build", { model }),
+  automationModel: (id) =>
+    request("GET", `automations/${enc(id)}/model`),
   deleteAutomation: (id) => request("POST", `automations/${enc(id)}/delete`, {}),
   createScene: (body) => request("POST", "scenes", body),
   deleteScene: (id) => request("POST", `scenes/${enc(id)}/delete`, {}),

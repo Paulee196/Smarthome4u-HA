@@ -109,6 +109,17 @@ export function card(entity) {
   const interactive = Boolean(primary) || detail;
 
   const glyph = h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg"));
+
+  // U kamery se místo ikony ukáže obrázek z Home Assistantu.
+  const nahled =
+    kind === "camera" && entity.attributes?.entity_picture
+      ? h("img", {
+          class: "card__nahled",
+          src: entity.attributes.entity_picture,
+          alt: entity.name,
+          loading: "lazy",
+        })
+      : null;
   const name = h("span", { class: "card__name", text: entity.name });
   const state = h("span", { class: "card__state" });
   const level = h("span", { class: "card__level" });
@@ -127,7 +138,7 @@ export function card(entity) {
           }
         : null,
     },
-    [glyph, name, state],
+    [nahled || glyph, name, state],
   );
 
   const children = [hit, level];
@@ -144,7 +155,14 @@ export function card(entity) {
     );
   }
 
-  const root = h("div", { class: "card" }, children);
+  function trida(stav, velikost) {
+    // Velikost dlaždice si volí správce v editoru rozvržení.
+    return ["card", "card--" + stav, velikost ? "card--" + velikost : ""]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  const root = h("div", { class: trida("off", entity.size) }, children);
 
   function paint(next) {
     current = next;
@@ -152,7 +170,7 @@ export function card(entity) {
 
     name.textContent = next.name;
     state.textContent = text;
-    root.className = `card card--${tone}`;
+    root.className = trida(tone, next.size);
 
     const pct = levelOf(next);
     level.style.width = pct === null ? "0" : `${pct}%`;

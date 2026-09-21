@@ -123,6 +123,111 @@ export const t = {
     readOnly: "Složitou automatizaci zatím neumíme upravit, jen zapnout a spustit.",
   },
 
+  builder: {
+    title: "Nová automatizace",
+    editTitle: "Úprava automatizace",
+    name: "Název",
+    namePlaceholder: "Třeba Světlo na chodbě",
+    description: "Popis",
+    mode: "Když se spustí znovu, než dojede",
+    modes: {
+      single: "Nic nedělat",
+      restart: "Začít znovu",
+      queued: "Zařadit do fronty",
+    },
+
+    when: "KDYŽ",
+    whenHint: "Co automatizaci spustí. Stačí jedna z věcí.",
+    and: "A ZÁROVEŇ",
+    andHint: "Nepovinné. Musí platit všechno, jinak se nic nestane.",
+    then: "PAK",
+    thenHint: "Co se má stát. Provede se po pořadě.",
+
+    addWhen: "Přidat spouštěč",
+    addAnd: "Přidat podmínku",
+    addThen: "Přidat akci",
+    remove: "Odebrat",
+    empty: "Zatím nic",
+
+    advanced: "Pokročilá automatizace",
+    advancedHint:
+      "Tahle automatizace obsahuje věci, které náš editor neumí zobrazit. " +
+      "Nebudeme do ní zasahovat, aby se nepoškodila. Můžete ji zapnout, " +
+      "vypnout a ručně spustit.",
+
+    triggers: {
+      state: "Zařízení se přepne do stavu",
+      state_for: "Zařízení je ve stavu po dobu",
+      time: "V zadaný čas",
+      sun: "Při východu nebo západu slunce",
+      numeric: "Hodnota překročí mez",
+    },
+    conditions: {
+      state: "Zařízení je ve stavu",
+      time_range: "Je mezi časy",
+      numeric: "Hodnota je nad nebo pod mezí",
+    },
+    actions: {
+      device: "Zapnout, vypnout nebo přepnout",
+      value: "Nastavit hodnotu",
+      scene: "Spustit scénu",
+      script: "Spustit skript",
+      wait: "Počkat",
+      notify: "Poslat upozornění",
+    },
+
+    fields: {
+      entity: "Zařízení",
+      to: "Na stav",
+      is: "Je ve stavu",
+      minutes: "Minut",
+      at: "Čas",
+      after: "Od",
+      before: "Do",
+      event: "Událost",
+      offset: "Posun v minutách",
+      direction: "Kde",
+      value: "Hodnota",
+      command: "Co udělat",
+      message: "Text upozornění",
+    },
+
+    states: {
+      on: "Zapnuto",
+      off: "Vypnuto",
+      open: "Otevřeno",
+      closed: "Zavřeno",
+      home: "Doma",
+      not_home: "Pryč",
+      locked: "Zamčeno",
+      unlocked: "Odemčeno",
+    },
+    directions: { above: "Nad mezí", below: "Pod mezí" },
+    sunEvents: { sunrise: "Východ slunce", sunset: "Západ slunce" },
+    commands: {
+      turn_on: "Zapnout",
+      turn_off: "Vypnout",
+      toggle: "Přepnout",
+      brightness: "Jas v procentech",
+      position: "Otevření žaluzie v procentech",
+      temperature: "Teplota ve stupních",
+    },
+
+    pickWay: "Jak chcete automatizaci vytvořit?",
+    waySimple: {
+      name: "Jednoduše",
+      description: "KDYŽ se něco stane, PAK udělej tohle",
+    },
+    wayBlocks: {
+      name: "Skládačka",
+      description: "Bloky pod sebou, s větvením a čekáním",
+    },
+    wayTemplate: {
+      name: "Ze šablony",
+      description: "Hotové recepty, stačí vybrat zařízení",
+    },
+  },
+
   templates: {
     motion_light: {
       name: "Světlo na pohyb",
@@ -167,6 +272,7 @@ export const t = {
     title: "Integrace",
     tabDevices: "Zařízení",
     tabIntegrations: "Integrace",
+    tabHelpers: "Pomocníci",
     configured: "Připojené systémy",
     discovered: "Nalezeno ve vaší síti",
     discoveredHint:
@@ -185,6 +291,11 @@ export const t = {
       "Odebráním zmizí i všechna zařízení, která tenhle systém přinesl. " +
       "Opravdu pokračovat?",
     problem: "Nefunguje správně",
+    helpers: "Pomocníci",
+    helpersHint:
+      "Pomocník je hodnota, kterou si dům pamatuje - cílová teplota, " +
+      "práh jasu, přepínač režimu. Použijete ji pak v automatizacích.",
+    addHelper: "Vytvořit pomocníka",
   },
 
   flow: {
@@ -271,6 +382,8 @@ export const t = {
     installStarted: "Aktualizace se spustila.",
     installing: "Instaluje se…",
     disk: "Místo na disku",
+    cpu: "Zatížení procesoru",
+    memory: "Paměť",
     diskFree: (gb) => `Volno ${gb} GB`,
   },
 
@@ -302,6 +415,13 @@ export const t = {
     done: "Hotovo",
     hide: "Schovat",
     drag: "Přetáhnout",
+    size: "Velikost",
+    sizes: {
+      normal: "Normální",
+      wide: "Široká",
+      tall: "Vysoká",
+      big: "Velká",
+    },
     reclassify: "Změnit typ",
     reclassifyHint:
       "Home Assistant hlásí jako světlo i kontrolky. Tady to můžete opravit.",
@@ -322,6 +442,7 @@ export const t = {
       select: "Výběr z možností",
       button: "Tlačítko",
       presence: "Přítomnost osoby",
+      camera: "Kamera",
     },
   },
 
