@@ -537,13 +537,17 @@ export const t = {
 
   presets: {
     comingSoon: "Připravuje se",
-    prehled: {
-      name: "Přehled",
-      description: "Bloky ve sloupcích. Stav domu, vaše zařízení, scény.",
+    tuya: {
+      name: "Chytrá domácnost",
+      description: "Kompaktní ovládání ve stylu předlohy.",
     },
-    panel: {
-      name: "Nástěnný panel",
-      description: "Velké ovládání, ukáže jen to, co se právě děje",
+    home: {
+      name: "Domov",
+      description: "Klidná kombinace Google Home a Apple Home.",
+    },
+    prehled: {
+      name: "Přehled HA",
+      description: "Souhrn domácnosti a zařízení podle Home Assistantu.",
     },
     pudorys: {
       name: "Půdorys",
@@ -603,11 +607,41 @@ export const t = {
       s: "Malá",
       m: "Střední",
       l: "Velká s ovládáním",
+      xl: "Extra velká",
     },
     sizeHint:
       "Malá ukáže jen ikonu a název. Velká má ovládání přímo v dlaždici - " +
       "stmívání, polohu žaluzie nebo teplotu bez otevírání detailu.",
     tileMenu: "Upravit dlaždici",
+    label: "Vlastní název",
+    labelHint: "Prázdné pole použije název z Home Assistantu.",
+    icon: "Ikona",
+    color: "Barva",
+    automatic: "Automaticky",
+    blockAppearance: "Vzhled bloku",
+    blockHeight: "Výška bloku",
+    heightCompact: "Kompaktní",
+    heightNormal: "Normální",
+    heightLarge: "Vysoký",
+    sizeXL: "Extra velká",
+    editPoint: "Upravit bod na plánku",
+    colors: {
+      default: "Výchozí",
+      mint: "Tyrkysová",
+      blue: "Modrá",
+      violet: "Fialová",
+      amber: "Žlutá",
+      rose: "Růžová",
+    },
+    icons: {
+      home: "Dům", rooms: "Místnosti", lighting: "Světlo", switch: "Vypínač",
+      cover: "Žaluzie", climate: "Teplota", lock: "Zámek", fan: "Ventilátor",
+      media: "Hudba", security: "Zabezpečení", camera: "Kamera",
+      temperature: "Teploměr", humidity: "Vlhkost", power: "Energie",
+      door: "Dveře", window: "Okno", water: "Voda", smoke: "Kouř",
+      sensor: "Senzor", person: "Osoba", scenes: "Scéna", devices: "Zařízení",
+      automations: "Automatizace",
+    },
     columns: "Sloupce",
     columnsHint: "Kolik bloků vedle sebe. Na telefonu je vždy jeden.",
     rename: "Přejmenovat blok",

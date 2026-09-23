@@ -56,6 +56,16 @@
   /* Tlumené varianty pro výplně a linky. Nikdy plná barva na velké ploše. */
   --sh-accent-quiet: rgba(9, 225, 192, 0.14);
   --sh-accent-line: rgba(9, 225, 192, 0.45);
+  --sh-tile-mint-bg: rgba(9, 225, 192, 0.14);
+  --sh-tile-mint-ink: #65f3db;
+  --sh-tile-blue-bg: rgba(90, 169, 255, 0.16);
+  --sh-tile-blue-ink: #91c6ff;
+  --sh-tile-violet-bg: rgba(114, 114, 255, 0.17);
+  --sh-tile-violet-ink: #b3a9ff;
+  --sh-tile-amber-bg: rgba(255, 196, 77, 0.14);
+  --sh-tile-amber-ink: #ffd27a;
+  --sh-tile-rose-bg: rgba(255, 107, 146, 0.15);
+  --sh-tile-rose-ink: #ffabbf;
 
   /* --- Sémantické barvy. Význam se nikdy nemění podle motivu. --- */
   --sh-success: #3ddc97;
@@ -210,6 +220,16 @@
   --sh-accent-2: #5b5bff;
   --sh-accent-quiet: rgba(0, 196, 167, 0.14);
   --sh-accent-line: rgba(0, 196, 167, 0.5);
+  --sh-tile-mint-bg: #e7f8f3;
+  --sh-tile-mint-ink: #087f6d;
+  --sh-tile-blue-bg: #e8f3ff;
+  --sh-tile-blue-ink: #286da9;
+  --sh-tile-violet-bg: #f0edff;
+  --sh-tile-violet-ink: #6655ae;
+  --sh-tile-amber-bg: #fff4d9;
+  --sh-tile-amber-ink: #946500;
+  --sh-tile-rose-bg: #ffeaf0;
+  --sh-tile-rose-ink: #ae4a68;
 
   --sh-success: #1e9e6a;
   --sh-warning: #d98c00;
@@ -273,6 +293,16 @@
   --sh-accent-2: var(--accent-color, #7272ff);
   --sh-accent-quiet: color-mix(in srgb, var(--primary-color, #09e1c0) 14%, transparent);
   --sh-accent-line: color-mix(in srgb, var(--primary-color, #09e1c0) 45%, transparent);
+  --sh-tile-mint-bg: color-mix(in srgb, var(--primary-color, #09e1c0) 16%, var(--card-background-color, #12161f));
+  --sh-tile-mint-ink: var(--primary-color, #09e1c0);
+  --sh-tile-blue-bg: color-mix(in srgb, var(--info-color, #5aa9ff) 16%, var(--card-background-color, #12161f));
+  --sh-tile-blue-ink: var(--info-color, #5aa9ff);
+  --sh-tile-violet-bg: color-mix(in srgb, var(--accent-color, #7272ff) 16%, var(--card-background-color, #12161f));
+  --sh-tile-violet-ink: var(--accent-color, #7272ff);
+  --sh-tile-amber-bg: color-mix(in srgb, var(--warning-color, #ffc44d) 16%, var(--card-background-color, #12161f));
+  --sh-tile-amber-ink: var(--warning-color, #ffc44d);
+  --sh-tile-rose-bg: color-mix(in srgb, var(--error-color, #ff6b6b) 16%, var(--card-background-color, #12161f));
+  --sh-tile-rose-ink: var(--error-color, #ff6b6b);
 
   --sh-success: var(--success-color, #3ddc97);
   --sh-warning: var(--warning-color, #ffc44d);

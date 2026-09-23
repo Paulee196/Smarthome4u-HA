@@ -1,7 +1,7 @@
 """Konstanty integrace Smarthome4u."""
 
 DOMAIN = "smarthome4u"
-VERSION = "0.11.1"
+VERSION = "0.12.0"
 
 # Adresa panelu v postranní liště i v URL.
 PANEL_URL = "smarthome4u"

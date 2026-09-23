@@ -8,7 +8,9 @@
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
 import { openControls } from "./controls.js";
-import { iconFor } from "./icons.js";
+import { editAppearance } from "./appearance.js";
+import { icon, iconFor } from "./icons.js";
+import { vybratZarizeni } from "./picker.js";
 import {
   h,
   button,
@@ -80,31 +82,73 @@ function platno(ctx, plan) {
 
 function znacka(ctx, plan, bod, entity, platno) {
   const { tone } = describeState(entity);
-
-  const prvek = h(
-    "button",
-    {
-      class: `plan__bod plan__bod--${tone}`,
-      type: "button",
-      "aria-label": entity.name,
-      onclick: () => {
-        if (!ctx.editing) openControls(entity);
-      },
-    },
-    [iconFor(entity, "icon"), h("span", { class: "plan__jmeno", text: entity.name })],
-  );
+  const color = ["mint", "blue", "violet", "amber", "rose"].includes(bod.color)
+    ? bod.color : "default";
+  const size = ["s", "m", "l", "xl"].includes(bod.size) ? bod.size : "m";
+  const prvek = h("div", {
+    class: `plan__bod plan__bod--${tone} plan__bod--tone-${color} plan__bod--${size}`,
+  }, [
+    h("button", {
+      class: "plan__bod-hit", type: "button",
+      "aria-label": bod.label || entity.name,
+      onclick: () => { if (!ctx.editing) openControls(entity); },
+    }, [
+      bod.icon ? icon(bod.icon, "icon") : iconFor(entity, "icon"),
+      h("span", { class: "plan__jmeno", text: bod.label || entity.name }),
+    ]),
+    ctx.editing && h("button", {
+      class: "plan__bod-edit", type: "button", text: "⋯",
+      "aria-label": t.editor.editPoint,
+      onclick: () => upravitBod(ctx, plan, bod, entity),
+    }),
+  ]);
 
   prvek.style.left = `${bod.x}%`;
   prvek.style.top = `${bod.y}%`;
 
   if (ctx.editing) {
     prvek.classList.add("plan__bod--edit");
-    prvek.addEventListener("pointerdown", (udalost) =>
-      zacitTahat(udalost, prvek, bod, plan, platno),
-    );
+    prvek.addEventListener("pointerdown", (udalost) => {
+      if (udalost.target.closest(".plan__bod-edit")) return;
+      zacitTahat(udalost, prvek, bod, plan, platno);
+    });
   }
 
   return prvek;
+}
+
+function upravitBod(ctx, plan, bod, entity) {
+  const extra = h("div", { class: "row" }, [
+    button(t.favorites.replace, () => {
+      closeDialog();
+      vybratZarizeni(ctx, {
+        nadpis: t.favorites.replace,
+        onVyber: async (ref) => {
+          bod.entityRef = ref;
+          await ulozitBody(ctx, plan);
+        },
+      });
+    }, "button--ghost"),
+    button(t.favorites.remove, async () => {
+      closeDialog();
+      plan.points = plan.points.filter((p) => p !== bod);
+      await ulozitBody(ctx, plan);
+    }, "button--ghost"),
+  ]);
+  editAppearance(bod.label || entity.name, bod, async (appearance) => {
+    Object.assign(bod, appearance);
+    await ulozitBody(ctx, plan);
+  }, { extra });
+}
+
+async function ulozitBody(ctx, plan) {
+  try {
+    await api.saveFloorplan({ points: plan.points });
+    toast(t.notice.saved);
+    await ctx.refresh();
+  } catch (error) {
+    toast(error.message, true);
+  }
 }
 
 function zacitTahat(udalost, prvek, bod, plan, platno) {

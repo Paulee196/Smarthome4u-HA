@@ -21,8 +21,9 @@ import {
 } from "./ui.js";
 
 const PRESET_POPIS = {
+  tuya: "tuya",
+  home: "home",
   prehled: "prehled",
-  panel: "panel",
   pudorys: "pudorys",
 };
 
@@ -253,7 +254,7 @@ function sekceDashboard(ctx, nastaveni) {
 
   for (const klic of nastaveni.presets) {
     const nedostupny = nastaveni.unavailable.includes(klic);
-    const vybrany = nastaveni.preset === klic;
+    const vybrany = ctx.model.preset === klic;
     const popis = t.presets[PRESET_POPIS[klic]] || { name: klic, description: "" };
 
     mrizka.append(
@@ -266,7 +267,7 @@ function sekceDashboard(ctx, nastaveni) {
           "aria-pressed": String(vybrany),
           onclick: async () => {
             try {
-              await api.saveSettings({ preset: klic });
+              await api.setPreset(klic);
               toast(t.notice.saved);
               await ctx.refresh();
               ctx.navigate("settings");

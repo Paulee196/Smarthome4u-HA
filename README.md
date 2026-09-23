@@ -17,7 +17,8 @@ Smarthome4u vypnete, domácnost běží dál.
 | Verze | Stav | Obsah |
 |---|---|---|
 | v0.1 - v0.3 | hotovo | Základ, pět sekcí, ovládání, správa místností, scény, automatizace, vlastní průvodce integracemi |
-| v0.4 | **vydáno** | Přechod z doplňku na integraci, schovaná lišta, přistání po přihlášení |
+| v0.11.0 | **vydáno** | Integrace, osobní plocha, ovládání a správa domácnosti |
+| v0.12.0 | v přípravě | Čtyři upravitelné podoby plochy a náhledy kamer |
 | v1.0 | plánováno | Editor automatizací, šablony dashboardu, technický režim, finální design |
 
 Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
@@ -26,7 +27,9 @@ Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
 
 ## Co aplikace umí
 
-- **Domů** - souhrn domu, upozornění, přepínač Podle místností / Podle funkcí
+- **Domů** - čtyři podoby plochy: Chytrá domácnost, Domov, Půdorys a Přehled HA.
+  U vybraných dlaždic lze změnit text, ikonu, barvu, entitu a velikost;
+  bloky mají vlastní vzhled a rozměry.
 - **Místnosti** - ovládání po místnostech, správa místností a pater
 - **Scény** - spuštění, uložení aktuálního stavu místnosti jako scény
 - **Automatizace** - zapnutí, ruční spuštění, tvorba ze šesti šablon

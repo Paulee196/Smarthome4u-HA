@@ -9,12 +9,15 @@
  */
 
 import { t } from "./i18n.js";
+import { api } from "./api.js";
 import { renderFloorplan } from "./view-floorplan.js";
 import { vykreslitPlochu } from "./blocks.js";
 import { h, button } from "./ui.js";
 
 export async function renderHome(root, ctx) {
-  const preset = ctx.model.preset || "prehled";
+  const preset = ctx.model.preset || "tuya";
+
+  root.append(prepinacPloch(ctx, preset));
 
   if (ctx.editing) {
     root.append(listaUprav(ctx));
@@ -26,6 +29,24 @@ export async function renderHome(root, ctx) {
   }
 
   vykreslitPlochu(root, ctx);
+}
+
+function prepinacPloch(ctx, active) {
+  return h("nav", { class: "dashboard-switch", "aria-label": t.settings.dashboard },
+    ["tuya", "home", "pudorys", "prehled"].map((preset) =>
+      h("button", {
+        class: "dashboard-switch__item" + (active === preset ? " dashboard-switch__item--active" : ""),
+        type: "button",
+        text: t.presets[preset].name,
+        "aria-current": active === preset ? "page" : null,
+        onclick: async () => {
+          if (active === preset) return;
+          await api.setPreset(preset);
+          if (ctx.editing) ctx.stopEditing();
+          await ctx.refresh();
+        },
+      }),
+    ));
 }
 
 /* ------------------------------------------------------------------ */

@@ -176,14 +176,13 @@ async def test_role_a_nastaveni(
     client = await hass_client()
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["user"]["role"] == "admin"
-    assert model["preset"] == "prehled"
+    assert model["preset"] == "tuya"
 
     nastaveni = await (await client.get("/api/smarthome4u/settings")).json()
     assert nastaveni["adminUserId"] == model["user"]["id"]
     # Místnosti a Funkce jsou v navigaci, jako podoba plochy zmizely.
     assert "mistnosti" not in nastaveni["presets"]
-    assert "panel" in nastaveni["presets"]
-    assert len(nastaveni["presets"]) == 3
+    assert nastaveni["presets"] == ["tuya", "home", "pudorys", "prehled"]
     assert "light" in nastaveni["kinds"]
 
 
@@ -201,12 +200,12 @@ async def test_zmena_podoby_dashboardu(
     client = await hass_client()
 
     odpoved = await client.post(
-        "/api/smarthome4u/settings", json={"preset": "panel"}
+        "/api/smarthome4u/settings", json={"preset": "home"}
     )
     assert odpoved.status == 200
 
     model = await (await client.get("/api/smarthome4u/model")).json()
-    assert model["preset"] == "panel"
+    assert model["preset"] == "home"
 
     # Zrušená podoba ze starší verze se tiše převede na Přehled.
     settings = hass.data[DOMAIN]["settings"]
@@ -214,15 +213,17 @@ async def test_zmena_podoby_dashboardu(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["preset"] == "prehled"
 
-    # Půdorys je od 0.8.0 hotový.
+    # Osobní volba se mění na samostatném endpointu.
     odpoved = await client.post(
-        "/api/smarthome4u/settings", json={"preset": "pudorys"}
+        "/api/smarthome4u/preset", json={"preset": "pudorys"}
     )
     assert odpoved.status == 200
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["preset"] == "pudorys"
 
     # Neznámou podobu ale backend odmítne.
     odpoved = await client.post(
-        "/api/smarthome4u/settings", json={"preset": "neexistuje"}
+        "/api/smarthome4u/preset", json={"preset": "neexistuje"}
     )
     assert odpoved.status == 400
 
@@ -432,7 +433,9 @@ async def test_oblibene_preziji_prejmenovani_entity(
         entry_record.entity_id, new_entity_id="light.nova_lampa"
     )
     hass.states.async_remove(entry_record.entity_id)
-    hass.states.async_set("light.nova_lampa", "off", {"supported_color_modes": ["onoff"]})
+    hass.states.async_set(
+        "light.nova_lampa", "off", {"supported_color_modes": ["onoff"]}
+    )
 
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [e["id"] for e in model["favorites"]] == ["light.nova_lampa"]
@@ -547,8 +550,11 @@ async def test_plocha_po_blocich(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["board"] is None
 
+    odpoved = await client.post("/api/smarthome4u/preset", json={"preset": "prehled"})
+    assert odpoved.status == 200
+
     sestava = [
-        {"id": "b1", "type": "status", "cols": 3},
+        {"id": "b1", "type": "status", "cols": 3, "icon": "home", "color": "mint"},
         {
             "id": "b2",
             "type": "entities",
@@ -556,6 +562,11 @@ async def test_plocha_po_blocich(
             "cols": 9,
             "entities": ["light.a", "light.neexistuje"],
             "sizes": {"light.a": "l", "light.neexistuje": "s", "x": "obri"},
+            "tileStyles": {
+                "light.a": {
+                    "label": "Nový název", "icon": "lighting", "color": "blue"
+                }
+            },
         },
     ]
     odpoved = await client.post(
@@ -569,11 +580,15 @@ async def test_plocha_po_blocich(
     assert sestava["columns"] == 3
     assert [b["type"] for b in sestava["blocks"]] == ["status", "entities"]
     assert sestava["blocks"][0]["cols"] == 3
+    assert sestava["blocks"][0]["color"] == "mint"
     # Šířka přes víc sloupců, než plocha má, se zahodí.
     assert "cols" not in sestava["blocks"][1]
     # Co v Home Assistantu není, se tiše vynechá - v seznamu i ve velikostech.
     assert sestava["blocks"][1]["entities"] == ["entity:light.a"]
     assert sestava["blocks"][1]["sizes"] == {"entity:light.a": "l"}
+    assert sestava["blocks"][1]["tileStyles"] == {
+        "entity:light.a": {"label": "Nový název", "icon": "lighting", "color": "blue"}
+    }
     assert sestava["blocks"][1]["title"] == "Moje"
 
     # Nová instance čte tentýž soubor - tohle je ten restart.
@@ -624,6 +639,9 @@ async def test_bloky_preziji_prejmenovani_entity(
     await hass.async_block_till_done()
 
     client = await hass_client()
+
+    odpoved = await client.post("/api/smarthome4u/preset", json={"preset": "prehled"})
+    assert odpoved.status == 200
 
     odpoved = await client.post(
         "/api/smarthome4u/dashboard",
