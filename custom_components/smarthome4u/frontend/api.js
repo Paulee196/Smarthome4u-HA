@@ -148,6 +148,7 @@ export const api = {
   uploadFloorplan: (data) => request("POST", "floorplan/image", { data }),
   settings: () => request("GET", "settings"),
   saveSettings: (body) => request("POST", "settings", body),
+  setRole: (id, role) => request("POST", `roles/${enc(id)}`, { role }),
   system: () => request("GET", "system"),
   installUpdate: (id) => request("POST", `system/update/${enc(id)}`, {}),
   saveLayout: (body) => request("POST", "layout", body),

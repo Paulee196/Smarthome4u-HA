@@ -28,14 +28,15 @@ const PRESET_POPIS = {
 
 export async function renderSettings(root, ctx) {
   const jeSpravce = ctx.model?.user?.role === "admin";
+  const jeTechnik = ctx.model?.user?.role === "technician";
 
   root.append(karta(t.settings.account, "settings", [
     h("p", { class: "lead", text: ctx.model?.user?.name || t.settings.unknownUser }),
     h("p", {
       class: "muted",
-      text: jeSpravce ? t.settings.youAreAdmin : t.settings.youAreUser,
+      text: jeSpravce ? t.settings.youAreAdmin : jeTechnik ? t.settings.youAreTechnician : t.settings.youAreUser,
     }),
-    jeSpravce &&
+    (jeSpravce || jeTechnik) &&
       prepinac(
         t.settings.technician,
         ctx.jeTechnik,
@@ -64,6 +65,7 @@ export async function renderSettings(root, ctx) {
   root.append(sekceDashboard(ctx, nastaveni));
   root.append(sekceSvetla(ctx, nastaveni));
   root.append(sekceSpravce(ctx, nastaveni));
+  root.append(sekceRole(nastaveni));
   root.append(await sekceSystem());
 }
 
@@ -335,6 +337,26 @@ function sekceSpravce(ctx, nastaveni) {
       }),
     ]),
   ]);
+}
+
+function sekceRole(nastaveni) {
+  const obsah = [h("p", { class: "muted", text: t.settings.rolesHint })];
+  for (const user of nastaveni.users.filter((u) => u.id !== nastaveni.adminUserId)) {
+    const vyber = selectInput([
+      { value: "user", label: t.settings.roleUser },
+      { value: "technician", label: t.settings.roleTechnician },
+    ], nastaveni.roles?.[user.id] || "user");
+    obsah.push(field(user.name || t.settings.unknownUser, vyber));
+    obsah.push(button(t.action.save, async () => {
+      try {
+        await api.setRole(user.id, vyber.value);
+        toast(t.settings.roleChanged);
+      } catch (error) {
+        toast(error.message, true);
+      }
+    }));
+  }
+  return karta(t.settings.roles, "devices", obsah);
 }
 
 /* ------------------------------------------------------------------ */

@@ -109,6 +109,18 @@ def admin(func):
     return wrapper
 
 
+def technician(func):
+    """House setup is available to an assigned technician or administrator."""
+
+    @wraps(func)
+    async def wrapper(self, request: web.Request, *args, **kwargs):
+        if self.role(request) not in ("technician", "admin"):
+            raise ApiError("Tohle může měnit jen technik domácnosti.", 403, "forbidden")
+        return await func(self, request, *args, **kwargs)
+
+    return wrapper
+
+
 class Sh4uView(HomeAssistantView):
     """Základ pro všechny naše pohledy."""
 
@@ -125,6 +137,15 @@ class Sh4uView(HomeAssistantView):
     @property
     def home(self) -> Home:
         return Home(self.hass, self.settings)
+
+    def presentation(self, request: web.Request):
+        settings = self.settings
+        if settings is None:
+            return None
+        return settings.presentation(request["hass_user"].id, self.role(request))
+
+    def home_for(self, request: web.Request) -> Home:
+        return Home(self.hass, self.presentation(request))
 
     def role(self, request: web.Request) -> str:
         user = request["hass_user"]
@@ -194,7 +215,8 @@ class ModelView(Sh4uView):
         if settings is not None and settings.admin_user_id is None and user.is_admin:
             await settings.claim_admin(user.id)
 
-        home = self.home
+        presentation = self.presentation(request)
+        home = Home(self.hass, presentation)
         return web.json_response(
             {
                 "version": VERSION,
@@ -209,7 +231,7 @@ class ModelView(Sh4uView):
                 "preset": settings.preset if settings else "prehled",
                 "bigControls": settings.big_controls if settings else False,
                 # Sestava plochy. None znamená "použij výchozí sestavu".
-                "board": settings.board(settings.preset) if settings else None,
+                "board": presentation.board(settings.preset) if settings else None,
                 "favorites": home.favorites(),
                 "summary": home.summary(),
                 "roomSummaries": home.room_summaries(),
@@ -227,15 +249,16 @@ class SectionView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request, kind: str) -> web.Response:
+        home = self.home_for(request)
         if kind == "scenes":
             return web.json_response(
                 {
-                    "scenes": self.home.by_kind("scene"),
-                    "scripts": self.home.by_kind("script"),
+                    "scenes": home.by_kind("scene"),
+                    "scripts": home.by_kind("script"),
                 }
             )
         if kind == "automations":
-            return web.json_response({"automations": self.home.by_kind("automation")})
+            return web.json_response({"automations": home.by_kind("automation")})
         raise ApiError("Neznámá sekce.", 404, "unknown_section")
 
 
@@ -252,11 +275,12 @@ class EntityBatchView(Sh4uView):
         if not isinstance(ids, list) or len(ids) > 500:
             raise ApiError("Neplatný požadavek.")
 
+        home = self.home_for(request)
         entities = [
             view
             for entity_id in ids
             if isinstance(entity_id, str)
-            and (view := self.home.entity(entity_id)) is not None
+            and (view := home.entity(entity_id)) is not None
         ]
         return web.json_response({"entities": entities})
 
@@ -267,7 +291,7 @@ class StructureView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request) -> web.Response:
-        return web.json_response(self.home.structure())
+        return web.json_response(self.home_for(request).structure())
 
 
 class TemplatesView(Sh4uView):
@@ -297,7 +321,7 @@ class ActionView(Sh4uView):
         if not isinstance(entity_id, str) or not isinstance(action, str):
             raise ApiError("Chybí zařízení nebo akce.")
 
-        view = self.home.entity(entity_id)
+        view = self.home_for(request).entity(entity_id)
         if view is None:
             raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
 
@@ -325,7 +349,7 @@ class DevicesView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request) -> web.Response:
-        return web.json_response({"devices": self.home.device_list()})
+        return web.json_response({"devices": self.home_for(request).device_list()})
 
 
 class DeviceView(Sh4uView):
@@ -334,13 +358,13 @@ class DeviceView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request, device_id: str) -> web.Response:
-        detail = self.home.device_detail(device_id)
+        detail = self.home_for(request).device_detail(device_id)
         if detail is None:
             raise ApiError("Zařízení už neexistuje.", 404, "unknown_device")
         return web.json_response(detail)
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, device_id: str) -> web.Response:
         devices = dr.async_get(self.hass)
         if devices.async_get(device_id) is None:
@@ -366,7 +390,7 @@ class EntityView(Sh4uView):
     name = "api:smarthome4u:entity"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, entity_id: str) -> web.Response:
         registry = er.async_get(self.hass)
         if registry.async_get(entity_id) is None:
@@ -410,7 +434,7 @@ class AreasView(Sh4uView):
     name = "api:smarthome4u:areas"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         floor_id = payload.get("floorId")
@@ -428,7 +452,7 @@ class AreaView(Sh4uView):
     name = "api:smarthome4u:area"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, area_id: str) -> web.Response:
         areas = ar.async_get(self.hass)
         if areas.async_get_area(area_id) is None:
@@ -457,7 +481,7 @@ class AreaDeleteView(Sh4uView):
     name = "api:smarthome4u:area:delete"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, area_id: str) -> web.Response:
         areas = ar.async_get(self.hass)
         if areas.async_get_area(area_id) is None:
@@ -472,7 +496,7 @@ class FloorsView(Sh4uView):
     name = "api:smarthome4u:floors"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         fr.async_get(self.hass).async_create(
@@ -486,7 +510,7 @@ class FloorView(Sh4uView):
     name = "api:smarthome4u:floor"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, floor_id: str) -> web.Response:
         floors = fr.async_get(self.hass)
         if floors.async_get_floor(floor_id) is None:
@@ -512,7 +536,7 @@ class FloorDeleteView(Sh4uView):
     name = "api:smarthome4u:floor:delete"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, floor_id: str) -> web.Response:
         floors = fr.async_get(self.hass)
         if floors.async_get_floor(floor_id) is None:
@@ -641,7 +665,7 @@ class IntegrationsView(Sh4uView):
     name = "api:smarthome4u:integrations"
 
     @handler
-    @admin
+    @technician
     async def get(self, request: web.Request) -> web.Response:
         names = await _integration_names(self.hass)
         devices = dr.async_get(self.hass)
@@ -690,7 +714,7 @@ class AvailableView(Sh4uView):
     name = "api:smarthome4u:integrations:available"
 
     @handler
-    @admin
+    @technician
     async def get(self, request: web.Request) -> web.Response:
         katalog = await _integration_catalog(self.hass)
         return web.json_response(
@@ -706,7 +730,7 @@ class FlowStartView(Sh4uView):
     name = "api:smarthome4u:flow:start"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         handler_domain = payload.get("handler")
@@ -725,7 +749,7 @@ class FlowStepView(Sh4uView):
     name = "api:smarthome4u:flow:step"
 
     @handler
-    @admin
+    @technician
     async def get(self, request: web.Request, flow_id: str) -> web.Response:
         for flow in self.hass.config_entries.flow.async_progress():
             if flow["flow_id"] == flow_id:
@@ -734,7 +758,7 @@ class FlowStepView(Sh4uView):
         raise ApiError("Průvodce už skončil.", 404, "flow_gone")
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, flow_id: str) -> web.Response:
         payload = await self.body(request)
         data = payload.get("data")
@@ -750,7 +774,7 @@ class FlowAbortView(Sh4uView):
     name = "api:smarthome4u:flow:abort"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, flow_id: str) -> web.Response:
         try:
             self.hass.config_entries.flow.async_abort(flow_id)
@@ -764,7 +788,7 @@ class EntryDeleteView(Sh4uView):
     name = "api:smarthome4u:integration:delete"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, entry_id: str) -> web.Response:
         if self.hass.config_entries.async_get_entry(entry_id) is None:
             raise ApiError("Tenhle systém už připojený není.", 404, "unknown_entry")
@@ -782,7 +806,7 @@ class AutomationsView(Sh4uView):
     name = "api:smarthome4u:automations"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         template_id = payload.get("templateId")
@@ -810,7 +834,7 @@ class AutomationBuildView(Sh4uView):
     name = "api:smarthome4u:automations:build"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         model = payload.get("model")
@@ -837,7 +861,7 @@ class AutomationModelView(Sh4uView):
     name = "api:smarthome4u:automation:model"
 
     @handler
-    @admin
+    @technician
     async def get(self, request: web.Request, automation_id: str) -> web.Response:
         config = await config_files.read_automation(self.hass, automation_id)
         if config is None:
@@ -859,7 +883,7 @@ class AutomationDeleteView(Sh4uView):
     name = "api:smarthome4u:automation:delete"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, automation_id: str) -> web.Response:
         await config_files.delete_automation(self.hass, automation_id)
         return web.json_response({"ok": True})
@@ -881,7 +905,7 @@ class ScenesView(Sh4uView):
     name = "api:smarthome4u:scenes"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         area_id = payload.get("areaId")
@@ -922,7 +946,7 @@ class SceneDeleteView(Sh4uView):
     name = "api:smarthome4u:scene:delete"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, scene_id: str) -> web.Response:
         await config_files.delete_scene(self.hass, scene_id)
         return web.json_response({"ok": True})
@@ -938,6 +962,7 @@ class SettingsView(Sh4uView):
     name = "api:smarthome4u:settings"
 
     @handler
+    @technician
     async def get(self, request: web.Request) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -955,6 +980,7 @@ class SettingsView(Sh4uView):
                 "presets": list(storage.PRESETY),
                 "unavailable": list(storage.PRIPRAVUJE_SE),
                 "adminUserId": settings.admin_user_id,
+                "roles": settings.data.get("roles", {}),
                 "kiosk": settings.kiosk,
                 "landing": settings.landing,
                 "bigControls": settings.big_controls,
@@ -1011,6 +1037,29 @@ class SettingsView(Sh4uView):
                 )
             await settings.set_admin(novy)
 
+        return web.json_response({"ok": True})
+
+
+class RoleView(Sh4uView):
+    """Only the owner can grant or revoke installer privileges."""
+
+    url = f"{API_BASE}/roles/{{user_id}}"
+    name = "api:smarthome4u:roles"
+
+    @handler
+    @admin
+    async def post(self, request: web.Request, user_id: str) -> web.Response:
+        settings = self.settings
+        payload = await self.body(request)
+        role = payload.get("role")
+        if role not in ("user", "technician"):
+            raise ApiError("Neplatná role.")
+        user = await self.hass.auth.async_get_user(user_id)
+        if user is None or not user.is_active or user.system_generated:
+            raise ApiError("Takový účet neexistuje.", 404, "unknown_user")
+        if user_id == settings.admin_user_id:
+            raise ApiError("Roli správce zde nelze změnit.")
+        await settings.set_role(user_id, role)
         return web.json_response({"ok": True})
 
 
@@ -1071,9 +1120,8 @@ class LayoutView(Sh4uView):
     name = "api:smarthome4u:layout"
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -1127,7 +1175,7 @@ class FloorplanView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             return web.json_response({"image": None, "points": []})
 
@@ -1154,9 +1202,8 @@ class FloorplanView(Sh4uView):
         )
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -1202,7 +1249,7 @@ class FloorplanImageView(Sh4uView):
     MAX_BYTU = 8 * 1024 * 1024
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -1268,9 +1315,8 @@ class DashboardView(Sh4uView):
     name = "api:smarthome4u:dashboard"
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -1345,9 +1391,8 @@ class FavoritesView(Sh4uView):
     name = "api:smarthome4u:favorites"
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -1381,7 +1426,7 @@ class ClassifyView(Sh4uView):
     name = "api:smarthome4u:entity:classify"
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request, entity_id: str) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -1409,9 +1454,8 @@ class FavoriteView(Sh4uView):
     name = "api:smarthome4u:favorite"
 
     @handler
-    @admin
     async def post(self, request: web.Request, entity_id: str) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -1455,6 +1499,7 @@ VIEWS = (
     ScenesView,
     SceneDeleteView,
     SettingsView,
+    RoleView,
     SystemView,
     UpdateInstallView,
     KioskView,

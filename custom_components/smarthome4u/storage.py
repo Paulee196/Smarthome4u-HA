@@ -50,6 +50,8 @@ PRIPRAVUJE_SE: frozenset[str] = frozenset()
 VYCHOZI: dict[str, Any] = {
     # HA user ID účtu, který smí měnit nastavení. Ostatní jen ovládají dům.
     "adminUserId": None,
+    "roles": {},
+    "profiles": {},
     "preset": PRESET_PREHLED,
     # Kiosk režim schová lištu i hlavičku Home Assistantu. Výchozí je zapnutý,
     # protože Smarthome4u má být nadstavba, ne další položka v menu.
@@ -120,7 +122,14 @@ class Settings:
                 return value
             return refs.normalize_ref(self.hass, value) or value
 
-        layout = self.data.setdefault("layout", {})
+        self._migrate_presentation(self.data, norm)
+        for profile in self.data.get("profiles", {}).values():
+            if isinstance(profile, dict):
+                self._migrate_presentation(profile, norm)
+
+    @staticmethod
+    def _migrate_presentation(data: dict, norm) -> None:
+        layout = data.setdefault("layout", {})
         sizes = layout.setdefault("sizes", {})
         if isinstance(sizes, dict):
             layout["sizes"] = {norm(key): value for key, value in sizes.items()}
@@ -133,19 +142,19 @@ class Settings:
                 if isinstance(order, list)
             }
 
-        overrides = self.data.setdefault("overrides", {})
+        overrides = data.setdefault("overrides", {})
         if isinstance(overrides, dict):
-            self.data["overrides"] = {
+            data["overrides"] = {
                 norm(key): value for key, value in overrides.items()
             }
 
-        favorites = self.data.setdefault("favorites", [])
+        favorites = data.setdefault("favorites", [])
         if isinstance(favorites, list):
-            self.data["favorites"] = [
+            data["favorites"] = [
                 norm(item) for item in favorites if isinstance(item, str)
             ]
 
-        floorplan = self.data.setdefault("floorplan", {})
+        floorplan = data.setdefault("floorplan", {})
         points = floorplan.setdefault("points", [])
         if isinstance(points, list):
             fixed = []
@@ -162,7 +171,7 @@ class Settings:
                 )
             floorplan["points"] = fixed
 
-        dashboard = self.data.setdefault("dashboard", {})
+        dashboard = data.setdefault("dashboard", {})
         if isinstance(dashboard, dict):
             for sestava in dashboard.values():
                 # Starší zápis je holý seznam, novější slovník se sloupci.
@@ -213,7 +222,26 @@ class Settings:
         spravce = self.data.get("adminUserId")
         if spravce is None:
             return "admin" if je_ha_admin else "user"
-        return "admin" if user_id == spravce else "user"
+        if user_id == spravce:
+            return "admin"
+        return (
+            "technician"
+            if self.data.get("roles", {}).get(user_id) == "technician"
+            else "user"
+        )
+
+    async def set_role(self, user_id: str, role: str) -> None:
+        if role == "technician":
+            self.data.setdefault("roles", {})[user_id] = role
+        elif role == "user":
+            self.data.setdefault("roles", {}).pop(user_id, None)
+        else:
+            raise ValueError(role)
+        await self.save()
+
+    def presentation(self, user_id: str, role: str):
+        """A user's own layout; installers keep editing the shared default."""
+        return self if role != "user" else UserPresentation(self, user_id)
 
     # ------------------------------------------------------------------
     # Podoba dashboardu
@@ -393,3 +421,35 @@ class Settings:
             pridano = True
         await self.save()
         return pridano
+
+
+class UserPresentation(Settings):
+    """Personal layout backed by the same HA Store as the shared settings."""
+
+    def __init__(self, parent: Settings, user_id: str) -> None:
+        self.parent = parent
+        self.hass = parent.hass
+        self.user_id = user_id
+        profiles = parent.data.setdefault("profiles", {})
+        self._new = user_id not in profiles
+        self.data = profiles.get(user_id) or {
+            key: deepcopy(parent.data[key])
+            for key in ("layout", "favorites", "floorplan", "dashboard")
+        }
+
+    @property
+    def overrides(self) -> dict[str, dict]:
+        return self.parent.overrides
+
+    @property
+    def floorplan(self) -> dict[str, Any]:
+        plan = super().floorplan
+        # The image belongs to the house; each user may place their own points.
+        plan["image"] = self.parent.floorplan["image"]
+        return plan
+
+    async def save(self) -> None:
+        if self._new:
+            self.parent.data.setdefault("profiles", {})[self.user_id] = self.data
+            self._new = False
+        await self.parent.save()

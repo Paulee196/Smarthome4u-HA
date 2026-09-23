@@ -40,7 +40,7 @@ Ovládání podle typu zařízení: stmívání, teplota bílé, barva, poloha a
 
 ## Instalace
 
-Potřebujete **Home Assistant 2024.8 nebo novější**. Funguje na OS, Container,
+Potřebujete **Home Assistant 2026.8 nebo novější**. Funguje na OS, Container,
 Core i Supervised.
 
 ### Přes HACS
@@ -63,6 +63,13 @@ Core i Supervised.
 
 V **Možnostech** integrace jde vypnout schování lišty Home Assistantu i
 automatické přistání po přihlášení. Ve výchozím stavu je obojí zapnuté.
+
+Každý člen domácnosti si může upravit vlastní plochu a oblíbené položky.
+Správce v Nastavení přiděluje roli technika; technik může spravovat zařízení,
+místnosti, integrace, scény a automatizace. Systémové volby a role mění správce.
+Plocha Smarthome4u je samostatný panel. V Home Assistantu zůstávají nativní
+zařízení, místnosti, scény a automatizace; rozvržení plochy se do Lovelace
+zatím nepřenáší.
 
 ---
 

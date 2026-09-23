@@ -413,6 +413,7 @@ export const t = {
     account: "Účet",
     unknownUser: "Neznámý uživatel",
     youAreAdmin: "Jste správce domácnosti. Můžete měnit vše.",
+    youAreTechnician: "Jste technik domácnosti. Můžete nastavovat dům.",
     technician: "Technický režim",
     technicianHint:
       "Ukáže automatizace, zařízení a integrace. Vypnutím uvidíte " +
@@ -433,7 +434,7 @@ export const t = {
       dark: "Barvy Smarthome4u, vždy tmavé",
       ha: "Převezme barvy z motivu, který máte v Home Assistantu",
     },
-    youAreUser: "Můžete ovládat dům. Nastavení mění správce.",
+    youAreUser: "Můžete ovládat dům a upravit si vlastní plochu.",
     onlyAdmin: "Nastavení může měnit jen správce domácnosti.",
 
     appearance: "Vzhled",
@@ -465,6 +466,11 @@ export const t = {
       "Správcem může být jen administrátor Home Assistantu.",
     adminAccount: "Účet správce",
     adminChanged: "Správce změněn.",
+    roles: "Přístup techniků",
+    rolesHint: "Technik může nastavovat zařízení a automatizace. Správce může měnit role a systém.",
+    roleUser: "Uživatel",
+    roleTechnician: "Technik",
+    roleChanged: "Přístup účtu byl uložen.",
 
     system: "Systém",
     appVersion: "Smarthome4u",

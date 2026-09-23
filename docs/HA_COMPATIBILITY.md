@@ -31,6 +31,8 @@ Vše v `home.py`.
 | `hass.config_entries.async_entries` | Připojené integrace | veřejné |
 | `er.async_entries_for_device` | Entity jednoho zařízení | veřejné |
 | `device.primary_config_entry` | Vlastník zařízení (HA 2026.8+) | veřejné |
+| `request["hass_user"].id` | Oddělení osobních ploch a kontrola role (HA 2026.8+) | veřejné |
+| `hass.auth.async_get_user` | Ověření účtu při přidělení technické role (HA 2026.8+) | veřejné |
 
 Model se nikde necachuje. Při každém požadavku se čte živý stav, takže nemůže
 vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.

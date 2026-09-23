@@ -192,8 +192,7 @@ function paintUpravit() {
   const koren = el.settings.getRootNode?.();
   let tlacitko = koren?.getElementById?.("uprava-button");
 
-  const jeSpravce = state.model?.user?.role === "admin";
-  const jdeUpravit = state.route === "home" && jeSpravce;
+  const jdeUpravit = state.route === "home";
 
   if (!jdeUpravit) {
     tlacitko?.remove();
@@ -268,12 +267,12 @@ async function loadModel() {
     // Režim se řídí přihlášeným účtem. Správce domácnosti nastavuje,
     // takže začíná v technickém režimu. Kdo není správce, technický
     // režim nevidí vůbec - a to ani když si ho někdo zkusil uložit.
-    const jeSpravce = state.model.user?.role === "admin";
-    state.rezim = jeSpravce ? zapamatovanyRezim() : "user";
+    const jeTechnik = ["admin", "technician"].includes(state.model.user?.role);
+    state.rezim = jeTechnik ? zapamatovanyRezim() : "user";
 
     nastavitOblibene(
       (state.model.favorites || []).map((e) => e.ref || e.id),
-      jeSpravce,
+      true,
       loadModel,
     );
 
