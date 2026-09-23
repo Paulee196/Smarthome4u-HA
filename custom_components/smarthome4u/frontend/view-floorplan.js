@@ -28,12 +28,12 @@ export async function renderFloorplan(root, ctx) {
     return;
   }
 
-  const jeSpravce = ctx.model?.user?.role === "admin";
+  const jeTechnik = ["admin", "technician"].includes(ctx.model?.user?.role);
 
-  if (jeSpravce) {
+  if (jeTechnik || ctx.editing) {
     root.append(
       h("div", { class: "row row--end" }, [
-        button(t.floorplan.upload, () => nahrat(ctx), "button--ghost"),
+        jeTechnik && button(t.floorplan.upload, () => nahrat(ctx), "button--ghost"),
         ctx.editing &&
           button(t.floorplan.addDevice, () => pridatBod(ctx, plan), "button--ghost"),
       ]),
@@ -41,7 +41,7 @@ export async function renderFloorplan(root, ctx) {
   }
 
   if (!plan.image) {
-    root.append(emptyState(jeSpravce ? t.floorplan.empty : t.floorplan.emptyUser));
+    root.append(emptyState(jeTechnik ? t.floorplan.empty : t.floorplan.emptyUser));
     return;
   }
 

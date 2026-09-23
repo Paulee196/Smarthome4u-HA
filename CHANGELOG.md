@@ -2,6 +2,17 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.11.1]
+
+### Opraveno
+
+- Každý člen domácnosti si může upravit vlastní plochu, pořadí místností,
+  oblíbené položky a body půdorysu bez změny plochy ostatních účtů.
+- Správce může účtu přidělit technickou roli. Technik spravuje dům,
+  systémová nastavení a role zůstávají správci.
+- Dokumentace nyní uvádí správnou minimální verzi Home Assistantu a jasně
+  popisuje vztah vlastní plochy k dashboardu Lovelace.
+
 ## [0.11.0]
 
 ### Přidáno

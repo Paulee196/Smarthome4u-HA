@@ -3,9 +3,24 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 21. 9. 2026
-**Aktuální verze:** 0.11.0
-**Fáze:** nadstavba běží na reálném Home Assistantu, ladí se vzhled a ovládání
+**Poslední aktualizace:** 23. 9. 2026
+**Aktuální verze v kódu:** 0.11.1
+**Fáze:** oprava oprávnění a osobních dashboardů; ověření na reálném Home Assistantu zbývá
+
+---
+
+## Oprava 0.11.1
+
+- [x] Osobní oblíbené, bloky, pořadí a body půdorysu se ukládají podle HA user ID.
+- [x] Původní společná plocha zůstává výchozí, dokud si uživatel neuloží vlastní.
+- [x] Správce přiděluje technickou roli; backend rozlišuje uživatele, technika a správce.
+- [x] Běžný uživatel může měnit jen vlastní prezentaci, ne registry ani integrace.
+- [x] V dokumentaci je vyjasněno, že Smarthome4u panel se do Lovelace nesynchronizuje.
+- [ ] Integrační testy v CI a ověření na skutečné instalaci Home Assistantu.
+
+Další krok: dokončit integrační ověření a potom postupně uzavírat ostatní
+neověřené cesty ze seznamu níže. Export plochy do Lovelace (`lovelace_export`)
+je samostatný budoucí úkol; nesmí zapisovat přímo do `.storage/lovelace*`.
 
 ---
 
