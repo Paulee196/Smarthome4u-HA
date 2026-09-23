@@ -6,7 +6,7 @@
 
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
-import { iconFor } from "./icons.js";
+import { icon, iconFor } from "./icons.js";
 import {
   h,
   button,
@@ -79,6 +79,7 @@ const HAS_DETAIL = new Set([
   "counter",
   "timer",
   "media_player",
+  "camera",
 ]);
 
 function hasExtraControls(entity) {
@@ -118,7 +119,7 @@ function levelOf(entity) {
 
 /* Velikosti dlaždice. Velká nemá jen víc místa - ukazuje rovnou ovládání,
    takže se stmívá nebo nastavuje teplota bez otevírání detailu. */
-export const VELIKOSTI_DLAZDIC = ["s", "m", "l"];
+export const VELIKOSTI_DLAZDIC = ["s", "m", "l", "xl"];
 
 /**
  * Dlaždice do mřížky. Ikona, název, stav a případný proužek úrovně.
@@ -133,10 +134,14 @@ export function card(entity, volby = {}) {
   const detail = hasExtraControls(entity);
   const interactive = Boolean(primary) || detail;
   const velikost = VELIKOSTI_DLAZDIC.includes(volby.size) ? volby.size : "m";
+  const appearance = volby.appearance || {};
+  const color = ["mint", "blue", "violet", "amber", "rose"].includes(appearance.color)
+    ? appearance.color : "default";
   // Velká dlaždice s ovládáním má smysl jen tam, kde je co ovládat.
-  const sOvladanim = velikost === "l" && detail;
+  const sOvladanim = ["l", "xl"].includes(velikost) && detail && kind !== "camera";
 
-  const glyph = h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg"));
+  const glyph = h("span", { class: "card__icon" },
+    appearance.icon ? icon(appearance.icon, "icon icon--lg") : iconFor(entity, "icon icon--lg"));
 
   // U kamery se místo ikony ukáže obrázek z Home Assistantu.
   const nahled =
@@ -148,7 +153,7 @@ export function card(entity, volby = {}) {
           loading: "lazy",
         })
       : null;
-  const name = h("span", { class: "card__name", text: entity.name });
+  const name = h("span", { class: "card__name", text: appearance.label || entity.name });
   const state = h("span", { class: "card__state" });
   const level = h("span", { class: "card__level" });
 
@@ -194,6 +199,7 @@ export function card(entity, volby = {}) {
       "card",
       "card--" + stav,
       "card--" + velikost,
+      "card--tone-" + color,
       stara ? "card--" + stara : "",
     ]
       .filter(Boolean)
@@ -206,9 +212,12 @@ export function card(entity, volby = {}) {
     current = next;
     const { text, tone } = describeState(next);
 
-    name.textContent = next.name;
+    name.textContent = appearance.label || next.name;
     state.textContent = text;
     root.className = trida(tone, next.size);
+    if (nahled && next.attributes?.entity_picture) {
+      nahled.src = next.attributes.entity_picture;
+    }
 
     const pct = levelOf(next);
     level.style.width = pct === null ? "0" : `${pct}%`;
@@ -535,6 +544,15 @@ function buildControls(entity, volby = {}) {
             ),
           ),
         );
+      }
+      break;
+
+    case "camera":
+      if (!jenOvladani && attrs.entity_picture) {
+        parts.push(h("img", {
+          class: "controls__camera", src: attrs.entity_picture,
+          alt: entity.name, loading: "lazy",
+        }));
       }
       break;
 

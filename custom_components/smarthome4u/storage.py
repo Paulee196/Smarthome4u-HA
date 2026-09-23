@@ -11,15 +11,14 @@ from __future__ import annotations
 
 import json
 import logging
+from copy import deepcopy
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from copy import deepcopy
-
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN
 from . import refs
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,15 +31,21 @@ STORAGE_KEY = f"{DOMAIN}.settings"
 # takže jako podoba plochy by to bylo totéž dvakrát.
 PRESET_PREHLED = "prehled"
 PRESET_PUDORYS = "pudorys"
-PRESET_PANEL = "panel"
+PRESET_TUYA = "tuya"
+PRESET_HOME = "home"
 
 # Co existovalo dřív a má se tiše převést.
-PRESETY_ZRUSENE = {"mistnosti": PRESET_PREHLED, "funkce": PRESET_PREHLED}
+PRESETY_ZRUSENE = {
+    "mistnosti": PRESET_PREHLED,
+    "funkce": PRESET_PREHLED,
+    "panel": PRESET_PREHLED,
+}
 
 PRESETY = (
-    PRESET_PREHLED,
-    PRESET_PANEL,
+    PRESET_TUYA,
+    PRESET_HOME,
     PRESET_PUDORYS,
+    PRESET_PREHLED,
 )
 
 # Podoby, které jsou zatím jen připravené a nejdou vybrat.
@@ -52,7 +57,7 @@ VYCHOZI: dict[str, Any] = {
     "adminUserId": None,
     "roles": {},
     "profiles": {},
-    "preset": PRESET_PREHLED,
+    "preset": PRESET_TUYA,
     # Kiosk režim schová lištu i hlavičku Home Assistantu. Výchozí je zapnutý,
     # protože Smarthome4u má být nadstavba, ne další položka v menu.
     "kiosk": True,
@@ -164,6 +169,11 @@ class Settings:
                 ref = point.get("entityRef") or point.get("entityId")
                 fixed.append(
                     {
+                        **{
+                            key: point[key]
+                            for key in ("label", "icon", "color", "size")
+                            if key in point
+                        },
                         "entityRef": norm(ref),
                         "x": point.get("x"),
                         "y": point.get("y"),
@@ -190,6 +200,11 @@ class Settings:
                     if isinstance(velikosti, dict):
                         block["sizes"] = {
                             norm(key): value for key, value in velikosti.items()
+                        }
+                    tile_styles = block.get("tileStyles")
+                    if isinstance(tile_styles, dict):
+                        block["tileStyles"] = {
+                            norm(key): value for key, value in tile_styles.items()
                         }
 
     # ------------------------------------------------------------------
@@ -251,7 +266,7 @@ class Settings:
     def preset(self) -> str:
         hodnota = self.data.get("preset")
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
-        return hodnota if hodnota in PRESETY else PRESET_PREHLED
+        return hodnota if hodnota in PRESETY else PRESET_TUYA
 
     async def set_preset(self, preset: str) -> None:
         if preset not in PRESETY or preset in PRIPRAVUJE_SE:
@@ -297,6 +312,9 @@ class Settings:
         """
         ulozene = self.data.get("dashboard") or {}
         sestava = ulozene.get(preset)
+        # Starý nástěnný panel lze dál upravovat jako přehled.
+        if sestava is None and preset == PRESET_PREHLED:
+            sestava = ulozene.get("panel")
 
         if isinstance(sestava, list):
             return {"columns": 1, "blocks": sestava}
@@ -434,8 +452,14 @@ class UserPresentation(Settings):
         self._new = user_id not in profiles
         self.data = profiles.get(user_id) or {
             key: deepcopy(parent.data[key])
-            for key in ("layout", "favorites", "floorplan", "dashboard")
+            for key in ("preset", "layout", "favorites", "floorplan", "dashboard")
         }
+
+    @property
+    def preset(self) -> str:
+        hodnota = self.data.get("preset", self.parent.preset)
+        hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
+        return hodnota if hodnota in PRESETY else self.parent.preset
 
     @property
     def overrides(self) -> dict[str, dict]:

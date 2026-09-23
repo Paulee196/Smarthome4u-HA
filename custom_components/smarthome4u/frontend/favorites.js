@@ -11,11 +11,12 @@
  */
 
 import { t } from "./i18n.js";
-import { card, VELIKOSTI_DLAZDIC } from "./controls.js";
+import { card } from "./controls.js";
+import { editAppearance } from "./appearance.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
-import { iconFor } from "./icons.js";
+import { icon, iconFor } from "./icons.js";
 import { vybratZarizeni } from "./picker.js";
-import { h, closeDialog, dialog } from "./ui.js";
+import { h, closeDialog } from "./ui.js";
 
 /**
  * @param {object} ctx kontext aplikace
@@ -25,6 +26,7 @@ import { h, closeDialog, dialog } from "./ui.js";
 export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
   const seznam = blok.entities || [];
   const velikosti = blok.sizes || {};
+  const styly = blok.tileStyles || {};
 
   const zarizeni = seznam
     .map((ref) => ctx.entityByRef(ref))
@@ -36,7 +38,9 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
     return h(
       "div",
       { class: "cards" },
-      zarizeni.map((e) => card(e, { size: velikost(e) })),
+      zarizeni.map((e) => card(e, {
+        size: velikost(e), appearance: styly[ctx.entityRef(e)] || {},
+      })),
     );
   }
 
@@ -44,7 +48,7 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
 
   const mrizka = h("div", { class: "cards" });
   for (const entity of zarizeni) {
-    mrizka.append(misto(ctx, entity, velikost(entity), seznam, velikosti, uloz));
+    mrizka.append(misto(ctx, entity, velikost(entity), seznam, velikosti, styly, uloz));
   }
   mrizka.append(prazdneMisto(ctx, seznam, uloz));
 
@@ -58,12 +62,13 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
 /* Jedno místo                                                         */
 /* ------------------------------------------------------------------ */
 
-function misto(ctx, entity, velikost, seznam, velikosti, uloz) {
+function misto(ctx, entity, velikost, seznam, velikosti, styly, uloz) {
   const ref = ctx.entityRef(entity);
+  const vzhled = styly[ref] || {};
 
   const obal = h(
     "div",
-    { class: "card card--edit card--" + velikost, "data-dnd-handle": "" },
+    { class: `card card--edit card--${velikost} card--tone-${vzhled.color || "default"}`, "data-dnd-handle": "" },
     [
       h("span", { class: "dnd__uchyt", text: "⠿" }),
       h(
@@ -72,11 +77,11 @@ function misto(ctx, entity, velikost, seznam, velikosti, uloz) {
           class: "card__hit",
           type: "button",
           "aria-label": entity.name + " - " + t.editor.tileMenu,
-          onclick: () => nabidka(ctx, entity, velikost, seznam, velikosti, uloz),
+          onclick: () => nabidka(ctx, entity, velikost, seznam, velikosti, styly, uloz),
         },
         [
-          h("span", { class: "card__icon" }, iconFor(entity, "icon icon--lg")),
-          h("span", { class: "card__name", text: entity.name }),
+          h("span", { class: "card__icon" }, vzhled.icon ? icon(vzhled.icon, "icon icon--lg") : iconFor(entity, "icon icon--lg")),
+          h("span", { class: "card__name", text: vzhled.label || entity.name }),
           h("span", {
             class: "card__state",
             text: t.editor.sizes[velikost] + " · " + t.favorites.tapToEdit,
@@ -88,7 +93,7 @@ function misto(ctx, entity, velikost, seznam, velikosti, uloz) {
         type: "button",
         "aria-label": t.favorites.remove,
         text: "✕",
-        onclick: () => odebrat(ref, seznam, velikosti, uloz),
+        onclick: () => odebrat(ref, seznam, velikosti, styly, uloz),
       }),
     ],
   );
@@ -118,84 +123,60 @@ function prazdneMisto(ctx, seznam, uloz) {
 
 /* Jedno klepnutí, tři možnosti. Nic z toho se neschovává do gesta,
    které by člověk musel znát předem. */
-function nabidka(ctx, entity, velikost, seznam, velikosti, uloz) {
+function nabidka(ctx, entity, velikost, seznam, velikosti, styly, uloz) {
   const ref = ctx.entityRef(entity);
-
-  const volbaVelikosti = h(
-    "div",
-    { class: "segmented" },
-    VELIKOSTI_DLAZDIC.map((v) =>
-      h("button", {
-        class: "segmented__item" + (v === velikost ? " segmented__item--active" : ""),
-        type: "button",
-        text: t.editor.sizes[v],
-        "aria-pressed": String(v === velikost),
-        onclick: () => {
-          closeDialog();
-          const nove = { ...velikosti };
-          if (v === "m") delete nove[ref];
-          else nove[ref] = v;
-          uloz({ sizes: nove });
-        },
-      }),
-    ),
-  );
-
-  dialog(
-    entity.name,
-    h("div", { class: "stack" }, [
-      h("p", { class: "muted", text: t.editor.sizeHint }),
-      volbaVelikosti,
-      h(
-        "button",
-        {
-          class: "tile tile--volba",
-          type: "button",
-          onclick: () => {
-            closeDialog();
-            vymenit(ctx, entity, seznam, uloz);
-          },
-        },
-        [
-          h("span", { class: "tile__body" }, [
-            h("span", { class: "tile__name", text: t.favorites.replace }),
-            h("span", { class: "tile__state", text: t.favorites.replaceHint }),
-          ]),
-        ],
-      ),
-      h(
-        "button",
-        {
-          class: "tile tile--volba tile--danger",
-          type: "button",
-          onclick: () => {
-            closeDialog();
-            odebrat(ref, seznam, velikosti, uloz);
-          },
-        },
-        [
-          h("span", { class: "tile__body" }, [
-            h("span", { class: "tile__name", text: t.favorites.remove }),
-            h("span", { class: "tile__state", text: t.favorites.removeHint }),
-          ]),
-        ],
-      ),
-    ]),
-  );
+  const vzhled = styly[ref] || {};
+  const extra = h("div", { class: "row" }, [
+    h("button", {
+      class: "button button--ghost", type: "button", text: t.favorites.replace,
+      onclick: () => {
+        closeDialog();
+        vymenit(ctx, entity, seznam, velikosti, styly, uloz);
+      },
+    }),
+    h("button", {
+      class: "button button--ghost", type: "button", text: t.favorites.remove,
+      onclick: () => {
+        closeDialog();
+        odebrat(ref, seznam, velikosti, styly, uloz);
+      },
+    }),
+  ]);
+  editAppearance(vzhled.label || entity.name, { ...vzhled, size: velikost }, (next) => {
+    const noveStyly = { ...styly, [ref]: {
+      label: next.label, icon: next.icon, color: next.color,
+    } };
+    const noveVelikosti = { ...velikosti, [ref]: next.size };
+    uloz({ tileStyles: noveStyly, sizes: noveVelikosti });
+  }, { extra });
 }
 
 /* ------------------------------------------------------------------ */
 /* Akce                                                                */
 /* ------------------------------------------------------------------ */
 
-function vymenit(ctx, entity, seznam, uloz) {
+function vymenit(ctx, entity, seznam, velikosti, styly, uloz) {
   const puvodni = ctx.entityRef(entity);
 
   vybratZarizeni(ctx, {
     nadpis: t.favorites.replace,
     vybrane: puvodni,
-    onVyber: (novy) =>
-      uloz({ entities: seznam.map((ref) => (ref === puvodni ? novy : ref)) }),
+    onVyber: (novy) => {
+      const sizes = { ...velikosti };
+      const tileStyles = { ...styly };
+      if (sizes[puvodni]) {
+        sizes[novy] = sizes[puvodni];
+        delete sizes[puvodni];
+      }
+      if (tileStyles[puvodni]) {
+        tileStyles[novy] = tileStyles[puvodni];
+        delete tileStyles[puvodni];
+      }
+      uloz({
+        entities: seznam.map((ref) => (ref === puvodni ? novy : ref)),
+        sizes, tileStyles,
+      });
+    },
   });
 }
 
@@ -211,8 +192,10 @@ function pridat(ctx, seznam, uloz) {
   });
 }
 
-function odebrat(ref, seznam, velikosti, uloz) {
+function odebrat(ref, seznam, velikosti, styly, uloz) {
   const nove = { ...velikosti };
+  const noveStyly = { ...styly };
   delete nove[ref];
-  uloz({ entities: seznam.filter((id) => id !== ref), sizes: nove });
+  delete noveStyly[ref];
+  uloz({ entities: seznam.filter((id) => id !== ref), sizes: nove, tileStyles: noveStyly });
 }

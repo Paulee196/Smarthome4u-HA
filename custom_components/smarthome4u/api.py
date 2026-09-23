@@ -228,10 +228,12 @@ class ModelView(Sh4uView):
                     "name": user.name,
                     "role": self.role(request),
                 },
-                "preset": settings.preset if settings else "prehled",
+                "preset": presentation.preset if presentation else storage.PRESET_TUYA,
                 "bigControls": settings.big_controls if settings else False,
                 # Sestava plochy. None znamená "použij výchozí sestavu".
-                "board": presentation.board(settings.preset) if settings else None,
+                "board": (
+                    presentation.board(presentation.preset) if presentation else None
+                ),
                 "favorites": home.favorites(),
                 "summary": home.summary(),
                 "roomSummaries": home.room_summaries(),
@@ -1040,6 +1042,25 @@ class SettingsView(Sh4uView):
         return web.json_response({"ok": True})
 
 
+class PresetView(Sh4uView):
+    """A member may choose a dashboard without changing anyone else's view."""
+
+    url = f"{API_BASE}/preset"
+    name = "api:smarthome4u:preset"
+
+    @handler
+    async def post(self, request: web.Request) -> web.Response:
+        presentation = self.presentation(request)
+        if presentation is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+        payload = await self.body(request)
+        preset = payload.get("preset")
+        if preset not in storage.PRESETY:
+            raise ApiError("Neznámá podoba plochy.")
+        await presentation.set_preset(preset)
+        return web.json_response({"ok": True})
+
+
 class RoleView(Sh4uView):
     """Only the owner can grant or revoke installer privileges."""
 
@@ -1192,6 +1213,7 @@ class FloorplanView(Sh4uView):
                     "entityId": entity_id,
                     "x": point.get("x"),
                     "y": point.get("y"),
+                    **tile_style(point),
                 }
             )
         return web.json_response(
@@ -1227,7 +1249,12 @@ class FloorplanView(Sh4uView):
                 if not isinstance(y, (int, float)) or not 0 <= y <= 100:
                     raise ApiError("Neplatné rozmístění.")
                 ocistene.append(
-                    {"entityRef": entity_ref, "x": round(x, 2), "y": round(y, 2)}
+                    {
+                        "entityRef": entity_ref,
+                        "x": round(x, 2),
+                        "y": round(y, 2),
+                        **tile_style(bod),
+                    }
                 )
 
             await settings.set_floorplan_points(ocistene)
@@ -1300,7 +1327,33 @@ MAX_BLOKU = 30
 MAX_V_BLOKU = 60
 # Sloupce plochy. Víc než čtyři se nevejdou ani na velkou obrazovku.
 MAX_SLOUPCU = 4
-VELIKOSTI_DLAZDIC = ("s", "m", "l")
+VELIKOSTI_DLAZDIC = ("s", "m", "l", "xl")
+BARVY_DLAZDIC = frozenset({"default", "mint", "blue", "violet", "amber", "rose"})
+IKONY_DLAZDIC = frozenset({
+    "home", "rooms", "lighting", "switch", "cover", "climate", "lock",
+    "fan", "media", "security", "temperature", "humidity", "power",
+    "door", "window", "water", "smoke", "sensor", "person", "scenes",
+    "devices", "camera", "automations",
+})
+
+
+def tile_style(raw: Any) -> dict[str, str]:
+    """Only presentation values from a small allowlist reach the browser."""
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, str] = {}
+    label = raw.get("label")
+    if isinstance(label, str) and label.strip():
+        result["label"] = label.strip()[:80]
+    for key, allowed in (
+        ("icon", IKONY_DLAZDIC),
+        ("color", BARVY_DLAZDIC),
+        ("size", VELIKOSTI_DLAZDIC),
+    ):
+        value = raw.get(key)
+        if isinstance(value, str) and value in allowed:
+            result[key] = value
+    return result
 
 
 class DashboardView(Sh4uView):
@@ -1347,6 +1400,12 @@ class DashboardView(Sh4uView):
             nadpis = blok.get("title")
             if isinstance(nadpis, str) and nadpis.strip():
                 novy["title"] = nadpis.strip()[:60]
+            if isinstance(blok.get("icon"), str) and blok["icon"] in IKONY_DLAZDIC:
+                novy["icon"] = blok["icon"]
+            if isinstance(blok.get("color"), str) and blok["color"] in BARVY_DLAZDIC:
+                novy["color"] = blok["color"]
+            if blok.get("height") in ("compact", "normal", "large"):
+                novy["height"] = blok["height"]
 
             # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.
             sirka = blok.get("cols")
@@ -1372,6 +1431,16 @@ class DashboardView(Sh4uView):
                     if isinstance(klic, str)
                     and velikost in VELIKOSTI_DLAZDIC
                     and (ref := refs.normalize_ref(self.hass, klic)) is not None
+                }
+
+            styles = blok.get("tileStyles")
+            if isinstance(styles, dict):
+                novy["tileStyles"] = {
+                    ref: clean
+                    for key, raw in styles.items()
+                    if isinstance(key, str)
+                    and (ref := refs.normalize_ref(self.hass, key)) is not None
+                    and (clean := tile_style(raw))
                 }
 
             ocistene.append(novy)
@@ -1499,6 +1568,7 @@ VIEWS = (
     ScenesView,
     SceneDeleteView,
     SettingsView,
+    PresetView,
     RoleView,
     SystemView,
     UpdateInstallView,

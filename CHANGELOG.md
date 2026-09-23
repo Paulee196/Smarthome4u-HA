@@ -2,6 +2,22 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.12.0]
+
+### Přidáno
+
+- Čtyři volitelné podoby plochy: kompaktní Chytrá domácnost inspirovaná Tuya,
+  klidnější Domov inspirovaný Google Home a Apple Home, Půdorys a Přehled HA.
+- Samostatný vzhled dlaždic a bodů na plánku: název, ikona, barva a velikost.
+  Bloky mají vlastní název, ikonu, barvu, výšku a šířku.
+- Náhled kamery na dlaždici a v jejím detailu, pokud jej entita poskytuje.
+
+### Změněno
+
+- Volba podoby plochy se ukládá ke konkrétnímu účtu. Staré rozvržení
+  Nástěnného panelu se zobrazí v Přehledu HA.
+- Široké bloky se na desktopu roztáhnou na zvolený počet sloupců.
+
 ## [0.11.1]
 
 ### Opraveno

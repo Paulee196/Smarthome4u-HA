@@ -10,6 +10,7 @@
  */
 
 import { api } from "./api.js";
+import { editBlockAppearance } from "./appearance.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
@@ -21,7 +22,6 @@ import {
   closeDialog,
   dialog,
   emptyState,
-  textInput,
   toast,
 } from "./ui.js";
 
@@ -82,24 +82,35 @@ const JEDNOU = new Set(["clock", "status", "rooms", "actions"]);
  */
 export function vychozi(preset, model) {
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
+  const druhy = new Set(["light", "switch", "cover", "climate", "lock", "camera", "fan", "media_player"]);
+  const navrh = (model.rooms || []).flatMap((room) => room.entities || [])
+    .filter((e) => druhy.has(e.capability?.kind) && e.available)
+    .slice(0, 8).map((e) => e.ref || e.id);
+  const vybrane = oblibene.length ? oblibene : navrh;
 
-  if (preset === "panel") {
+  if (preset === "tuya") {
     return {
       columns: 2,
       blocks: [
-        { id: "b1", type: "clock", cols: 2 },
-        { id: "b2", type: "alerts", cols: 2 },
-        { id: "b3", type: "open" },
-        { id: "b4", type: "playing" },
-        { id: "b5", type: "lights", cols: 2 },
-        {
-          id: "b6",
-          type: "entities",
-          title: t.home.favorites,
-          entities: oblibene,
-          cols: 2,
-        },
-        { id: "b7", type: "rooms", cols: 2 },
+        { id: "tuya-status", type: "status", cols: 2, color: "blue" },
+        { id: "tuya-devices", type: "entities", title: t.blocks.entities,
+          entities: vybrane, cols: 2 },
+        { id: "tuya-rooms", type: "rooms", cols: 2 },
+        { id: "tuya-scenes", type: "scenes", cols: 2 },
+      ],
+    };
+  }
+
+  if (preset === "home") {
+    return {
+      columns: 2,
+      blocks: [
+        { id: "home-status", type: "status", cols: 2, color: "mint", height: "large" },
+        { id: "home-rooms", type: "rooms", cols: 2 },
+        { id: "home-devices", type: "entities", title: t.home.favorites,
+          entities: vybrane, cols: 2 },
+        { id: "home-scenes", type: "scenes", cols: 2 },
+        { id: "home-actions", type: "actions", cols: 2 },
       ],
     };
   }
@@ -113,7 +124,7 @@ export function vychozi(preset, model) {
         id: "b3",
         type: "entities",
         title: t.home.favorites,
-        entities: oblibene,
+        entities: vybrane,
         cols: 2,
       },
       { id: "b4", type: "scenes" },
@@ -127,7 +138,7 @@ export function vychozi(preset, model) {
 /* ------------------------------------------------------------------ */
 
 export function vykreslitPlochu(root, ctx) {
-  const preset = ctx.model.preset || "prehled";
+  const preset = ctx.model.preset || "tuya";
   const sestava = ctx.model.board?.blocks
     ? ctx.model.board
     : vychozi(preset, ctx.model);
@@ -204,6 +215,17 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
   // Mimo úpravy nemá smysl ukazovat prázdný rámeček.
   if (!obsah && !ctx.editing) return null;
 
+  if (obsah) {
+    const tone = ["mint", "blue", "violet", "amber", "rose"].includes(blok.color)
+      ? blok.color : "default";
+    obsah.classList.add("dashboard-block", "dashboard-block--" + tone,
+      "dashboard-block--" + (blok.height || "normal"));
+    const title = obsah.querySelector(".panel__title");
+    if (title && blok.title) title.textContent = blok.title;
+    const glyph = obsah.querySelector(".panel__glyph");
+    if (glyph && blok.icon) glyph.replaceChildren(icon(blok.icon));
+  }
+
   if (!ctx.editing) {
     obsah.style.setProperty("--sirka", String(sirka));
     obsah.classList.add("plocha__blok");
@@ -217,8 +239,8 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
         class: "blok__jmeno",
         type: "button",
         text: blok.title || t.blocks[blok.type],
-        title: t.editor.rename,
-        onclick: () => prejmenovat(blok, nahradit),
+        title: t.editor.blockAppearance,
+        onclick: () => editBlockAppearance(blok, nahradit),
       }),
       h("button", {
         class: "blok__akce",
@@ -243,37 +265,6 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
   obal.setAttribute(ATRIBUT_KLICE, blok.id);
   obal.setAttribute("data-dnd-handle", "");
   return obal;
-}
-
-function prejmenovat(blok, nahradit) {
-  const vstup = textInput(blok.title || "", t.blocks[blok.type]);
-
-  const potvrdit = () => {
-    closeDialog();
-    const nazev = vstup.value.trim();
-    const novy = { ...blok };
-    if (nazev) novy.title = nazev;
-    else delete novy.title;
-    nahradit(novy);
-  };
-
-  vstup.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") potvrdit();
-  });
-
-  dialog(
-    t.editor.rename,
-    h("div", { class: "stack" }, [
-      h("p", { class: "muted", text: t.editor.renameHint }),
-      vstup,
-      h("div", { class: "row" }, [
-        button(t.action.cancel, closeDialog, "button--ghost"),
-        button(t.action.save, potvrdit),
-      ]),
-    ]),
-  );
-
-  vstup.focus();
 }
 
 function pridatBlok(ctx, bloky, ulozit) {
@@ -339,7 +330,7 @@ function novyBlok(typ) {
 async function ulozitSestavu(ctx, sestava) {
   try {
     await api.saveDashboard(
-      ctx.model.preset || "prehled",
+      ctx.model.preset || "tuya",
       sestava.columns,
       sestava.blocks,
     );

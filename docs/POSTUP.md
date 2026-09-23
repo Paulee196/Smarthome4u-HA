@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 23. 9. 2026
-**Aktuální verze v kódu:** 0.11.1
+**Aktuální verze v kódu:** 0.12.0
+
+## Návrh 0.12.0 – čtyři upravitelné plochy
+
+- [x] Ověřen vzhled nainstalované verze 0.11.0 v Home Assistantu 2026.9.3.
+- [x] Chytrá domácnost, Domov, Půdorys a Přehled HA se přepínají na hlavní ploše.
+- [x] Volba plochy a její rozvržení jsou osobní pro účet.
+- [x] Editor jednotlivých vybraných entit a bodů plánku mění text, ikonu,
+  barvu, entitu a velikost. Editor bloku mění text, ikonu, barvu a rozměry.
+- [x] Větší dlaždice rozbalují dostupné ovládání; kamera využívá náhled z HA.
+- [ ] Ověřit větev po instalaci v reálném HA; zatím běží vydaná verze 0.11.0.
+- [ ] Dopracovat individuální úpravy automaticky generovaných řádků stavu,
+  místností a scén. Aktuálně se upravuje jejich nadřazený blok.
 **Fáze:** oprava oprávnění a osobních dashboardů; ověření na reálném Home Assistantu zbývá
 
 ---
