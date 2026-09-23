@@ -640,6 +640,9 @@ async def test_bloky_preziji_prejmenovani_entity(
 
     client = await hass_client()
 
+    odpoved = await client.post("/api/smarthome4u/preset", json={"preset": "prehled"})
+    assert odpoved.status == 200
+
     odpoved = await client.post(
         "/api/smarthome4u/dashboard",
         json={
