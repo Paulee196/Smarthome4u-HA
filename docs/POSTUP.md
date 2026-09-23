@@ -16,7 +16,8 @@ dalo navázat z jakéhokoliv počítače.
 - [x] Správce přiděluje technickou roli; backend rozlišuje uživatele, technika a správce.
 - [x] Běžný uživatel může měnit jen vlastní prezentaci, ne registry ani integrace.
 - [x] V dokumentaci je vyjasněno, že Smarthome4u panel se do Lovelace nesynchronizuje.
-- [ ] Integrační testy v CI a ověření na skutečné instalaci Home Assistantu.
+- [x] Integrační testy v CI pro první commit opravy.
+- [ ] Ověření na skutečné instalaci Home Assistantu.
 
 Další krok: dokončit integrační ověření a potom postupně uzavírat ostatní
 neověřené cesty ze seznamu níže. Export plochy do Lovelace (`lovelace_export`)

@@ -216,7 +216,7 @@ class ModelView(Sh4uView):
             await settings.claim_admin(user.id)
 
         presentation = self.presentation(request)
-        home = self.home_for(request)
+        home = Home(self.hass, presentation)
         return web.json_response(
             {
                 "version": VERSION,
@@ -249,15 +249,16 @@ class SectionView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request, kind: str) -> web.Response:
+        home = self.home_for(request)
         if kind == "scenes":
             return web.json_response(
                 {
-                    "scenes": self.home.by_kind("scene"),
-                    "scripts": self.home.by_kind("script"),
+                    "scenes": home.by_kind("scene"),
+                    "scripts": home.by_kind("script"),
                 }
             )
         if kind == "automations":
-            return web.json_response({"automations": self.home.by_kind("automation")})
+            return web.json_response({"automations": home.by_kind("automation")})
         raise ApiError("Neznámá sekce.", 404, "unknown_section")
 
 
@@ -274,11 +275,12 @@ class EntityBatchView(Sh4uView):
         if not isinstance(ids, list) or len(ids) > 500:
             raise ApiError("Neplatný požadavek.")
 
+        home = self.home_for(request)
         entities = [
             view
             for entity_id in ids
             if isinstance(entity_id, str)
-            and (view := self.home.entity(entity_id)) is not None
+            and (view := home.entity(entity_id)) is not None
         ]
         return web.json_response({"entities": entities})
 
@@ -319,7 +321,7 @@ class ActionView(Sh4uView):
         if not isinstance(entity_id, str) or not isinstance(action, str):
             raise ApiError("Chybí zařízení nebo akce.")
 
-        view = self.home.entity(entity_id)
+        view = self.home_for(request).entity(entity_id)
         if view is None:
             raise ApiError("Zařízení už neexistuje.", 404, "unknown_entity")
 
@@ -347,7 +349,7 @@ class DevicesView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request) -> web.Response:
-        return web.json_response({"devices": self.home.device_list()})
+        return web.json_response({"devices": self.home_for(request).device_list()})
 
 
 class DeviceView(Sh4uView):
@@ -356,7 +358,7 @@ class DeviceView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request, device_id: str) -> web.Response:
-        detail = self.home.device_detail(device_id)
+        detail = self.home_for(request).device_detail(device_id)
         if detail is None:
             raise ApiError("Zařízení už neexistuje.", 404, "unknown_device")
         return web.json_response(detail)
