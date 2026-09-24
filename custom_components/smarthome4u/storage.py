@@ -230,33 +230,30 @@ class Settings:
     def role(self, user_id: str | None, je_ha_admin: bool) -> str:
         """Vrátí roli pro dané přihlášení.
 
-        Správce je právě jeden účet. Ostatní dům ovládají, ale nenastavují.
+        Správce je právě jeden účet. Ostatní mají výchozí plný přístup,
+        pokud je správce výslovně neomezil na základní ovládání.
         Dokud správce není určený, rozhoduje oprávnění z Home Assistantu -
         jinak by po instalaci nešlo nic nastavit.
         """
         spravce = self.data.get("adminUserId")
         if spravce is None:
-            return "admin" if je_ha_admin else "user"
+            return "admin" if je_ha_admin else "technician"
         if user_id == spravce:
             return "admin"
-        return (
-            "technician"
-            if self.data.get("roles", {}).get(user_id) == "technician"
-            else "user"
-        )
+        return self.data.get("roles", {}).get(user_id, "technician")
 
     async def set_role(self, user_id: str, role: str) -> None:
         if role == "technician":
-            self.data.setdefault("roles", {})[user_id] = role
-        elif role == "user":
             self.data.setdefault("roles", {}).pop(user_id, None)
+        elif role == "user":
+            self.data.setdefault("roles", {})[user_id] = role
         else:
             raise ValueError(role)
         await self.save()
 
     def presentation(self, user_id: str, role: str):
-        """A user's own layout; installers keep editing the shared default."""
-        return self if role != "user" else UserPresentation(self, user_id)
+        """Each account edits its own layout; the owner keeps the shared default."""
+        return self if role == "admin" else UserPresentation(self, user_id)
 
     # ------------------------------------------------------------------
     # Podoba dashboardu
@@ -452,7 +449,10 @@ class UserPresentation(Settings):
         self._new = user_id not in profiles
         self.data = profiles.get(user_id) or {
             key: deepcopy(parent.data[key])
-            for key in ("preset", "layout", "favorites", "floorplan", "dashboard")
+            for key in (
+                "preset", "layout", "favorites", "floorplan", "dashboard",
+                "kiosk", "landing", "bigControls",
+            )
         }
 
     @property
@@ -460,6 +460,18 @@ class UserPresentation(Settings):
         hodnota = self.data.get("preset", self.parent.preset)
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
         return hodnota if hodnota in PRESETY else self.parent.preset
+
+    @property
+    def kiosk(self) -> bool:
+        return bool(self.data.get("kiosk", self.parent.kiosk))
+
+    @property
+    def landing(self) -> bool:
+        return bool(self.data.get("landing", self.parent.landing))
+
+    @property
+    def big_controls(self) -> bool:
+        return bool(self.data.get("bigControls", self.parent.big_controls))
 
     @property
     def overrides(self) -> dict[str, dict]:

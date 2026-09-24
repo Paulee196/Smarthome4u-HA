@@ -43,9 +43,10 @@ export function editAppearance(title, current, save, config = {}) {
   dialog(title, h("div", { class: "stack appearance-editor" }, fields));
 }
 
-export function editBlockAppearance(block, save) {
+export function editBlockAppearance(block, save, types = []) {
   const name = textInput(block.title || "", t.blocks[block.type]);
   name.maxLength = 60;
+  const kind = selectInput(options(types, t.blocks), block.type);
   const glyph = selectInput(options(ICONS, t.editor.icons, true), block.icon || "");
   const color = selectInput(options(COLORS, t.editor.colors), block.color || "default");
   const height = selectInput([
@@ -54,6 +55,7 @@ export function editBlockAppearance(block, save) {
     { value: "large", label: t.editor.heightLarge },
   ], block.height || "normal");
   dialog(t.editor.blockAppearance, h("div", { class: "stack appearance-editor" }, [
+    field(t.editor.blockType, kind),
     field(t.editor.label, name),
     field(t.editor.icon, glyph),
     field(t.editor.color, color),
@@ -64,6 +66,8 @@ export function editBlockAppearance(block, save) {
         closeDialog();
         save({
           ...block,
+          type: kind.value,
+          ...(kind.value === "entities" && block.type !== "entities" ? { entities: [] } : {}),
           title: name.value.trim() || undefined,
           icon: glyph.value || undefined,
           color: color.value,

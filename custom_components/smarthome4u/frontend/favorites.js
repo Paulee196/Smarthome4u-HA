@@ -68,9 +68,8 @@ function misto(ctx, entity, velikost, seznam, velikosti, styly, uloz) {
 
   const obal = h(
     "div",
-    { class: `card card--edit card--${velikost} card--tone-${vzhled.color || "default"}`, "data-dnd-handle": "" },
+    { class: `card card--edit card--${velikost} card--tone-${vzhled.color || "default"}` },
     [
-      h("span", { class: "dnd__uchyt", text: "⠿" }),
       h(
         "button",
         {
@@ -88,6 +87,13 @@ function misto(ctx, entity, velikost, seznam, velikosti, styly, uloz) {
           }),
         ],
       ),
+      h("button", {
+        class: "dnd__uchyt",
+        type: "button",
+        "data-dnd-handle": "",
+        "aria-label": `${t.editor.drag}: ${vzhled.label || entity.name}`,
+        text: "⠿",
+      }),
       h("button", {
         class: "card__more card__more--danger",
         type: "button",

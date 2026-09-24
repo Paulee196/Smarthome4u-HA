@@ -39,7 +39,10 @@ async def test_personal_layouts_do_not_change_the_shared_dashboard(
     reloaded = Settings(hass)
     await reloaded.load()
     assert reloaded.presentation("first", "user").favorites == ["entity:light.first"]
-    assert reloaded.presentation("first", "user").board("prehled")["blocks"][0]["id"] == "a"
+    assert (
+        reloaded.presentation("first", "user").board("prehled")["blocks"][0]["id"]
+        == "a"
+    )
     assert reloaded.presentation("first", "user").layout["rooms"] == ["kitchen"]
     assert reloaded.presentation("second", "user").favorites == ["entity:light.updated"]
 
@@ -52,11 +55,49 @@ async def test_technician_role_does_not_grant_admin(hass: HomeAssistant) -> None
 
     assert settings.role("owner", True) == "admin"
     assert settings.role("installer", False) == "technician"
-    assert settings.role("member", False) == "user"
-    assert settings.presentation("installer", "technician") is settings
+    assert settings.role("member", False) == "technician"
+    assert settings.presentation("installer", "technician") is not settings
 
     await settings.set_role("installer", "user")
     assert settings.role("installer", False) == "user"
+
+
+async def test_each_full_account_has_own_kiosk_setting(hass: HomeAssistant) -> None:
+    settings = Settings(hass)
+    await settings.load()
+    await settings.claim_admin("owner")
+
+    first = settings.presentation("first", settings.role("first", False))
+    second = settings.presentation("second", settings.role("second", False))
+    assert first.kiosk is settings.kiosk
+    assert second.kiosk is settings.kiosk
+
+    await first.set_kiosk(False)
+    assert settings.presentation("first", "technician").kiosk is False
+    assert settings.presentation("second", "technician").kiosk is True
+    assert settings.kiosk is True
+
+
+async def test_full_account_can_change_own_kiosk_through_settings_api(
+    hass: HomeAssistant,
+) -> None:
+    class Request(dict):
+        async def json(self):
+            return {"kiosk": False, "landing": False, "bigControls": True}
+
+    settings = Settings(hass)
+    await settings.load()
+    await settings.claim_admin("owner")
+    hass.data.setdefault(DOMAIN, {})["settings"] = settings
+    request = Request(hass_user=SimpleNamespace(id="member", is_admin=False))
+
+    response = await api.SettingsView(hass).post(request)
+    assert response.status == 200
+    profile = settings.presentation("member", "technician")
+    assert (profile.kiosk, profile.landing, profile.big_controls) == (
+        False, False, True,
+    )
+    assert settings.kiosk is True
 
 
 async def test_write_permissions_use_the_server_role() -> None:
@@ -102,6 +143,7 @@ async def test_user_can_edit_own_board_but_not_devices(hass: HomeAssistant) -> N
     settings = Settings(hass)
     await settings.load()
     await settings.claim_admin("owner")
+    await settings.set_role("member", "user")
     hass.data.setdefault(DOMAIN, {})["settings"] = settings
 
     response = await api.DashboardView(hass).post(

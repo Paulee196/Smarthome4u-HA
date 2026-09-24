@@ -413,11 +413,11 @@ export const t = {
     account: "Účet",
     unknownUser: "Neznámý uživatel",
     youAreAdmin: "Jste správce domácnosti. Můžete měnit vše.",
-    youAreTechnician: "Jste technik domácnosti. Můžete nastavovat dům.",
-    technician: "Technický režim",
+    youAreTechnician: "Máte plné ovládání a vlastní upravitelnou plochu.",
+    technician: "Plné zobrazení a úpravy",
     technicianHint:
-      "Ukáže automatizace, zařízení a integrace. Vypnutím uvidíte " +
-      "aplikaci tak, jak ji vidí ostatní členové domácnosti.",
+      "Výchozí pro každý účet. Vypnutím zobrazíte jen základní ovládání; " +
+      "znovu ho zapnete tady v nastavení.",
     theme: "Vzhled",
     themeHint:
       "Platí pro tohle zařízení. Tablet na zdi může být tmavý a telefon " +
@@ -435,13 +435,13 @@ export const t = {
       ha: "Převezme barvy z motivu, který máte v Home Assistantu",
     },
     youAreUser: "Můžete ovládat dům a upravit si vlastní plochu.",
-    onlyAdmin: "Nastavení může měnit jen správce domácnosti.",
+    onlyAdmin: "Tento účet má omezený přístup nastavený správcem domácnosti.",
 
     appearance: "Vzhled",
     kiosk: "Kiosk režim",
     kioskHint:
       "Schová postranní lištu a horní pruh Home Assistantu, když je otevřené " +
-      "Smarthome4u. Vypnutím se Home Assistant vrátí do původní podoby.",
+      "Smarthome4u. Platí pro tento účet; vypnutím se lišty HA vrátí.",
     bigControls: "Zvětšené ovládání",
     bigControlsHint:
       "Větší tlačítka a písmo. Hodí se pro starší uživatele a pro panel " +
@@ -462,14 +462,14 @@ export const t = {
 
     admin: "Správce domácnosti",
     adminHint:
-      "Správce nastavuje vše. Ostatní účty dům ovládají, ale nic nemění. " +
-      "Správcem může být jen administrátor Home Assistantu.",
+      "Tento účet spravuje systémové aktualizace a role. Ostatní účty " +
+      "mají ve výchozím stavu plné úpravy své plochy a domácnosti.",
     adminAccount: "Účet správce",
     adminChanged: "Správce změněn.",
     roles: "Přístup techniků",
-    rolesHint: "Technik může nastavovat zařízení a automatizace. Správce může měnit role a systém.",
-    roleUser: "Uživatel",
-    roleTechnician: "Technik",
+    rolesHint: "Plný přístup je výchozí. Omezený účet může jen ovládat a upravit svou plochu.",
+    roleUser: "Omezený účet",
+    roleTechnician: "Plný přístup",
     roleChanged: "Přístup účtu byl uložen.",
 
     system: "Systém",
@@ -619,6 +619,8 @@ export const t = {
     color: "Barva",
     automatic: "Automaticky",
     blockAppearance: "Vzhled bloku",
+    blockType: "Obsah bloku",
+    automaticTilesHint: "Úpravou této dlaždice se blok změní na vlastní výběr zařízení.",
     blockHeight: "Výška bloku",
     heightCompact: "Kompaktní",
     heightNormal: "Normální",

@@ -229,7 +229,7 @@ class ModelView(Sh4uView):
                     "role": self.role(request),
                 },
                 "preset": presentation.preset if presentation else storage.PRESET_TUYA,
-                "bigControls": settings.big_controls if settings else False,
+                "bigControls": presentation.big_controls if presentation else False,
                 # Sestava plochy. None znamená "použij výchozí sestavu".
                 "board": (
                     presentation.board(presentation.preset) if presentation else None
@@ -967,6 +967,7 @@ class SettingsView(Sh4uView):
     @technician
     async def get(self, request: web.Request) -> web.Response:
         settings = self.settings
+        presentation = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
@@ -978,16 +979,16 @@ class SettingsView(Sh4uView):
         return web.json_response(
             {
                 "role": self.role(request),
-                "preset": settings.preset,
+                "preset": presentation.preset,
                 "presets": list(storage.PRESETY),
                 "unavailable": list(storage.PRIPRAVUJE_SE),
                 "adminUserId": settings.admin_user_id,
                 "roles": settings.data.get("roles", {}),
-                "kiosk": settings.kiosk,
-                "landing": settings.landing,
-                "bigControls": settings.big_controls,
+                "kiosk": presentation.kiosk,
+                "landing": presentation.landing,
+                "bigControls": presentation.big_controls,
                 "hasLayout": bool(
-                    settings.layout["rooms"] or settings.layout["entities"]
+                    presentation.layout["rooms"] or presentation.layout["entities"]
                 ),
                 "users": [{"id": uid, "name": name} for uid, name in users.items()],
                 "kinds": list(capability.PRERADITELNE),
@@ -997,32 +998,37 @@ class SettingsView(Sh4uView):
         )
 
     @handler
-    @admin
+    @technician
     async def post(self, request: web.Request) -> web.Response:
         settings = self.settings
+        presentation = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
         payload = await self.body(request)
 
+        # Validate owner-only changes before writing any personal preferences.
+        if "adminUserId" in payload:
+            self.require_admin(request)
+
         if "preset" in payload:
             try:
-                await settings.set_preset(payload["preset"])
+                await presentation.set_preset(payload["preset"])
             except ValueError as err:
                 raise ApiError("Tahle podoba dashboardu zatím nejde vybrat.") from err
 
         if "kiosk" in payload or "landing" in payload:
-            kiosk = payload.get("kiosk", settings.kiosk)
-            landing = payload.get("landing", settings.landing)
+            kiosk = payload.get("kiosk", presentation.kiosk)
+            landing = payload.get("landing", presentation.landing)
             if not isinstance(kiosk, bool) or not isinstance(landing, bool):
                 raise ApiError("Neplatný požadavek.")
-            await settings.set_kiosk(kiosk, landing)
+            await presentation.set_kiosk(kiosk, landing)
 
         if "bigControls" in payload:
             hodnota = payload["bigControls"]
             if not isinstance(hodnota, bool):
                 raise ApiError("Neplatný požadavek.")
-            await settings.set_big_controls(hodnota)
+            await presentation.set_big_controls(hodnota)
 
         if "adminUserId" in payload:
             novy = payload["adminUserId"]
@@ -1091,7 +1097,7 @@ class SystemView(Sh4uView):
     name = "api:smarthome4u:system"
 
     @handler
-    @admin
+    @technician
     async def get(self, request: web.Request) -> web.Response:
         return web.json_response(system.overview(self.hass))
 
@@ -1125,7 +1131,7 @@ class KioskView(Sh4uView):
 
     @handler
     async def get(self, request: web.Request) -> web.Response:
-        settings = self.settings
+        settings = self.presentation(request)
         return web.json_response(
             {
                 "kiosk": settings.kiosk if settings else True,

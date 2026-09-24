@@ -3,9 +3,7 @@
  * Postavené na Pointer Events, ne na HTML5 drag and drop. Ten na dotykových
  * zařízeních nefunguje a Smarthome4u musí jít upravit i na tabletu.
  *
- * Tahá se za úchyt. V režimu úprav je úchytem celá dlaždice, takže se
- * chytne a táhne jako ikona na telefonu. U místností je úchytem jejich
- * hlavička.
+ * Tahá se za samostatný úchyt na dlaždici nebo bloku.
  *
  * Postup: přetahovaný prvek se vyjme z toku a plave nad stránkou, na jeho
  * místě zůstane zástupce stejné velikosti. Zástupce se přesouvá mezi
@@ -30,7 +28,12 @@ function podPrstem(kontejner, udalost) {
   const koren = kontejner.getRootNode();
   const hledat = koren?.elementFromPoint ? koren : document;
   const prvek = hledat.elementFromPoint(udalost.clientX, udalost.clientY);
-  return prvek?.closest(`[${ATRIBUT_KLICE}]`) || null;
+  for (let kandidat = prvek; kandidat && kandidat !== kontejner; kandidat = kandidat.parentElement) {
+    if (kandidat.parentElement === kontejner && kandidat.hasAttribute(ATRIBUT_KLICE)) {
+      return kandidat;
+    }
+  }
+  return null;
 }
 
 /**
@@ -46,6 +49,7 @@ export function povolitPretahovani(kontejner, onZmena) {
   let uchyt = null;
   let pointerId = null;
   let zacatek = { x: 0, y: 0 };
+  let puvodniPoradi = [];
 
   function poradi() {
     return [...kontejner.children]
@@ -60,6 +64,7 @@ export function povolitPretahovani(kontejner, onZmena) {
     zastupce.className = "dnd__zastupce";
     zastupce.style.width = `${misto.width}px`;
     zastupce.style.height = `${misto.height}px`;
+    zastupce.style.gridColumn = getComputedStyle(prvek).gridColumn;
     prvek.after(zastupce);
 
     // Prvek vyjmeme z toku, aby se mřížka pod rukou nepřeskládala.
@@ -91,9 +96,12 @@ export function povolitPretahovani(kontejner, onZmena) {
     // Podle toho, jestli je prst v horní nebo dolní polovině souseda,
     // se zástupce vloží před něj nebo za něj.
     const misto = pod.getBoundingClientRect();
-    const zaPolovinou =
-      udalost.clientY > misto.top + misto.height / 2 ||
-      udalost.clientX > misto.left + misto.width / 2;
+    const mistoZastupce = zastupce.getBoundingClientRect();
+    const stejnyRadek = Math.abs(mistoZastupce.top - misto.top) <
+      Math.min(mistoZastupce.height, misto.height) / 2;
+    const zaPolovinou = stejnyRadek
+      ? udalost.clientX > misto.left + misto.width / 2
+      : udalost.clientY > misto.top + misto.height / 2;
 
     if (zaPolovinou) pod.after(zastupce);
     else pod.before(zastupce);
@@ -132,7 +140,7 @@ export function povolitPretahovani(kontejner, onZmena) {
 
     const nove = poradi();
     uklidit();
-    onZmena(nove);
+    if (nove.join("\u0000") !== puvodniPoradi.join("\u0000")) onZmena(nove);
   }
 
   function naStisk(udalost) {
@@ -152,6 +160,7 @@ export function povolitPretahovani(kontejner, onZmena) {
 
     uchyt = u;
     pointerId = udalost.pointerId;
+    puvodniPoradi = poradi();
     try {
       u.setPointerCapture(pointerId);
     } catch {

@@ -18,7 +18,8 @@ Smarthome4u vypnete, domácnost běží dál.
 |---|---|---|
 | v0.1 - v0.3 | hotovo | Základ, pět sekcí, ovládání, správa místností, scény, automatizace, vlastní průvodce integracemi |
 | v0.11.0 | **vydáno** | Integrace, osobní plocha, ovládání a správa domácnosti |
-| v0.12.0 | v přípravě | Čtyři upravitelné podoby plochy a náhledy kamer |
+| v0.12.0 | **vydáno** | Čtyři podoby plochy a náhledy kamer |
+| v0.12.1 | **vydáno** | Opravy editoru, kiosku a výchozího plného zobrazení |
 | v1.0 | plánováno | Editor automatizací, šablony dashboardu, technický režim, finální design |
 
 Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
@@ -67,9 +68,10 @@ Core i Supervised.
 V **Možnostech** integrace jde vypnout schování lišty Home Assistantu i
 automatické přistání po přihlášení. Ve výchozím stavu je obojí zapnuté.
 
-Každý člen domácnosti si může upravit vlastní plochu a oblíbené položky.
-Správce v Nastavení přiděluje roli technika; technik může spravovat zařízení,
-místnosti, integrace, scény a automatizace. Systémové volby a role mění správce.
+Každý účet má ve výchozím stavu plné zobrazení a vlastní upravitelnou plochu.
+V Nastavení / Účet lze přepnout na základní ovládání. Správce může účet
+výslovně omezit. Systémové volby a role mění jen správce.
+Kiosk režim se nastavuje pro každý účet zvlášť v Nastavení / Vzhled.
 Plocha Smarthome4u je samostatný panel. V Home Assistantu zůstávají nativní
 zařízení, místnosti, scény a automatizace; rozvržení plochy se do Lovelace
 zatím nepřenáší.

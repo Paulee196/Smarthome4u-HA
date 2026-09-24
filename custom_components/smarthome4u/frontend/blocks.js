@@ -38,11 +38,11 @@ export const MAX_SLOUPCU = 4;
 export const BLOKY = {
   clock: { glyf: "home", render: (ctx) => hodiny(ctx) },
   status: { glyf: "lighting", render: (ctx) => stavDomu(ctx) },
-  alerts: { glyf: "security", render: (ctx) => upozorneni(ctx) },
-  open: { glyf: "window", render: (ctx) => otevrene(ctx) },
+  alerts: { glyf: "security", render: (ctx, blok, ulozit) => upozorneni(ctx, blok, ulozit) },
+  open: { glyf: "window", render: (ctx, blok, ulozit) => otevrene(ctx, blok, ulozit) },
   playing: { glyf: "media", render: (ctx) => prehravac(ctx) },
-  lights: { glyf: "lighting", render: (ctx) => rozsvicena(ctx) },
-  scenes: { glyf: "scenes", render: (ctx) => sceny(ctx) },
+  lights: { glyf: "lighting", render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
+  scenes: { glyf: "scenes", render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", render: (ctx) => mistnosti(ctx) },
   actions: { glyf: "home", render: (ctx) => rychleAkce(ctx) },
   entities: {
@@ -234,13 +234,17 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
 
   const obal = h("div", { class: "blok plocha__blok" }, [
     h("div", { class: "blok__lista" }, [
-      h("span", { class: "dnd__uchyt", text: "⠿" }),
+      h("button", {
+        class: "dnd__uchyt", type: "button", "data-dnd-handle": "",
+        "aria-label": `${t.editor.drag}: ${blok.title || t.blocks[blok.type]}`,
+        text: "⠿",
+      }),
       h("button", {
         class: "blok__jmeno",
         type: "button",
         text: blok.title || t.blocks[blok.type],
         title: t.editor.blockAppearance,
-        onclick: () => editBlockAppearance(blok, nahradit),
+        onclick: () => editBlockAppearance(blok, nahradit, NABIDKA),
       }),
       h("button", {
         class: "blok__akce",
@@ -263,7 +267,6 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
 
   obal.style.setProperty("--sirka", String(sirka));
   obal.setAttribute(ATRIBUT_KLICE, blok.id);
-  obal.setAttribute("data-dnd-handle", "");
   return obal;
 }
 
@@ -356,8 +359,17 @@ function ramec(nadpis, glyf, obsah, trida) {
   ]);
 }
 
-function mrizkaKaret(entities) {
+function mrizkaKaret(entities, ctx, blok, ulozit) {
   if (!entities || !entities.length) return null;
+  if (ctx?.editing && blok && ulozit) {
+    const vyber = { ...blok, entities: entities.map((e) => ctx.entityRef(e)) };
+    return h("div", { class: "stack" }, [
+      h("p", { class: "muted", text: t.editor.automaticTilesHint }),
+      mrizkaZarizeni(ctx, vyber, (zmena) => ulozit({
+        ...zmena, type: "entities", title: blok.title || t.blocks[blok.type],
+      })),
+    ]);
+  }
   return h("div", { class: "cards" }, entities.map((e) => card(e)));
 }
 
@@ -437,20 +449,20 @@ function veta(glyf, text, zvyraznit) {
   );
 }
 
-function upozorneni(ctx) {
+function upozorneni(ctx, blok, ulozit) {
   return ramec(
     t.home.alerts,
     "security",
-    mrizkaKaret(ctx.model.summary && ctx.model.summary.alerts),
+    mrizkaKaret(ctx.model.summary && ctx.model.summary.alerts, ctx, blok, ulozit),
     "panel--alert",
   );
 }
 
-function otevrene(ctx) {
+function otevrene(ctx, blok, ulozit) {
   return ramec(
     t.panel.open,
     "window",
-    mrizkaKaret(ctx.model.attention),
+    mrizkaKaret(ctx.model.attention, ctx, blok, ulozit),
     "panel--warn",
   );
 }
@@ -484,7 +496,7 @@ function rozsvicenaSvetla(ctx) {
     .filter((e) => e.capability && e.capability.kind === "light" && e.state === "on");
 }
 
-function rozsvicena(ctx) {
+function rozsvicena(ctx, blok, ulozit) {
   const svitici = rozsvicenaSvetla(ctx);
   if (!svitici.length) return null;
 
@@ -492,7 +504,7 @@ function rozsvicena(ctx) {
     t.panel.lightsOn,
     "lighting",
     h("div", { class: "stack" }, [
-      mrizkaKaret(svitici),
+      mrizkaKaret(svitici, ctx, blok, ulozit),
       h("div", { class: "row" }, [
         button(t.home.allLightsOff, () => zhasnoutVse(svitici)),
       ]),
@@ -513,8 +525,8 @@ async function zhasnoutVse(svetla) {
   }
 }
 
-function sceny(ctx) {
-  return ramec(t.scenes.scenes, "scenes", mrizkaKaret(ctx.model.scenes));
+function sceny(ctx, blok, ulozit) {
+  return ramec(t.scenes.scenes, "scenes", mrizkaKaret(ctx.model.scenes, ctx, blok, ulozit));
 }
 
 function mistnosti(ctx) {

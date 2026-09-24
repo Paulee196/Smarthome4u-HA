@@ -30,6 +30,7 @@ const PRESET_POPIS = {
 export async function renderSettings(root, ctx) {
   const jeSpravce = ctx.model?.user?.role === "admin";
   const jeTechnik = ctx.model?.user?.role === "technician";
+  const muzeNastavovat = jeSpravce || jeTechnik;
 
   root.append(karta(t.settings.account, "settings", [
     h("p", { class: "lead", text: ctx.model?.user?.name || t.settings.unknownUser }),
@@ -37,7 +38,7 @@ export async function renderSettings(root, ctx) {
       class: "muted",
       text: jeSpravce ? t.settings.youAreAdmin : jeTechnik ? t.settings.youAreTechnician : t.settings.youAreUser,
     }),
-    (jeSpravce || jeTechnik) &&
+    muzeNastavovat &&
       prepinac(
         t.settings.technician,
         ctx.jeTechnik,
@@ -49,7 +50,7 @@ export async function renderSettings(root, ctx) {
   // Vzhled si volí každý sám, i kdo není správce.
   root.append(sekceMotiv());
 
-  if (!jeSpravce) {
+  if (!muzeNastavovat) {
     root.append(emptyState(t.settings.onlyAdmin));
     return;
   }
@@ -63,11 +64,14 @@ export async function renderSettings(root, ctx) {
   }
 
   root.append(sekceVzhled(ctx, nastaveni));
+  if (!ctx.jeTechnik) return;
   root.append(sekceDashboard(ctx, nastaveni));
   root.append(sekceSvetla(ctx, nastaveni));
-  root.append(sekceSpravce(ctx, nastaveni));
-  root.append(sekceRole(nastaveni));
-  root.append(await sekceSystem());
+  if (jeSpravce) {
+    root.append(sekceSpravce(ctx, nastaveni));
+    root.append(sekceRole(nastaveni));
+  }
+  root.append(await sekceSystem(jeSpravce));
 }
 
 function karta(nadpis, glyf, obsah) {
@@ -83,7 +87,9 @@ function karta(nadpis, glyf, obsah) {
 function prepinac(popis, hodnota, onChange, napoveda) {
   const vstup = h("input", { class: "switch", type: "checkbox" });
   vstup.checked = Boolean(hodnota);
-  vstup.addEventListener("change", () => onChange(vstup.checked));
+  vstup.addEventListener("change", async () => {
+    if (await onChange(vstup.checked) === false) vstup.checked = !vstup.checked;
+  });
 
   return h("div", { class: "stack" }, [
     h("label", { class: "checklist__item" }, [
@@ -147,8 +153,11 @@ function sekceVzhled(ctx, nastaveni) {
       toast(t.notice.saved);
       // Aby se lišta schovala hned, bez obnovení stránky.
       window.dispatchEvent(new CustomEvent("sh4u-kiosk-changed"));
+      if ("bigControls" in zmena) await ctx.refresh();
+      return true;
     } catch (error) {
       toast(error.message, true);
+      return false;
     }
   };
 
@@ -346,7 +355,7 @@ function sekceRole(nastaveni) {
     const vyber = selectInput([
       { value: "user", label: t.settings.roleUser },
       { value: "technician", label: t.settings.roleTechnician },
-    ], nastaveni.roles?.[user.id] || "user");
+    ], nastaveni.roles?.[user.id] || "technician");
     obsah.push(field(user.name || t.settings.unknownUser, vyber));
     obsah.push(button(t.action.save, async () => {
       try {
@@ -364,7 +373,7 @@ function sekceRole(nastaveni) {
 /* Systém                                                              */
 /* ------------------------------------------------------------------ */
 
-async function sekceSystem() {
+async function sekceSystem(muzeInstalovat) {
   let info;
   try {
     info = await api.system();
@@ -384,7 +393,7 @@ async function sekceSystem() {
       }),
     );
     for (const aktualizace of info.updates) {
-      obsah.push(radekAktualizace(aktualizace));
+      obsah.push(radekAktualizace(aktualizace, muzeInstalovat));
     }
   } else {
     obsah.push(h("p", { class: "muted", text: t.settings.allUpToDate }));
@@ -431,12 +440,12 @@ async function sekceSystem() {
   return karta(t.settings.system, "automations", obsah);
 }
 
-function radekAktualizace(aktualizace) {
+function radekAktualizace(aktualizace, muzeInstalovat) {
   const popis = aktualizace.latest
     ? `${aktualizace.installed || "?"} → ${aktualizace.latest}`
     : "";
 
-  const tlacitko = aktualizace.canInstall
+  const tlacitko = aktualizace.canInstall && muzeInstalovat
     ? h("button", {
         class: "tile__more",
         type: "button",

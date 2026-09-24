@@ -41,7 +41,8 @@ const ROUTES = {
 /* Režim se neukládá natrvalo. Vychází z toho, kdo je přihlášený:
    správce domácnosti začíná v technickém režimu, ostatní v uživatelském.
    Přepnutí platí do konce sezení, po dalším přihlášení se zase řídí účtem. */
-const REZIM_KLIC = "sh4u.rezim";
+const REZIM_KLIC = "sh4u.rezim.013";
+const rezimKlic = () => `${REZIM_KLIC}.${state.model?.user?.id || "anonymous"}`;
 
 const state = { model: null, route: "home", editing: false, rezim: "user" };
 let el = null;
@@ -59,8 +60,13 @@ const ctx = {
   /* Bloky a další uložené rozvržení drží stabilní ref. Aktuální entity_id
      se dohledá v modelu až při vykreslení a ovládání. */
   entityByRef: (ref) =>
-    (state.model?.rooms || [])
-      .flatMap((room) => room.entities)
+    [
+      ...(state.model?.rooms || []).flatMap((room) => room.entities || []),
+      ...(state.model?.scenes || []),
+      ...(state.model?.attention || []),
+      ...(state.model?.summary?.alerts || []),
+      ...(state.model?.nowPlaying || []),
+    ]
       .find((entity) => entity.ref === ref || entity.id === ref) || null,
 
   get editing() {
@@ -76,7 +82,7 @@ const ctx = {
   prepnoutRezim() {
     state.rezim = state.rezim === "technician" ? "user" : "technician";
     try {
-      sessionStorage.setItem(REZIM_KLIC, state.rezim);
+      sessionStorage.setItem(rezimKlic(), state.rezim);
     } catch {
       /* Soukromé okno. Režim vydrží jen do překreslení. */
     }
@@ -85,6 +91,7 @@ const ctx = {
     bezpecne(draw());
   },
   startEditing() {
+    if (state.rezim !== "technician") return;
     state.editing = true;
     navigate("home");
   },
@@ -142,7 +149,7 @@ export function applyIncoming(entities) {
 /** Co si správce přepnul v tomhle sezení. Jinak technický režim. */
 function zapamatovanyRezim() {
   try {
-    const ulozeny = sessionStorage.getItem(REZIM_KLIC);
+    const ulozeny = sessionStorage.getItem(rezimKlic());
     if (ulozeny === "user" || ulozeny === "technician") return ulozeny;
   } catch {
     /* Soukromé okno. */
@@ -192,7 +199,7 @@ function paintUpravit() {
   const koren = el.settings.getRootNode?.();
   let tlacitko = koren?.getElementById?.("uprava-button");
 
-  const jdeUpravit = state.route === "home";
+  const jdeUpravit = state.route === "home" && state.rezim === "technician";
 
   if (!jdeUpravit) {
     tlacitko?.remove();

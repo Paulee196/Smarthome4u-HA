@@ -3,8 +3,18 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 23. 9. 2026
-**Aktuální verze v kódu:** 0.12.0
+**Poslední aktualizace:** 24. 9. 2026
+**Aktuální verze v kódu:** 0.12.1
+
+## Oprava 0.12.1 – interakce editoru a osobní nastavení
+
+- [x] V HA 2026.9.3 otevřena nainstalovaná 0.12.0 a prověřen kiosk režim.
+- [x] Přesouvání dlaždic ověřeno v prohlížeči po opravě úchytů a výběru cíle.
+- [x] Každý účet má výchozí plné zobrazení, osobní nastavení kiosku a vlastní
+  přepnutí na základní ovládání.
+- [x] Automatické seznamy scén, světel a upozornění lze upravit jako vlastní
+  výběr; lze změnit i typ bloku.
+- [ ] Po instalaci vydání 0.12.1 ověřit chování v živém HA pro další účet.
 
 ## Návrh 0.12.0 – čtyři upravitelné plochy
 
@@ -14,10 +24,10 @@ dalo navázat z jakéhokoliv počítače.
 - [x] Editor jednotlivých vybraných entit a bodů plánku mění text, ikonu,
   barvu, entitu a velikost. Editor bloku mění text, ikonu, barvu a rozměry.
 - [x] Větší dlaždice rozbalují dostupné ovládání; kamera využívá náhled z HA.
-- [ ] Ověřit větev po instalaci v reálném HA; zatím běží vydaná verze 0.11.0.
-- [ ] Dopracovat individuální úpravy automaticky generovaných řádků stavu,
-  místností a scén. Aktuálně se upravuje jejich nadřazený blok.
-**Fáze:** oprava oprávnění a osobních dashboardů; ověření na reálném Home Assistantu zbývá
+- [x] Vydanou verzi 0.12.0 otevřít v reálném HA a prověřit její rozhraní.
+- [ ] Dopracovat individuální úpravy řádků stavu a dlaždic místností.
+  Scény a další automatické seznamy lze od 0.12.1 převést na vlastní výběr.
+**Fáze:** připravená oprava 0.12.1; po instalaci zbývá ověřit další účet
 
 ---
 

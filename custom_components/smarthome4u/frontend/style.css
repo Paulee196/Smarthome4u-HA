@@ -1593,21 +1593,9 @@ textarea.input {
   color: var(--sh-text-muted);
 }
 
-/* Dlaždice v úpravách nespíná, proto nemá stavy zapnuto. */
-/* V úpravách je úchytem celá dlaždice, proto tu musí být vypnutá gesta
-   prohlížeče. Stránka se posouvá tažením mimo dlaždice. */
+/* V úpravách má dlaždice vlastní tlačítko editoru a samostatný úchyt. */
 .card--edit {
   border-style: dashed;
-  cursor: grab;
-  touch-action: none;
-}
-
-.card--edit:active {
-  cursor: grabbing;
-}
-
-.card--edit .card__hit {
-  pointer-events: none;
 }
 
 .card__more--danger {
@@ -1662,6 +1650,8 @@ textarea.input {
   cursor: grab;
   touch-action: none;
   user-select: none;
+  border: 0;
+  background: transparent;
 }
 
 .dnd__uchyt:active {
@@ -1669,13 +1659,12 @@ textarea.input {
   color: var(--sh-accent);
 }
 
-/* Značka v rohu dlaždice jen napovídá, že se dá chytit. Tažení obstarává
-   celá dlaždice, proto tu nejsou žádné události. */
+/* Samostatný úchyt, aby dotyk nezačal úpravu dlaždice. */
 .card--edit .dnd__uchyt {
   position: absolute;
   bottom: 0;
   right: 0;
-  pointer-events: none;
+  z-index: 2;
   opacity: 0.6;
 }
 

@@ -2,6 +2,18 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.12.1]
+
+### Opraveno
+
+- Přesouvání bloků a dlaždic myší i dotykem přes viditelný úchyt.
+- Kiosk režim, úvodní stránka a velikost ovládání se ukládají ke konkrétnímu účtu.
+- Výchozí plné zobrazení pro každý účet; přepnutí na základní ovládání
+  zůstává uložené jen pro daný účet a relaci prohlížeče.
+- Úprava obsahu automatických bloků scén, světel a upozornění je převede na
+  vlastní výběr s editovatelnými dlaždicemi. Typ bloku lze změnit v editoru.
+- Změny systémového správce se kontrolují před zápisem osobního nastavení.
+
 ## [0.12.0]
 
 ### Přidáno
