@@ -7,7 +7,7 @@
 
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
-import { openControls } from "./controls.js";
+import { card, openControls } from "./controls.js";
 import { editAppearance } from "./appearance.js";
 import { icon, iconFor } from "./icons.js";
 import { vybratZarizeni } from "./picker.js";
@@ -42,12 +42,60 @@ export async function renderFloorplan(root, ctx) {
     );
   }
 
-  if (!plan.image) {
-    root.append(emptyState(jeTechnik ? t.floorplan.empty : t.floorplan.emptyUser));
-    return;
+  root.append(h("div", { class: "floorplan-intro" }, [
+    h("span", { class: "experience__eyebrow", text: "OVLÁDÁNÍ NA PLÁNKU" }),
+    h("h2", { text: plan.image ? "Plánek domácnosti" : "Automatický plánek místností" }),
+    h("p", { text: plan.image
+      ? "Klepněte na značku zařízení nebo vyberte místnost pod plánkem."
+      : "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys nahrajete tlačítkem nahoře." }),
+  ]));
+
+  if (plan.image) root.append(platno(ctx, plan));
+  root.append(prehledMistnosti(ctx, !plan.image));
+}
+
+/* Plánek funguje hned po instalaci, i když uživatel nemá obrázek domu. */
+function prehledMistnosti(ctx, schematic) {
+  const rooms = (ctx.model.rooms || []).filter((r) => r.entities?.length);
+  const summaries = ctx.model.roomSummaries || [];
+  if (!rooms.length) return emptyState(t.rooms.empty);
+
+  const root = h("section", { class: "floorplan-rooms" + (schematic ? " floorplan-rooms--schematic" : "") });
+  const map = h("div", { class: "floorplan-rooms__map", role: "group", "aria-label": "Místnosti v plánku" });
+  const detail = h("div", { class: "floorplan-rooms__detail" });
+  let active = String(rooms[0].id);
+
+  function draw() {
+    const room = rooms.find((r) => String(r.id) === active) || rooms[0];
+    const info = summaries.find((r) => r.id === room.id) || {};
+    const entities = (room.entities || []).filter((e) => e.capability?.controllable || e.capability?.kind === "camera");
+    detail.replaceChildren(
+      h("div", { class: "floorplan-rooms__detail-head" }, [
+        h("span", { class: "experience__eyebrow", text: "VYBRANÁ MÍSTNOST" }),
+        h("h3", { text: room.name || t.rooms.unassigned }),
+        h("p", { text: `${info.lightsOn || 0} světel svítí${info.temperature == null ? "" : ` · ${info.temperature} °C`}` }),
+      ]),
+      entities.length
+        ? h("div", { class: "cards floorplan-rooms__devices" }, entities.slice(0, 16).map((e) => card(e)))
+        : h("p", { class: "muted", text: "V místnosti nejsou ovladatelná zařízení." }),
+    );
+    for (const zone of map.children) zone.setAttribute("aria-pressed", String(zone.dataset.room === active));
   }
 
-  root.append(platno(ctx, plan));
+  for (const room of rooms) {
+    const info = summaries.find((r) => r.id === room.id) || {};
+    map.append(h("button", {
+      class: "floorplan-rooms__zone", type: "button", dataset: { room: String(room.id) },
+      onclick: () => { active = String(room.id); draw(); },
+    }, [
+      h("span", { class: "floorplan-rooms__zone-icon" }, icon("rooms")),
+      h("strong", { text: room.name || t.rooms.unassigned }),
+      h("small", { text: `${info.lightsOn || 0} svítí${info.temperature == null ? "" : ` · ${info.temperature} °C`}` }),
+    ]));
+  }
+  root.append(map, detail);
+  draw();
+  return root;
 }
 
 /* ------------------------------------------------------------------ */

@@ -2538,3 +2538,157 @@ textarea.input {
   min-height: 72px;
 }
 .plan__bod--xl .plan__bod-hit { min-width: 120px; min-height: 92px; }
+
+/* Každý dashboard má jiný hlavní způsob práce. Osobní bloky zůstávají níže. */
+.experience { margin-bottom: clamp(28px, 4vw, 52px); }
+.experience__eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--sh-text-muted);
+  font-size: var(--sh-size-2xs);
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.experience__heading { margin: 28px 0 16px; }
+.experience__heading h2, .personal-board__head h2,
+.floorplan-intro h2 { margin: 0 0 5px; font-size: clamp(21px, 2.4vw, 29px); }
+.experience__heading p, .personal-board__head p,
+.floorplan-intro p { margin: 0; color: var(--sh-text-muted); }
+.personal-board {
+  border-top: 1px solid var(--sh-border);
+  padding-top: 30px;
+}
+.personal-board__head { margin-bottom: 20px; }
+
+/* Tuya: katalog, rychlé filtry a hustší mřížka pro přímé ovládání. */
+.tuya-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: clamp(22px, 3vw, 38px);
+  border-radius: 26px;
+  background: linear-gradient(120deg, #102c41, #146f78);
+  color: #fff;
+}
+.tuya-hero .experience__eyebrow { color: #a9e7e3; }
+.tuya-hero h2 { margin: 0 0 7px; font-size: clamp(25px, 3vw, 36px); }
+.tuya-hero p { margin: 0; color: #d8f3f2; }
+.tuya-hero__icon { opacity: .45; }
+.tuya-hero__icon .icon { width: 64px; height: 64px; }
+.catalog__controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.catalog__filters { display: flex; flex: 1; gap: 7px; overflow-x: auto; padding-bottom: 3px; }
+.catalog__chip {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid var(--sh-border);
+  border-radius: 12px;
+  background: var(--sh-surface);
+  color: var(--sh-text);
+  font: inherit;
+  cursor: pointer;
+}
+.catalog__chip[aria-pressed="true"] { background: #146f78; border-color: #146f78; color: #fff; }
+.catalog__search {
+  flex: 0 1 250px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: 12px;
+  background: var(--sh-surface);
+  color: var(--sh-text);
+  font: inherit;
+}
+.catalog__grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+.catalog__grid .card { background: var(--sh-surface); }
+.catalog__grid .card--l { grid-column: span 2; }
+.catalog__footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.catalog__count { margin: 0; color: var(--sh-text-muted); font-size: var(--sh-size-sm); }
+
+/* Domov: místnost je primární kontext a velké ovládání je přímo v ní. */
+.home-hero {
+  padding: clamp(25px, 4vw, 48px);
+  border: 1px solid var(--sh-border);
+  border-radius: 32px;
+  background: linear-gradient(130deg, var(--sh-tile-violet-bg), var(--sh-tile-blue-bg), var(--sh-surface));
+}
+.home-hero h2 { margin: 0 0 8px; font-size: clamp(30px, 4vw, 49px); letter-spacing: -.04em; }
+.home-hero p { margin: 0; color: var(--sh-text-muted); font-size: var(--sh-size-lg); }
+.home-hero__facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 27px; }
+.home-hero__facts span {
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: var(--sh-surface);
+  font-weight: 600;
+}
+.home-rooms { display: flex; gap: 9px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px; }
+.home-rooms__item {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--sh-border);
+  border-radius: 16px;
+  background: var(--sh-surface);
+  color: var(--sh-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.home-rooms__item[aria-pressed="true"] { border-color: var(--sh-accent); background: var(--sh-accent-quiet); color: var(--sh-accent-ink); }
+.home-room { min-height: 245px; padding: clamp(17px, 2.5vw, 29px); border: 1px solid var(--sh-border); border-radius: 28px; background: var(--sh-surface); }
+.home-room__head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 18px; }
+.home-room__head h3 { margin: 0; font-size: clamp(22px, 2.7vw, 30px); }
+.home-room__meta { color: var(--sh-text-muted); }
+.home-room__devices { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.home-room__devices .card { border-radius: 22px; }
+
+/* Přehled HA: čísla, upozornění a inventář místo dalšího katalogu dlaždic. */
+.overview-head { display: flex; justify-content: space-between; gap: 20px; padding: 20px 0 25px; border-bottom: 1px solid var(--sh-border); }
+.overview-head h2 { margin: 0 0 5px; font-size: clamp(28px, 3.5vw, 42px); }
+.overview-head p { margin: 0; color: var(--sh-text-muted); }
+.overview-head__time { color: var(--sh-text-muted); font-size: 24px; font-weight: 700; }
+.overview-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 22px 0 28px; }
+.overview-metric { display: flex; flex-direction: column; gap: 7px; min-height: 145px; padding: 20px; border: 1px solid var(--sh-border); border-radius: 18px; background: var(--sh-surface); }
+.overview-metric__icon { color: var(--sh-accent); }
+.overview-metric strong { font-size: 33px; line-height: 1; }
+.overview-metric > span:last-child { color: var(--sh-text-muted); }
+.overview-section { margin-top: 23px; padding: 20px 24px; border: 1px solid var(--sh-border); border-radius: 20px; background: var(--sh-surface); }
+.overview-section .experience__heading { margin: 0 0 18px; }
+.overview-list { display: grid; }
+.overview-list__row { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 54px; padding: 8px 2px; border: 0; border-top: 1px solid var(--sh-border); background: transparent; color: var(--sh-text); font: inherit; text-align: left; cursor: pointer; }
+.overview-list__icon { color: var(--sh-accent); }
+.overview-list__name { flex: 1; font-weight: 600; }
+.overview-list__state { color: var(--sh-text-muted); }
+.overview-ok { margin: 0; padding: 16px; border-radius: 12px; background: var(--sh-tile-mint-bg); color: var(--sh-tile-mint-ink); }
+.overview-inventory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px 18px; }
+.overview-inventory__item { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--sh-border); }
+
+/* Půdorys bez obrázku: živý přehled místností a detail vybrané zóny. */
+.floorplan-intro { margin: 4px 0 22px; }
+.floorplan-rooms { margin-top: 22px; }
+.floorplan-rooms--schematic { display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(320px, 1fr); gap: 18px; }
+.floorplan-rooms__map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.floorplan-rooms__zone { display: flex; flex-direction: column; gap: 7px; min-height: 124px; padding: 17px; border: 2px solid var(--sh-border); border-radius: 8px 22px 8px 22px; background: var(--sh-surface); color: var(--sh-text); font: inherit; text-align: left; cursor: pointer; }
+.floorplan-rooms__zone[aria-pressed="true"] { border-color: var(--sh-accent); background: var(--sh-accent-quiet); }
+.floorplan-rooms__zone-icon { color: var(--sh-accent); }
+.floorplan-rooms__zone small { margin-top: auto; color: var(--sh-text-muted); }
+.floorplan-rooms__detail { margin-top: 18px; padding: 22px; border: 1px solid var(--sh-border); border-radius: 20px; background: var(--sh-surface); }
+.floorplan-rooms--schematic .floorplan-rooms__detail { margin-top: 0; }
+.floorplan-rooms__detail-head { margin-bottom: 16px; }
+.floorplan-rooms__detail-head h3 { margin: 0 0 5px; font-size: 25px; }
+.floorplan-rooms__detail-head p { margin: 0; color: var(--sh-text-muted); }
+.floorplan-rooms__devices { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+
+@media (max-width: 900px) {
+  .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .floorplan-rooms--schematic { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .catalog__search { flex-basis: 100%; }
+  .catalog__grid, .home-room__devices, .floorplan-rooms__devices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .catalog__grid .card--l { grid-column: span 2; }
+  .overview-inventory { grid-template-columns: 1fr 1fr; }
+  .overview-metric { min-height: 118px; padding: 14px; }
+  .home-hero__facts span { font-size: var(--sh-size-sm); }
+}

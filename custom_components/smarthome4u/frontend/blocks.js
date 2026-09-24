@@ -92,11 +92,9 @@ export function vychozi(preset, model) {
     return {
       columns: 2,
       blocks: [
-        { id: "tuya-status", type: "status", cols: 2, color: "blue" },
+        { id: "tuya-scenes", type: "scenes", cols: 2 },
         { id: "tuya-devices", type: "entities", title: t.blocks.entities,
           entities: vybrane, cols: 2 },
-        { id: "tuya-rooms", type: "rooms", cols: 2 },
-        { id: "tuya-scenes", type: "scenes", cols: 2 },
       ],
     };
   }
@@ -105,12 +103,11 @@ export function vychozi(preset, model) {
     return {
       columns: 2,
       blocks: [
-        { id: "home-status", type: "status", cols: 2, color: "mint", height: "large" },
-        { id: "home-rooms", type: "rooms", cols: 2 },
+        { id: "home-scenes", type: "scenes", cols: 2 },
+        { id: "home-playing", type: "playing" },
+        { id: "home-alerts", type: "alerts" },
         { id: "home-devices", type: "entities", title: t.home.favorites,
           entities: vybrane, cols: 2 },
-        { id: "home-scenes", type: "scenes", cols: 2 },
-        { id: "home-actions", type: "actions", cols: 2 },
       ],
     };
   }
@@ -118,17 +115,14 @@ export function vychozi(preset, model) {
   return {
     columns: 2,
     blocks: [
-      { id: "b1", type: "status", cols: 2 },
-      { id: "b2", type: "alerts", cols: 2 },
       {
-        id: "b3",
+        id: "b1",
         type: "entities",
         title: t.home.favorites,
         entities: vybrane,
         cols: 2,
       },
-      { id: "b4", type: "scenes" },
-      { id: "b5", type: "actions" },
+      { id: "b2", type: "actions", cols: 2 },
     ],
   };
 }

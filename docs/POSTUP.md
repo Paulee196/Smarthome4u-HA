@@ -4,14 +4,23 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 24. 9. 2026
-**Aktuální verze v kódu:** 0.12.3
+**Aktuální verze v kódu:** 0.13.0
+
+## Čtyři odlišné plochy 0.13.0
+
+- [x] Chytrá domácnost: katalog s filtrováním typu a hledáním.
+- [x] Domov: souhrn a přímé ovládání po místnostech.
+- [x] Půdorys: automatický plánek bez nutnosti nahrát obrázek.
+- [x] Přehled HA: metriky, upozornění a inventář.
+- [x] Vlastní bloky a jejich editor zůstávají na každé ploše.
+- [ ] Po instalaci ověřit všechny čtyři plochy v živém HA.
 
 ## Oprava 0.12.3 – mezipaměť frontendu
 
 - [x] Po instalaci 0.12.2 byl na serveru nový `version.js`, ale prohlížeč
   stále zobrazoval 0.12.0. Cesta ke skriptům a stylům teď obsahuje verzi,
   takže prohlížeč načte celý nový balík.
-- [ ] V živém HA ověřit zobrazenou verzi 0.12.3 a kliknutí na levé záložky.
+- [x] V živém HA ověřena verze 0.12.3 a kliknutí myší na levé záložky.
 
 ## Oprava 0.12.2 – levá navigace v kiosk režimu
 
@@ -19,7 +28,8 @@ dalo navázat z jakéhokoliv počítače.
   zachytává průhledná vrstva `.sidebar-shell` nad panelem.
 - [x] Kiosk schová tento obal uvnitř stínového stromu `ha-drawer` a při
   vypnutí režimu vrátí původní rozvržení.
-- [ ] Po instalaci 0.12.3 ověřit kliknutí myší a dotykem v živém HA.
+- [x] Po instalaci 0.12.3 ověřeno kliknutí myší v živém HA.
+- [ ] Dotykové ovládání ověřit na zařízení s dotykovým displejem.
 
 ## Oprava 0.12.1 – interakce editoru a osobní nastavení
 

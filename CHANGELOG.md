@@ -2,6 +2,17 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.13.0]
+
+### Změněno
+
+- Chytrá domácnost má samostatný katalog zařízení s filtrem typu, hledáním
+  podle názvu a místnosti a rychlým ovládáním.
+- Domov zobrazuje přívětivý souhrn a ovládání vybrané místnosti přímo na ploše.
+- Přehled HA ukazuje živé metriky, upozornění a inventář podle typů.
+- Půdorys funguje i bez nahraného obrázku jako automatický plánek místností.
+- Každá plocha má pod hlavní částí vlastní upravitelné bloky.
+
 ## [0.12.3]
 
 ### Opraveno
