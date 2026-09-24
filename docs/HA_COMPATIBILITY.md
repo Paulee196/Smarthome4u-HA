@@ -124,6 +124,13 @@ Ověřeno na HA 2026.9.
 Schování lišty sahá do stínového stromu `home-assistant-main`, což je vnitřek
 frontendu Home Assistantu. Ten se může kdykoliv změnit bez ohlášení.
 
+V HA 2026.9.3 je levý panel uvnitř `ha-drawer` jako `.layout > .sidebar-shell`.
+Jeho průhledná vrstva s `z-index: 6` překrývá levé menu Smarthome4u,
+i když panel není vidět. Kiosk proto vkládá styl přímo do stínového stromu
+`ha-drawer` a obal skryje. Starší `.mdc-drawer` zůstává jako fallback.
+Oba selektory jsou **interní** a ověřené na HA 2026.9.3; při změně DOM
+zůstane dostupné vypnutí kiosku v nastavení.
+
 **Opatření:** celý modul je v try/catch, při jakékoliv nejistotě neudělá nic
 a Home Assistant zůstane plně funkční. Nejhorší možný následek je, že lišta
 zůstane vidět. Uživatel si obojí může vypnout v možnostech integrace.

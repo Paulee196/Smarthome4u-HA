@@ -4,7 +4,15 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 24. 9. 2026
-**Aktuální verze v kódu:** 0.12.1
+**Aktuální verze v kódu:** 0.12.2
+
+## Oprava 0.12.2 – levá navigace v kiosk režimu
+
+- [x] V HA 2026.9.3 reprodukováno: záložky jsou vidět, ale klikání
+  zachytává průhledná vrstva `.sidebar-shell` nad panelem.
+- [x] Kiosk schová tento obal uvnitř stínového stromu `ha-drawer` a při
+  vypnutí režimu vrátí původní rozvržení.
+- [ ] Po instalaci 0.12.2 ověřit kliknutí myší a dotykem v živém HA.
 
 ## Oprava 0.12.1 – interakce editoru a osobní nastavení
 

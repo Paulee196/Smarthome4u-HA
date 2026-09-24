@@ -20,6 +20,7 @@ Smarthome4u vypnete, domácnost běží dál.
 | v0.11.0 | **vydáno** | Integrace, osobní plocha, ovládání a správa domácnosti |
 | v0.12.0 | **vydáno** | Čtyři podoby plochy a náhledy kamer |
 | v0.12.1 | **vydáno** | Opravy editoru, kiosku a výchozího plného zobrazení |
+| v0.12.2 | **vydáno** | Klikací navigace v kiosk režimu na HA 2026.9 |
 | v1.0 | plánováno | Editor automatizací, šablony dashboardu, technický režim, finální design |
 
 Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)

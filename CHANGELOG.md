@@ -2,6 +2,13 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.12.2]
+
+### Opraveno
+
+- Levá navigace zůstává v kiosk režimu klikací i v Home Assistantu 2026.9.
+  Nový průhledný obal postranní lišty HA ji již nepřekrývá.
+
 ## [0.12.1]
 
 ### Opraveno

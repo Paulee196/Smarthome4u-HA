@@ -34,6 +34,13 @@ const CSS_SKORAPKA = `
 
 /* Styl dovnitř zásuvky. Odsazení obsahu je v jejím vlastním stínu. */
 const CSS_ZASUVKA = `
+  /* Home Assistant 2026.9: průhledný shell zůstával nad naším levým menu. */
+  .layout > .sidebar-shell { display: none !important; pointer-events: none !important; }
+  .layout > .app-content {
+    margin-inline-start: 0 !important;
+    width: 100% !important;
+  }
+  /* Starší rozvržení zásuvky. */
   .mdc-drawer { display: none !important; width: 0 !important; }
   .mdc-drawer-app-content {
     margin-left: 0 !important;
