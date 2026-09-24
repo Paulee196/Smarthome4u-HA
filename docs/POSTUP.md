@@ -4,7 +4,14 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 24. 9. 2026
-**Aktuální verze v kódu:** 0.12.2
+**Aktuální verze v kódu:** 0.12.3
+
+## Oprava 0.12.3 – mezipaměť frontendu
+
+- [x] Po instalaci 0.12.2 byl na serveru nový `version.js`, ale prohlížeč
+  stále zobrazoval 0.12.0. Cesta ke skriptům a stylům teď obsahuje verzi,
+  takže prohlížeč načte celý nový balík.
+- [ ] V živém HA ověřit zobrazenou verzi 0.12.3 a kliknutí na levé záložky.
 
 ## Oprava 0.12.2 – levá navigace v kiosk režimu
 
@@ -12,7 +19,7 @@ dalo navázat z jakéhokoliv počítače.
   zachytává průhledná vrstva `.sidebar-shell` nad panelem.
 - [x] Kiosk schová tento obal uvnitř stínového stromu `ha-drawer` a při
   vypnutí režimu vrátí původní rozvržení.
-- [ ] Po instalaci 0.12.2 ověřit kliknutí myší a dotykem v živém HA.
+- [ ] Po instalaci 0.12.3 ověřit kliknutí myší a dotykem v živém HA.
 
 ## Oprava 0.12.1 – interakce editoru a osobní nastavení
 

@@ -2,6 +2,13 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.12.3]
+
+### Opraveno
+
+- Aktualizace přes HACS načte novou verzi všech skriptů a stylů panelu,
+  i když měl prohlížeč předchozí verzi uloženou v mezipaměti.
+
 ## [0.12.2]
 
 ### Opraveno

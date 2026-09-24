@@ -14,7 +14,7 @@ import { ucinnyMotiv, UDALOST as MOTIV_ZMENEN } from "./theme.js";
 import { setHost } from "./ui.js";
 import { mount, applyIncoming } from "./app.js";
 
-const BASE = "/smarthome4u-files";
+const BASE = new URL(".", import.meta.url).pathname.replace(/\/$/, "");
 const BATCH_MS = 200;
 
 class Smarthome4uPanel extends HTMLElement {

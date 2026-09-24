@@ -1,7 +1,7 @@
 """Konstanty integrace Smarthome4u."""
 
 DOMAIN = "smarthome4u"
-VERSION = "0.12.2"
+VERSION = "0.12.3"
 
 # Adresa panelu v postranní liště i v URL.
 PANEL_URL = "smarthome4u"
@@ -9,7 +9,9 @@ PANEL_TITLE = "Smarthome4u"
 PANEL_ICON = "mdi:home-lightbulb"
 
 # Kde se servírují naše soubory a kde běží naše API.
-STATIC_URL = "/smarthome4u-files"
+# Každá verze má vlastní URL. Prohlížeč jinak může držet starý modul ES
+# i po aktualizaci přes HACS a restartu Home Assistanta.
+STATIC_URL = f"/smarthome4u-files/{VERSION}"
 # Sem se ukládá půdorys, který nahraje uživatel. Zůstane i po aktualizaci.
 USER_URL = "/smarthome4u-user"
 USER_DIR = "smarthome4u"
