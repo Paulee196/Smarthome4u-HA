@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import logging
+import os
+import tempfile
 import time
 from functools import wraps
 from pathlib import Path
@@ -25,7 +28,7 @@ from homeassistant.helpers import floor_registry as fr
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
-from . import builder, capability, config_files, flows, refs, storage, system, templates
+from . import builder, capability, config_files, floorplan_files, flows, refs, storage, system, templates
 from .const import API_BASE, DOMAIN, LANGUAGE, USER_DIR, USER_URL, VERSION
 from .home import Home
 
@@ -1268,6 +1271,28 @@ class FloorplanView(Sh4uView):
         return web.json_response({"ok": True})
 
 
+def floorplan_roots(hass: HomeAssistant) -> dict[str, Path]:
+    """HA media directories plus locally stored public images."""
+    roots = {f"media:{key}": Path(path) for key, path in hass.config.media_dirs.items()}
+    roots["www"] = Path(hass.config.path("www"))
+    return roots
+
+
+class FloorplanFilesView(Sh4uView):
+    """Images available for the floorplan from HA-managed local files."""
+
+    url = f"{API_BASE}/floorplan/files"
+    name = "api:smarthome4u:floorplan:files"
+
+    @handler
+    @technician
+    async def get(self, request: web.Request) -> web.Response:
+        files = await self.hass.async_add_executor_job(
+            floorplan_files.list_images, floorplan_roots(self.hass)
+        )
+        return web.json_response({"files": files})
+
+
 class FloorplanImageView(Sh4uView):
     """Nahrání obrázku půdorysu.
 
@@ -1289,40 +1314,63 @@ class FloorplanImageView(Sh4uView):
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
         payload = await self.body(request)
-        data = payload.get("data")
+        if "file" in payload:
+            try:
+                obsah, pripona = await self.hass.async_add_executor_job(
+                    floorplan_files.read_image,
+                    floorplan_roots(self.hass),
+                    payload["file"],
+                )
+            except ValueError as err:
+                raise ApiError(str(err)) from err
+        else:
+            data = payload.get("data")
+            if not isinstance(data, str) or not data.startswith("data:"):
+                raise ApiError("Vyberte prosím obrázek.")
 
-        if not isinstance(data, str) or not data.startswith("data:"):
-            raise ApiError("Vyberte prosím obrázek.")
+            hlavicka, _, telo = data.partition(",")
+            typ = hlavicka[5:].split(";")[0]
 
-        hlavicka, _, telo = data.partition(",")
-        typ = hlavicka[5:].split(";")[0]
+            pripona = self.POVOLENE.get(typ)
+            if pripona is None:
+                raise ApiError("Podporujeme PNG, JPG a WEBP.")
 
-        pripona = self.POVOLENE.get(typ)
-        if pripona is None:
-            raise ApiError("Podporujeme PNG, JPG a WEBP.")
+            try:
+                obsah = base64.b64decode(telo, validate=True)
+            except (ValueError, binascii.Error) as err:
+                raise ApiError("Obrázek se nepodařilo přečíst.") from err
 
-        try:
-            obsah = base64.b64decode(telo, validate=True)
-        except (ValueError, binascii.Error) as err:
-            raise ApiError("Obrázek se nepodařilo přečíst.") from err
-
-        if len(obsah) > self.MAX_BYTU:
-            raise ApiError("Obrázek je větší než 8 MB.")
+            if len(obsah) > self.MAX_BYTU:
+                raise ApiError("Obrázek je větší než 8 MB.")
 
         slozka = Path(self.hass.config.path(USER_DIR))
-        nazev = f"pudorys.{pripona}"
+        nazev = f"pudorys-{hashlib.sha256(obsah).hexdigest()[:16]}.{pripona}"
 
         def zapsat() -> None:
             slozka.mkdir(parents=True, exist_ok=True)
-            # Staré přípony se uklidí, ať nezůstane viset neplatný soubor.
-            for stary in self.POVOLENE.values():
-                soubor = slozka / f"pudorys.{stary}"
-                if soubor.exists() and stary != pripona:
-                    soubor.unlink()
-            (slozka / nazev).write_bytes(obsah)
+            # Název podle obsahu obnoví obrázek v prohlížeči i při stejné příponě.
+            soubor = slozka / nazev
+            if not soubor.exists():
+                with tempfile.NamedTemporaryFile(dir=slozka, delete=False) as temp:
+                    temp.write(obsah)
+                    temp_name = temp.name
+                try:
+                    os.replace(temp_name, soubor)
+                finally:
+                    if os.path.exists(temp_name):
+                        os.unlink(temp_name)
 
         await self.hass.async_add_executor_job(zapsat)
         await settings.set_floorplan_image(nazev)
+
+        def uklidit() -> None:
+            stare = list(slozka.glob("pudorys-*"))
+            stare.extend(slozka / f"pudorys.{ext}" for ext in self.POVOLENE.values())
+            for soubor in stare:
+                if soubor.is_file() and soubor.name != nazev:
+                    soubor.unlink()
+
+        await self.hass.async_add_executor_job(uklidit)
 
         return web.json_response({"ok": True, "image": f"{USER_URL}/{nazev}"})
 
@@ -1589,6 +1637,7 @@ VIEWS = (
     KioskView,
     LayoutView,
     FloorplanView,
+    FloorplanFilesView,
     FloorplanImageView,
     ClassifyView,
     FavoriteView,

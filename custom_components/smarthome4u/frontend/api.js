@@ -144,8 +144,10 @@ export const api = {
 
   kiosk: () => request("GET", "kiosk"),
   floorplan: () => request("GET", "floorplan"),
+  floorplanFiles: () => request("GET", "floorplan/files"),
   saveFloorplan: (body) => request("POST", "floorplan", body),
   uploadFloorplan: (data) => request("POST", "floorplan/image", { data }),
+  selectFloorplanFile: (file) => request("POST", "floorplan/image", { file }),
   settings: () => request("GET", "settings"),
   saveSettings: (body) => request("POST", "settings", body),
   setPreset: (preset) => request("POST", "preset", { preset }),

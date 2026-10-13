@@ -326,25 +326,79 @@ function nahrat(ctx) {
     type: "file",
     accept: "image/png,image/jpeg,image/webp",
   });
+  const hledat = h("input", {
+    class: "input", type: "search", placeholder: t.floorplan.haSearch,
+    "aria-label": t.floorplan.haSearch,
+  });
+  const seznam = h("div", { class: "floorplan-file-list" },
+    h("p", { class: "muted", text: t.floorplan.haLoading }));
+  const haPanel = h("div", { class: "stack" }, [
+    h("p", { class: "muted", text: t.floorplan.haHint }), hledat, seznam,
+  ]);
+  const computerPanel = h("div", { class: "stack" }, [
+    h("p", { class: "muted", text: t.floorplan.uploadHint }), vstup,
+  ]);
+  computerPanel.hidden = true;
+  let source = "ha";
+  let selected = null;
+  let files = [];
+
+  const haTab = button(t.floorplan.fromHa, () => show("ha"), "floorplan-file-tab");
+  const computerTab = button(t.floorplan.fromComputer,
+    () => show("computer"), "floorplan-file-tab");
+  function show(next) {
+    source = next;
+    haPanel.hidden = next !== "ha";
+    computerPanel.hidden = next !== "computer";
+    haTab.setAttribute("aria-pressed", String(next === "ha"));
+    computerTab.setAttribute("aria-pressed", String(next === "computer"));
+  }
+
+  function drawFiles() {
+    const query = hledat.value.trim().toLocaleLowerCase();
+    const visible = files.filter((file) =>
+      `${file.source} ${file.path}`.toLocaleLowerCase().includes(query));
+    seznam.replaceChildren();
+    if (!visible.length) {
+      seznam.append(h("p", { class: "muted", text: t.floorplan.haEmpty }));
+      return;
+    }
+    for (const file of visible) {
+      const item = button("", () => {
+        selected = file;
+        drawFiles();
+      }, "floorplan-file-item");
+      item.setAttribute("aria-pressed", String(selected?.source === file.source
+        && selected?.path === file.path));
+      item.replaceChildren(
+        h("strong", { text: file.name }),
+        h("small", { text: `${file.source === "www" ? "www" : `Média / ${file.source.slice(6)}`}${file.folder ? ` / ${file.folder}` : ""} · ${Math.ceil(file.size / 1024)} KB` }),
+      );
+      seznam.append(item);
+    }
+  }
+  hledat.addEventListener("input", drawFiles);
+  show("ha");
 
   dialog(
     t.floorplan.upload,
     h("div", { class: "stack" }, [
-      h("p", { class: "muted", text: t.floorplan.uploadHint }),
-      vstup,
+      h("div", { class: "floorplan-file-tabs" }, [haTab, computerTab]),
+      haPanel, computerPanel,
     ]),
     h("div", { class: "row" }, [
       button(t.action.cancel, closeDialog, "button--ghost"),
       button(t.action.save, async () => {
-        const soubor = vstup.files?.[0];
-        if (!soubor) {
-          toast(t.floorplan.pickFile, true);
-          return;
-        }
-
         try {
-          const data = await precist(soubor);
-          await api.uploadFloorplan(data);
+          if (source === "ha") {
+            if (!selected) return toast(t.floorplan.haPickFile, true);
+            await api.selectFloorplanFile({ source: selected.source, path: selected.path });
+          } else {
+            const soubor = vstup.files?.[0];
+            if (!soubor) return toast(t.floorplan.pickFile, true);
+            const data = await precist(soubor);
+            await api.uploadFloorplan(data);
+          }
           closeDialog();
           toast(t.notice.saved);
           await ctx.refresh();
@@ -354,6 +408,15 @@ function nahrat(ctx) {
       }),
     ]),
   );
+
+  api.floorplanFiles().then((result) => {
+    if (!seznam.isConnected) return;
+    files = result.files || [];
+    drawFiles();
+  }).catch((error) => {
+    if (seznam.isConnected) seznam.replaceChildren(
+      h("p", { class: "muted", text: `${t.floorplan.haLoadFailed} ${error.message}` }));
+  });
 }
 
 function precist(soubor) {

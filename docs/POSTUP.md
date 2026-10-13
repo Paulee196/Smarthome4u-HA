@@ -4,7 +4,17 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.14.1
+**Aktuální verze v kódu:** 0.14.2
+
+## Výběr obrázku plánku z HA 0.14.2
+
+- [x] Dialog plánku nabízí existující PNG, JPG a WEBP ze složek knihovny
+  Média a `/config/www`; soubory lze hledat podle názvu a složky.
+- [x] Backend omezuje výběr na nastavené složky, nepovoluje cestu mimo ně,
+  ověřuje skutečný formát a limit 8 MB. Vybraný obrázek kopíruje do vlastního
+  úložiště, aby fungoval stejně jako obrázek nahraný z počítače.
+- [x] Nahrání z počítače zůstává k dispozici v druhé záložce.
+- [ ] Ověřit výběr na živé instalaci HA s reálnými soubory v Média.
 
 ## Editor plánku 0.14.1
 

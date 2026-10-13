@@ -80,6 +80,12 @@ frontend Home Assistantu. Dostáváme tedy stejná data jako on.
 
 ## Soubory
 
+Pro výběr půdorysu čteme `hass.config.media_dirs` (nastavené složky knihovny
+Média) a `hass.config.path("www")` (lokální obrázky). Jde o konfigurační API
+Home Assistanta; ověřeno v testovací instalaci HA používané v CI od verze
+0.14.2. Pokud složka neexistuje, výběr ji přeskočí. Soubory se jen čtou;
+vybraný obrázek se zkopíruje do vlastní složky Smarthome4u.
+
 | Soubor | Účel | Reload |
 |---|---|---|
 | `automations.yaml` | Automatizace ze šablon | `automation.reload` |

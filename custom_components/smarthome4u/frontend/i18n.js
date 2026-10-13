@@ -499,13 +499,21 @@ export const t = {
     homePlan: "Plánek domácnosti",
     automaticPlan: "Automatický plánek místností",
     planHint: "Klepněte na značku zařízení nebo vyberte místnost pod plánkem.",
-    automaticHint: "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys nahrajete tlačítkem nahoře.",
+    automaticHint: "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys vyberete tlačítkem nahoře.",
     roomsOnPlan: "Místnosti v plánku",
     selectedRoom: "VYBRANÁ MÍSTNOST",
     noControls: "V této místnosti nejsou vybraná zařízení.",
     roomState: (lights, temperature) =>
       `${lights} světel svítí${temperature == null ? "" : ` · ${temperature} °C`}`,
-    upload: "Nahrát plánek",
+    upload: "Vybrat plánek",
+    fromHa: "Ze souborů HA",
+    fromComputer: "Z počítače",
+    haHint: "Vyberte obrázek z knihovny Média nebo ze složky www v Home Assistantu.",
+    haEmpty: "V Home Assistantu nejsou žádné vhodné obrázky. Můžete nahrát soubor z počítače.",
+    haSearch: "Hledat obrázek",
+    haLoading: "Načítám obrázky…",
+    haLoadFailed: "Seznam souborů se nepodařilo načíst.",
+    haPickFile: "Vyberte obrázek ze souborů Home Assistanta.",
     uploadHint:
       "Vyberte obrázek půdorysu bytu nebo domu. PNG, JPG nebo WEBP, " +
       "nejvýš 8 MB.",

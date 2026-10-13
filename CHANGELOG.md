@@ -2,6 +2,15 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.14.2]
+
+### Přidáno
+
+- Plánek lze vybrat ze složek knihovny Média Home Assistanta nebo z `/config/www`.
+  V dialogu lze soubory prohledat; nahrání z počítače zůstává dostupné.
+- Vybraný obrázek se bezpečně zkopíruje do úložiště plánku, takže funguje i
+  při běžném zobrazení dashboardu bez přístupu k souborům médií.
+
 ## [0.14.1]
 
 ### Přidáno

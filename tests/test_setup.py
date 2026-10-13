@@ -10,6 +10,8 @@ doopravdy, takže test odhalí i špatné parametry. Kdyby se mockoval rovnou
 u verze 0.4.3.
 """
 
+import base64
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -302,6 +304,32 @@ async def test_pudorys(
         "/api/smarthome4u/floorplan/image", json={"data": obrazek}
     )
     assert odpoved.status == 200, await odpoved.text()
+
+    # Lze vybrat také obrázek, který už je uložený v HA.
+    www = Path(hass.config.path("www"))
+    www.mkdir(exist_ok=True)
+    (www / "byt.png").write_bytes(base64.b64decode(obrazek.split(",")[1]))
+    media = Path(hass.config.path("media_floorplan_test"))
+    media.mkdir(exist_ok=True)
+    (media / "dum.png").write_bytes(base64.b64decode(obrazek.split(",")[1]))
+    hass.config.media_dirs["floorplan_test"] = str(media)
+    available = await (await client.get("/api/smarthome4u/floorplan/files")).json()
+    assert any(item["path"] == "byt.png" and item["source"] == "www"
+               for item in available["files"])
+    assert any(item["path"] == "dum.png" and item["source"] == "media:floorplan_test"
+               for item in available["files"])
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan/image",
+        json={"file": {"source": "media:floorplan_test", "path": "dum.png"}},
+    )
+    assert odpoved.status == 200, await odpoved.text()
+
+    # Upravená cesta nesmí zpřístupnit soubory mimo složku www.
+    odpoved = await client.post(
+        "/api/smarthome4u/floorplan/image",
+        json={"file": {"source": "www", "path": "../secrets.yaml"}},
+    )
+    assert odpoved.status == 400
 
     odpoved = await client.post(
         "/api/smarthome4u/floorplan",

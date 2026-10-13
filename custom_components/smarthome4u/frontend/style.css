@@ -2841,6 +2841,13 @@ textarea.input {
 .floorplan-rooms__detail-head h3 { margin: 0 0 5px; font-size: 25px; }
 .floorplan-rooms__detail-head p { margin: 0; color: var(--sh-text-muted); }
 .floorplan-rooms__devices { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+.floorplan-file-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.floorplan-file-tabs ~ [hidden] { display: none; }
+.floorplan-file-tab[aria-pressed="true"] { border-color: var(--sh-accent); background: var(--sh-accent-quiet); color: var(--sh-accent-ink); }
+.floorplan-file-list { display: grid; gap: 7px; max-height: min(42vh, 360px); overflow-y: auto; }
+.floorplan-file-item { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 58px; padding: 10px 14px; border: 1px solid var(--sh-border); border-radius: 12px; background: var(--sh-surface); color: var(--sh-text); text-align: left; }
+.floorplan-file-item[aria-pressed="true"] { border-color: var(--sh-accent); background: var(--sh-accent-quiet); }
+.floorplan-file-item small { color: var(--sh-text-muted); font-weight: 400; overflow-wrap: anywhere; }
 
 @media (max-width: 900px) {
   .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
