@@ -1299,7 +1299,7 @@ class FloorplanView(Sh4uView):
     async def get(self, request: web.Request) -> web.Response:
         settings = self.presentation(request)
         if settings is None:
-            return web.json_response({"image": None, "points": []})
+            return web.json_response({"image": None, "points": [], "rooms": []})
 
         plan = settings.floorplan
         body = []
@@ -1317,10 +1317,27 @@ class FloorplanView(Sh4uView):
                     **tile_style(point),
                 }
             )
+        areas = ar.async_get(self.hass)
+        rooms = []
+        for marker in plan.get("rooms", []):
+            area_id = marker.get("roomId")
+            if not isinstance(area_id, str) or areas.async_get_area(area_id) is None:
+                continue
+            rooms.append({
+                "roomId": area_id,
+                "x": marker.get("x"),
+                "y": marker.get("y"),
+                **tile_style(marker),
+            })
         return web.json_response(
             {
                 "image": f"{USER_URL}/{plan['image']}" if plan["image"] else None,
                 "points": body,
+                "rooms": rooms,
+                "availableRooms": [
+                    {"id": area.id, "name": area.name}
+                    for area in sorted(areas.areas.values(), key=lambda item: item.name.lower())
+                ],
             }
         )
 
@@ -1359,6 +1376,34 @@ class FloorplanView(Sh4uView):
                 )
 
             await settings.set_floorplan_points(ocistene)
+
+        if "rooms" in payload:
+            markers = payload["rooms"]
+            if not isinstance(markers, list) or len(markers) > 100:
+                raise ApiError("Neplatné rozmístění místností.")
+            areas = ar.async_get(self.hass)
+            clean = []
+            seen = set()
+            for marker in markers:
+                if not isinstance(marker, dict):
+                    raise ApiError("Neplatné rozmístění místností.")
+                room_id = marker.get("roomId")
+                x, y = marker.get("x"), marker.get("y")
+                if (not isinstance(room_id, str) or room_id in seen
+                    or areas.async_get_area(room_id) is None):
+                    raise ApiError("Taková místnost neexistuje nebo je na plánku dvakrát.")
+                if (not isinstance(x, (int, float)) or isinstance(x, bool)
+                    or not 0 <= x <= 100 or not isinstance(y, (int, float))
+                    or isinstance(y, bool) or not 0 <= y <= 100):
+                    raise ApiError("Neplatné rozmístění místností.")
+                seen.add(room_id)
+                clean.append({
+                    "roomId": room_id,
+                    "x": round(x, 2),
+                    "y": round(y, 2),
+                    **tile_style(marker),
+                })
+            await settings.set_floorplan_rooms(clean)
 
         return web.json_response({"ok": True})
 

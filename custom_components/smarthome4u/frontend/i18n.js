@@ -489,6 +489,7 @@ export const t = {
       "Vyberte podobu. Každá má vlastní sestavu bloků, kterou upravíte " +
       "tlačítkem Upravit plochu na obrazovce Domů.",
     editDashboard: "Upravit rozvržení",
+    editFloorplan: "Nastavit plánek",
     resetLayout: "Vrátit výchozí rozvržení",
     resetLayoutHint:
       "Zahodí se vaše pořadí a vše se vrátí podle Home Assistantu. " +
@@ -540,6 +541,15 @@ export const t = {
     roomState: (lights, temperature) =>
       `${lights} světel svítí${temperature == null ? "" : ` · ${temperature} °C`}`,
     upload: "Vybrat plánek",
+    editPlan: "Upravit plánek",
+    addFirst: "Přidat první značku na plánek",
+    editHint: "Klepněte na místo v plánku a vyberte místnost nebo zařízení. Značky pak přetáhněte na správné místo.",
+    placeTitle: "Co sem umístit?",
+    placeHint: "Vyberte, co chcete na označené místo přidat.",
+    addRoom: "Přidat místnost",
+    editRoom: "Upravit místnost na plánku",
+    roomAddHint: "Vyberte místnost z Home Assistanta. Její značku pak můžete přetáhnout a upravit.",
+    noRoomsToAdd: "Všechny dostupné místnosti už jsou na plánku.",
     fromHa: "Ze souborů HA",
     fromComputer: "Z počítače",
     haHint: "Vyberte obrázek z knihovny Média nebo ze složky www v Home Assistantu.",
@@ -557,7 +567,7 @@ export const t = {
     emptyUser: "Správce zatím nenahrál plánek bytu.",
     addDevice: "Přidat zařízení na plán",
     addHint:
-      "Zařízení se objeví uprostřed plánu. Pak ho přetáhněte tam, kam patří.",
+      "Vyberte zařízení. Značku pak můžete přetáhnout na správné místo.",
     nothingToAdd: "Všechna zařízení už na plánu jsou.",
   },
 

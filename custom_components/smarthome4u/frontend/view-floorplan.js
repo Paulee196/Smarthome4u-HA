@@ -35,21 +35,27 @@ export async function renderFloorplan(root, ctx) {
     return;
   }
 
-  const jeTechnik = ["admin", "technician"].includes(ctx.model?.user?.role);
+  const jeTechnik = ctx.jeTechnik;
+  const rooms = floorplanRooms(ctx, plan);
 
   if (jeTechnik || ctx.editing) {
     root.append(
-      h("div", { class: "row row--end" }, [
+      h("div", { class: "row row--end floorplan-toolbar" }, [
+        jeTechnik && !ctx.editing && plan.image &&
+          button(t.floorplan.editPlan, () => ctx.startEditing()),
         jeTechnik && button(t.floorplan.upload, () => nahrat(ctx), "button--ghost"),
         ctx.editing && plan.image &&
           button(t.floorplan.addDevice, () => pridatBod(ctx, plan), "button--ghost"),
+        ctx.editing && plan.image &&
+          button(t.floorplan.addRoom, () => pridatMistnost(ctx, plan), "button--ghost"),
       ]),
     );
   }
 
-  const board = floorplanBoard(ctx, Boolean(plan.image));
+  const board = floorplanBoard(ctx, Boolean(plan.image), rooms);
   const headline = board.find((block) => block.type === "headline");
   const intro = h("div", { class: "floorplan-intro dashboard-intro dashboard-block"
+    + (plan.image ? " floorplan-intro--image" : "")
     + ` dashboard-block--${headline?.color || "default"}`
     + ` dashboard-block--${headline?.height || "normal"}` }, [
     h("span", { class: "experience__eyebrow", text: t.floorplan.eyebrow }),
@@ -66,12 +72,24 @@ export async function renderFloorplan(root, ctx) {
         block.id === headline.id ? next : block)), ["headline"]), "button--ghost"));
   root.append(intro);
 
-  if (plan.image) root.append(platno(ctx, plan));
-  root.append(prehledMistnosti(ctx, !plan.image, board));
+  const roomsView = prehledMistnosti(ctx, !plan.image, board, rooms);
+  if (plan.image) root.append(platno(ctx, plan, rooms, roomsView.select));
+  root.append(roomsView.element);
 }
 
-function floorplanBoard(ctx, hasImage) {
-  const rooms = (ctx.model.rooms || []).filter((room) => room.entities?.length).slice(0, 29);
+function floorplanRooms(ctx, plan) {
+  const byId = new Map((ctx.model.rooms || []).filter((room) => room.id)
+    .map((room) => [String(room.id), room]));
+  for (const area of plan.availableRooms || []) {
+    if (!byId.has(String(area.id))) byId.set(String(area.id), {
+      id: area.id, name: area.name, entities: [],
+    });
+  }
+  return [...byId.values()];
+}
+
+function floorplanBoard(ctx, hasImage, allRooms) {
+  const rooms = allRooms.slice(0, 29);
   const roomIds = new Set(rooms.map((room) => String(room.id)));
   const defaults = vychozi("pudorys", ctx.model).blocks;
   const stored = (ctx.model.board?.blocks || []).filter((block) =>
@@ -99,10 +117,10 @@ async function saveFloorplanBoard(ctx, blocks) {
 }
 
 /* Plánek funguje hned po instalaci, i když uživatel nemá obrázek domu. */
-function prehledMistnosti(ctx, schematic, blocks) {
-  const rooms = (ctx.model.rooms || []).filter((r) => r.entities?.length).slice(0, 29);
+function prehledMistnosti(ctx, schematic, blocks, allRooms) {
+  const rooms = allRooms.slice(0, 29);
   const summaries = ctx.model.roomSummaries || [];
-  if (!rooms.length) return emptyState(t.rooms.empty);
+  if (!rooms.length) return { element: emptyState(t.rooms.empty), select: () => {} };
   const blockFor = (room) => blocks.find((block) =>
     block.type === "room" && String(block.roomId) === String(room.id));
   const orderedRooms = [...rooms].sort((a, b) =>
@@ -175,14 +193,23 @@ function prehledMistnosti(ctx, schematic, blocks) {
   });
   root.append(map, detail);
   draw();
-  return root;
+  return {
+    element: root,
+    select: (roomId) => {
+      if (!orderedRooms.some((room) => String(room.id) === String(roomId))) return;
+      active = String(roomId);
+      selectedRoomId = active;
+      draw();
+      detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ */
 /* Plán s body                                                         */
 /* ------------------------------------------------------------------ */
 
-function platno(ctx, plan) {
+function platno(ctx, plan, rooms, selectRoom) {
   const vse = new Map(
     ctx.allEntities().flatMap((e) => [
       [e.id, e],
@@ -198,6 +225,42 @@ function platno(ctx, plan) {
 
   const vrstva = h("div", { class: "plan__vrstva" });
   const platno = h("div", { class: "plan" }, [obrazek, vrstva]);
+  const stage = h("section", { class: "floorplan-stage" }, [platno]);
+
+  // Souřadnice značek se vztahují k přesné ploše obrázku, bez okrajů.
+  function fit() {
+    if (!obrazek.naturalWidth || !stage.clientWidth) return;
+    const ratio = obrazek.naturalWidth / obrazek.naturalHeight;
+    const limitHeight = Math.min(680, Math.max(320, window.innerHeight * 0.7));
+    const width = Math.min(stage.clientWidth - 24, 1120, limitHeight * ratio);
+    platno.style.width = `${Math.round(width)}px`;
+    platno.style.height = `${Math.round(width / ratio)}px`;
+  }
+  obrazek.addEventListener("load", fit);
+  if (obrazek.complete) queueMicrotask(fit);
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => {
+      if (!stage.isConnected) { observer.disconnect(); return; }
+      fit();
+    });
+    observer.observe(stage);
+  } else window.addEventListener("resize", fit, { once: true });
+
+  if (ctx.editing) {
+    stage.append(h("p", { class: "floorplan-stage__hint", text: t.floorplan.editHint }));
+    vrstva.classList.add("plan__vrstva--edit");
+    vrstva.addEventListener("click", (event) => {
+      if (event.target !== vrstva) return;
+      const rect = vrstva.getBoundingClientRect();
+      const coords = {
+        x: Math.min(100, Math.max(0, (event.clientX - rect.left) / rect.width * 100)),
+        y: Math.min(100, Math.max(0, (event.clientY - rect.top) / rect.height * 100)),
+      };
+      vybratUmisteni(ctx, plan, coords);
+    });
+  } else if (ctx.jeTechnik && !plan.points.length && !(plan.rooms || []).length) {
+    stage.append(button(t.floorplan.addFirst, () => ctx.startEditing()));
+  }
 
   for (const bod of plan.points) {
     const entity = vse.get(bod.entityRef || bod.entityId);
@@ -205,7 +268,56 @@ function platno(ctx, plan) {
     vrstva.append(znacka(ctx, plan, bod, entity, platno));
   }
 
-  return platno;
+  const mistnosti = new Map(rooms.map((room) => [String(room.id), room]));
+  for (const marker of plan.rooms || []) {
+    const room = mistnosti.get(String(marker.roomId));
+    if (room) vrstva.append(znackaMistnosti(ctx, plan, marker, room, platno, selectRoom));
+  }
+
+  return stage;
+}
+
+function znackaMistnosti(ctx, plan, marker, room, platno, selectRoom) {
+  const color = ["mint", "blue", "violet", "amber", "rose"].includes(marker.color)
+    ? marker.color : "default";
+  const size = ["s", "m", "l", "xl"].includes(marker.size) ? marker.size : "m";
+  const name = marker.label || room.name || t.rooms.unassigned;
+  const element = h("div", {
+    class: `plan__bod plan__room plan__bod--tone-${color} plan__bod--${size}`,
+  }, [
+    h("button", {
+      class: "plan__bod-hit", type: "button",
+      "aria-label": `${t.floorplan.selectedRoom}: ${name}`,
+      onclick: () => { if (!ctx.editing) selectRoom(room.id); },
+    }, [marker.icon ? icon(marker.icon) : icon("rooms"), h("span", { text: name })]),
+    ctx.editing && h("button", {
+      class: "plan__bod-edit", type: "button", text: "⋯",
+      "aria-label": `${t.floorplan.editRoom}: ${name}`,
+      onclick: () => upravitMistnost(ctx, plan, marker, room),
+    }),
+  ]);
+  element.style.left = `${marker.x}%`;
+  element.style.top = `${marker.y}%`;
+  if (ctx.editing) {
+    element.classList.add("plan__bod--edit");
+    element.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".plan__bod-edit")) return;
+      zacitTahat(event, element, marker, plan, platno);
+    });
+  }
+  return element;
+}
+
+function upravitMistnost(ctx, plan, marker, room) {
+  const extra = button(t.favorites.remove, async () => {
+    closeDialog();
+    plan.rooms = plan.rooms.filter((item) => item !== marker);
+    await ulozitBody(ctx, plan);
+  }, "button--ghost");
+  editAppearance(marker.label || room.name, marker, async (appearance) => {
+    Object.assign(marker, appearance);
+    await ulozitBody(ctx, plan);
+  }, { extra });
 }
 
 function znacka(ctx, plan, bod, entity, platno) {
@@ -271,7 +383,7 @@ function upravitBod(ctx, plan, bod, entity) {
 
 async function ulozitBody(ctx, plan) {
   try {
-    await api.saveFloorplan({ points: plan.points });
+    await api.saveFloorplan({ points: plan.points, rooms: plan.rooms || [] });
     toast(t.notice.saved);
     await ctx.refresh();
   } catch (error) {
@@ -282,10 +394,12 @@ async function ulozitBody(ctx, plan) {
 function zacitTahat(udalost, prvek, bod, plan, platno) {
   udalost.preventDefault();
   prvek.setPointerCapture?.(udalost.pointerId);
+  let moved = false;
 
   function pohyb(dalsi) {
     const misto = platno.getBoundingClientRect();
     if (!misto.width || !misto.height) return;
+    moved = true;
 
     bod.x = Math.min(
       100,
@@ -303,9 +417,10 @@ function zacitTahat(udalost, prvek, bod, plan, platno) {
   async function konec() {
     window.removeEventListener("pointermove", pohyb);
     window.removeEventListener("pointerup", konec);
+    if (!moved) return;
 
     try {
-      await api.saveFloorplan({ points: plan.points });
+      await api.saveFloorplan({ points: plan.points, rooms: plan.rooms || [] });
       toast(t.editor.saved);
     } catch (error) {
       toast(error.message, true);
@@ -432,41 +547,51 @@ function precist(soubor) {
 /* Přidání zařízení na plán                                            */
 /* ------------------------------------------------------------------ */
 
-function pridatBod(ctx, plan) {
-  const jiz = new Set(plan.points.map((b) => b.entityRef || b.entityId));
-  const nabidka = ctx
-    .allEntities()
-    .filter((e) => e.capability?.controllable && !jiz.has(e.ref || e.id))
-    .map((e) => ({ value: e.ref || e.id, label: e.name }));
+function vybratUmisteni(ctx, plan, coords) {
+  dialog(t.floorplan.placeTitle, h("p", { class: "muted", text: t.floorplan.placeHint }),
+    h("div", { class: "row" }, [
+      button(t.floorplan.addRoom, () => { closeDialog(); pridatMistnost(ctx, plan, coords); }),
+      button(t.floorplan.addDevice, () => { closeDialog(); pridatBod(ctx, plan, coords); }, "button--ghost"),
+    ]));
+}
 
-  if (!nabidka.length) {
+function pridatMistnost(ctx, plan, coords = { x: 50, y: 50 }) {
+  const existing = new Set((plan.rooms || []).map((marker) => String(marker.roomId)));
+  const available = (plan.availableRooms || ctx.model.rooms || [])
+    .filter((room) => room.id && !existing.has(String(room.id)));
+  if (!available.length) {
+    toast(t.floorplan.noRoomsToAdd, true);
+    return;
+  }
+  const choice = selectInput(available.map((room) => ({
+    value: String(room.id), label: room.name,
+  })), String(available[0].id));
+  dialog(t.floorplan.addRoom, h("div", { class: "stack" }, [
+    h("p", { class: "muted", text: t.floorplan.roomAddHint }), choice,
+  ]), h("div", { class: "row" }, [
+    button(t.action.cancel, closeDialog, "button--ghost"),
+    button(t.action.add, async () => {
+      plan.rooms = [...(plan.rooms || []), { roomId: choice.value, ...coords }];
+      closeDialog();
+      await ulozitBody(ctx, plan);
+    }),
+  ]));
+}
+
+function pridatBod(ctx, plan, coords = { x: 50, y: 50 }) {
+  const jiz = new Set(plan.points.map((b) => b.entityRef || b.entityId));
+  const available = ctx.allEntities().some((entity) =>
+    entity.capability?.controllable && !jiz.has(entity.ref || entity.id));
+  if (!available) {
     toast(t.floorplan.nothingToAdd, true);
     return;
   }
-
-  const vyber = selectInput(nabidka, nabidka[0].value);
-
-  dialog(
-    t.floorplan.addDevice,
-    h("div", { class: "stack" }, [
-      h("p", { class: "muted", text: t.floorplan.addHint }),
-      vyber,
-    ]),
-    h("div", { class: "row" }, [
-      button(t.action.cancel, closeDialog, "button--ghost"),
-      button(t.action.add, async () => {
-        // Nové zařízení přistane uprostřed, správce ho pak přetáhne.
-        plan.points.push({ entityRef: vyber.value, x: 50, y: 50 });
-
-        try {
-          await api.saveFloorplan({ points: plan.points });
-          closeDialog();
-          toast(t.notice.saved);
-          await ctx.refresh();
-        } catch (error) {
-          toast(error.message, true);
-        }
-      }),
-    ]),
-  );
+  vybratZarizeni(ctx, {
+    nadpis: t.floorplan.addDevice,
+    filtr: (entity) => entity.capability?.controllable && !jiz.has(entity.ref || entity.id),
+    onVyber: async (ref) => {
+      plan.points.push({ entityRef: ref, ...coords });
+      await ulozitBody(ctx, plan);
+    },
+  });
 }

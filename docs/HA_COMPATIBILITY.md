@@ -24,6 +24,7 @@ Vše v `home.py`.
 | Napojení | Účel | Typ |
 |---|---|---|
 | `helpers.area_registry.async_get` | Místnosti | veřejné |
+| `area_registry.async_get_area` | Ověření značek místností na plánku (od 0.16.0) | veřejné |
 | `helpers.device_registry.async_get` | Zařízení | veřejné |
 | `helpers.entity_registry.async_get` | Registr entit, persistentní ID | veřejné |
 | `helpers.floor_registry.async_get` | Patra | veřejné |

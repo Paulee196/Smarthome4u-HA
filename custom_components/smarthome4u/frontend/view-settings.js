@@ -301,6 +301,17 @@ function sekceDashboard(ctx, nastaveni) {
     mrizka,
     h("div", { class: "row" }, [
       button(t.settings.editDashboard, () => ctx.startEditing(), "button--ghost"),
+      button(t.settings.editFloorplan, async () => {
+        try {
+          if (ctx.model.preset !== "pudorys") {
+            await api.setPreset("pudorys");
+            await ctx.refresh();
+          }
+          ctx.startEditing();
+        } catch (error) {
+          toast(error.message, true);
+        }
+      }, "button--ghost"),
       nastaveni.hasLayout &&
         button(
           t.settings.resetLayout,

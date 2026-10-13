@@ -70,7 +70,7 @@ VYCHOZI: dict[str, Any] = {
     "overrides": {},
     "favorites": [],
     # Půdorys: obrázek a body se zařízeními v procentech plochy.
-    "floorplan": {"image": None, "points": []},
+    "floorplan": {"image": None, "points": [], "rooms": []},
     # Plocha po blocích, zvlášť pro každou podobu dashboardu.
     # Prázdné znamená "použij výchozí sestavu", ne "prázdná plocha".
     "dashboard": {},
@@ -403,6 +403,7 @@ class Settings:
         plan = self.data.setdefault("floorplan", {})
         plan.setdefault("image", None)
         plan.setdefault("points", [])
+        plan.setdefault("rooms", [])
         return plan
 
     async def set_floorplan_image(self, nazev: str | None) -> None:
@@ -411,6 +412,10 @@ class Settings:
 
     async def set_floorplan_points(self, body: list[dict]) -> None:
         self.floorplan["points"] = body
+        await self.save()
+
+    async def set_floorplan_rooms(self, body: list[dict]) -> None:
+        self.floorplan["rooms"] = body
         await self.save()
 
     # ------------------------------------------------------------------

@@ -2,6 +2,16 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.16.0]
+
+### Přidáno
+
+- Plánek se přizpůsobí šířce i výšce obrazovky a zachová přesné umístění značek.
+- Na obrázek lze klepnout a vybrat místnost nebo zařízení pro dané místo.
+  Značky lze přesouvat, upravit jejich text, ikonu, barvu a velikost.
+- Značka místnosti otevře její ovládací detail pod plánkem.
+- Přímý vstup do editoru plánku je na dashboardu i v Nastavení.
+
 ## [0.15.2]
 
 ### Opraveno

@@ -1872,7 +1872,7 @@ textarea.input {
 .plan__obrazek {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 /* Vrstva s body leží přesně na obrázku, aby procenta seděla. */
@@ -2844,6 +2844,20 @@ textarea.input {
 
 /* Půdorys bez obrázku: živý přehled místností a detail vybrané zóny. */
 .floorplan-intro { margin: 4px 0 22px; }
+.floorplan-intro--image { padding: 14px 18px; margin-bottom: 12px; }
+.floorplan-intro--image .experience__eyebrow,
+.floorplan-intro--image .dashboard-intro__glyph { display: none; }
+.floorplan-intro--image h2 { font-size: var(--sh-size-lg); }
+.floorplan-toolbar { flex-wrap: wrap; margin-bottom: 8px; }
+.floorplan-stage { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); background: var(--sh-surface); }
+.floorplan-stage .plan { flex: none; max-width: 100%; margin: 0 auto; }
+.floorplan-stage__hint { margin: 0; color: var(--sh-text-muted); font-size: var(--sh-size-sm); text-align: center; }
+.plan__vrstva--edit { cursor: crosshair; }
+.plan__room { border-radius: var(--sh-radius-pill); font-weight: 700; color: var(--sh-text); background: var(--sh-surface-raised); }
+.plan__room .plan__bod-hit { flex-direction: row; gap: 6px; padding-inline: 12px; }
+.plan__room.plan__bod--s .plan__bod-hit { font-size: var(--sh-size-xs); }
+.plan__room.plan__bod--l .plan__bod-hit,
+.plan__room.plan__bod--xl .plan__bod-hit { min-height: var(--sh-touch-target); }
 .floorplan-rooms { margin-top: 22px; }
 .floorplan-rooms--schematic { display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(320px, 1fr); gap: 18px; }
 .floorplan-rooms__map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }

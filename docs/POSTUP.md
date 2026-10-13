@@ -4,7 +4,18 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.15.2
+**Aktuální verze v kódu:** 0.16.0
+
+## Použitelný plánek 0.16.0
+
+- [x] Obrázek se vejde do dostupné šířky a výšky bez změny poměru stran;
+  souřadnice značek se vztahují k jeho skutečně viditelné ploše.
+- [x] Přímo u plánku je vstup do editoru. V nastavení dashboardu je
+  tlačítko „Nastavit plánek“.
+- [x] V editoru lze klepnout na obrázek a vložit značku místnosti nebo
+  zařízení. Značky jdou přetáhnout a upravit text, ikonu, barvu a velikost.
+- [x] Značka místnosti po klepnutí vybere detail místnosti pod plánkem.
+- [ ] Vizuálně a dotykově ověřit na živé instalaci a nástěnném panelu.
 
 ## Seznam pomocníků 0.15.2
 

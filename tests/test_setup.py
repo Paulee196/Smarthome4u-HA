@@ -17,6 +17,7 @@ from unittest.mock import patch
 import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util.yaml import load_yaml
@@ -295,6 +296,7 @@ async def test_pudorys(
     prazdny = await (await client.get("/api/smarthome4u/floorplan")).json()
     assert prazdny["image"] is None
     assert prazdny["points"] == []
+    assert prazdny["rooms"] == []
 
     # Nejmenší platný PNG.
     obrazek = (
@@ -341,6 +343,24 @@ async def test_pudorys(
     plan = await (await client.get("/api/smarthome4u/floorplan")).json()
     assert plan["image"].endswith(".png")
     assert plan["points"][0]["x"] == 25
+
+    room = ar.async_get(hass).async_create("Obývák")
+    response = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"rooms": [{"roomId": room.id, "x": 30, "y": 40,
+                         "label": "Obývací část", "color": "mint", "size": "l"}]},
+    )
+    assert response.status == 200, await response.text()
+    plan = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert plan["rooms"][0]["label"] == "Obývací část"
+    assert plan["rooms"][0]["x"] == 30
+    assert {item["id"] for item in plan["availableRooms"]} >= {room.id}
+
+    response = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"rooms": [{"roomId": room.id, "x": 120, "y": 40}]},
+    )
+    assert response.status == 400
 
     # Souřadnice mimo plochu se odmítnou.
     odpoved = await client.post(
