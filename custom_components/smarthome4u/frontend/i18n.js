@@ -382,6 +382,18 @@ export const t = {
       "Pomocník je hodnota, kterou si dům pamatuje - cílová teplota, " +
       "práh jasu, přepínač režimu. Použijete ji pak v automatizacích.",
     addHelper: "Vytvořit pomocníka",
+    loadingHelpers: "Načítám pomocníky…",
+    noHelpers: "Zatím nemáte žádné pomocníky.",
+    editHelper: "Upravit pomocníka",
+    helperName: "Název pomocníka",
+    helperCatalogHint: "Vyberte typ pomocníka, který Home Assistant dovoluje založit průvodcem.",
+    noHelperFlows: "Tato instalace nenabízí pomocníka, kterého lze založit průvodcem.",
+    helperTypes: {
+      input_boolean: "Přepínač", input_number: "Číslo",
+      input_select: "Výběr", input_text: "Text",
+      input_datetime: "Datum a čas", counter: "Počítadlo",
+      timer: "Časovač", schedule: "Plán",
+    },
   },
 
   flow: {

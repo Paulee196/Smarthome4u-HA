@@ -64,6 +64,10 @@ HIDDEN_CATEGORIES = {"config", "diagnostic"}
 
 # Co znamená "je otevřené" - zajímá to na první pohled při odchodu z domu.
 OPENING_CLASSES = frozenset({"door", "window", "garage_door", "opening"})
+HELPER_DOMAINS = frozenset({
+    "input_boolean", "input_number", "input_select", "input_text",
+    "input_datetime", "counter", "timer", "schedule",
+})
 
 
 class Home:
@@ -191,6 +195,24 @@ class Home:
 
         self._visible_cache[technical] = result
         return result
+
+    def helpers(self) -> list[dict]:
+        """Live helper entities, including ones not assigned to any room."""
+        registry = er.async_get(self.hass)
+        areas = ar.async_get(self.hass)
+        result = []
+        for state in self.hass.states.async_all():
+            if state.domain not in HELPER_DOMAINS:
+                continue
+            entry = registry.async_get(state.entity_id)
+            if entry is not None and entry.disabled_by:
+                continue
+            view = self._entity_view(state, entry)
+            view["editable"] = entry is not None
+            area = areas.async_get_area(view["areaId"]) if view["areaId"] else None
+            view["areaName"] = area.name if area else None
+            result.append(view)
+        return sorted(result, key=lambda item: (item["name"].casefold(), item["id"]))
 
     # ------------------------------------------------------------------
     # Místnosti

@@ -2,6 +2,16 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.15.2]
+
+### Opraveno
+
+- Podzáložka Pomocníci ukazuje skutečné pomocníky z Home Assistanta, včetně
+  nepřiřazených do místnosti. Při načítání ukazuje průběh a při chybě zprávu.
+- Pomocníky lze otevřít a ovládat. Položky v registru lze přejmenovat a
+  přiřadit do místnosti.
+- Prázdný katalog průvodců pro založení pomocníka už zobrazuje vysvětlení.
+
 ## [0.15.1]
 
 ### Opraveno

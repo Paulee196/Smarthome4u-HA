@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.15.1
+**Aktuální verze v kódu:** 0.15.2
+
+## Seznam pomocníků 0.15.2
+
+- [x] Podzáložka Pomocníci čte skutečné entity HA přes samostatné API;
+  zobrazuje načítání, chybu i prázdný stav.
+- [x] V seznamu jde otevřít dostupné ovládání; registrované pomocníky lze
+  přejmenovat a přiřadit do místnosti.
+- [x] Prázdný katalog průvodců pro nové pomocníky má jasný stav.
+- [ ] Zakládání základních pomocníků (`input_boolean`, `input_number` atd.)
+  vyžaduje samostatné bezpečné napojení. HA pro ně nevystavuje veřejné Python
+  API ani config flow; přímý zápis do interního `.storage` je zakázaný.
+- [ ] Ověřit seznam na živé domácnosti po aktualizaci.
 
 ## Oprava otevření Zařízení 0.15.1
 

@@ -4,8 +4,9 @@
  */
 
 import { api } from "./api.js";
-import { t } from "./i18n.js";
+import { t, describeState } from "./i18n.js";
 import { icon } from "./icons.js";
+import { openControls } from "./controls.js";
 import { startFlow, resumeFlow } from "./flow.js";
 import {
   h,
@@ -14,22 +15,92 @@ import {
   confirmDialog,
   dialog,
   emptyState,
+  field,
   loadingState,
+  selectInput,
   textInput,
   toast,
 } from "./ui.js";
 
 export async function renderHelpers(root, ctx) {
-  root.append(
-    h("div", { class: "row row--end" }, [
-      button(t.integrations.addHelper, () => openCatalog(ctx, true), ""),
+  const loading = loadingState(t.integrations.loadingHelpers);
+  root.append(loading);
+  let data;
+  try {
+    data = await api.helpers();
+  } catch (error) {
+    loading.remove();
+    if (root.isConnected) root.append(emptyState(error.message));
+    return;
+  }
+  loading.remove();
+  if (!root.isConnected) return;
+
+  root.append(h("div", { class: "row row--end" }, [
+    button(t.integrations.addHelper, () => openCatalog(ctx, true)),
+  ]));
+  root.append(panel(t.integrations.helpers, [
+    h("p", { class: "muted", text: t.integrations.helpersHint }),
+    data.helpers.length
+      ? h("div", { class: "stack" }, data.helpers.map((helper) => helperRow(ctx, helper)))
+      : emptyState(t.integrations.noHelpers),
+  ]));
+}
+
+function helperRow(ctx, helper) {
+  const state = describeState(helper).text;
+  const type = t.integrations.helperTypes[helper.domain] || helper.domain;
+  const subtitle = [type, helper.areaName, state].filter(Boolean).join(" · ");
+  return h("div", { class: "tile" }, [
+    h("button", {
+      class: "tile__main", type: "button", onclick: () => openControls(helper),
+    }, [
+      h("span", { class: "tile__glyph" }, icon("devices")),
+      h("span", { class: "tile__body" }, [
+        h("span", { class: "tile__name", text: helper.name }),
+        h("span", { class: "tile__state", text: subtitle }),
+      ]),
     ]),
-  );
-  root.append(
-    panel(t.integrations.helpers, [
-      h("p", { class: "muted", text: t.integrations.helpersHint }),
-    ]),
-  );
+    helper.editable && h("button", {
+      class: "tile__more", type: "button",
+      "aria-label": `${t.integrations.editHelper}: ${helper.name}`,
+      text: "⋯", onclick: () => editHelper(ctx, helper),
+    }),
+  ]);
+}
+
+async function editHelper(ctx, helper) {
+  let structure;
+  try {
+    structure = await api.structure();
+  } catch (error) {
+    toast(error.message, true);
+    return;
+  }
+  const name = textInput(helper.name, t.integrations.helperName);
+  const area = selectInput([
+    { value: "", label: t.rooms.unassigned },
+    ...structure.areas.map((item) => ({ value: item.id, label: item.name })),
+  ], helper.areaId || "");
+  dialog(helper.name, h("div", { class: "stack" }, [
+    field(t.integrations.helperName, name),
+    field(t.devices.room, area),
+  ]), h("div", { class: "row" }, [
+    button(t.action.cancel, closeDialog, "button--ghost"),
+    button(t.action.save, async () => {
+      try {
+        await api.updateEntity(helper.id, {
+          name: name.value,
+          areaId: area.value || null,
+        });
+        closeDialog();
+        toast(t.notice.saved);
+        await ctx.refresh();
+      } catch (error) {
+        toast(error.message, true);
+      }
+    }),
+  ]));
 }
 
 export async function renderIntegrations(root, ctx) {
@@ -217,14 +288,17 @@ async function openCatalog(ctx, pomocnici = false) {
     );
 
     if (!matches.length) {
-      list.replaceChildren(emptyState(t.integrations.noMatch));
+      list.replaceChildren(emptyState(needle
+        ? t.integrations.noMatch
+        : pomocnici ? t.integrations.noHelperFlows : t.integrations.noMatch));
     }
   };
 
   search.addEventListener("input", () => draw(search.value));
 
   body.replaceChildren(
-    h("p", { class: "muted", text: t.integrations.addHint }),
+    h("p", { class: "muted", text: pomocnici
+      ? t.integrations.helperCatalogHint : t.integrations.addHint }),
     search,
     list,
   );

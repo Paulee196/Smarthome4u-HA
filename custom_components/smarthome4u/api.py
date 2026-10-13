@@ -357,6 +357,15 @@ class DevicesView(Sh4uView):
         return web.json_response({"devices": self.home_for(request).device_list()})
 
 
+class HelpersView(Sh4uView):
+    url = f"{API_BASE}/helpers"
+    name = "api:smarthome4u:helpers"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        return web.json_response({"helpers": self.home_for(request).helpers()})
+
+
 class DeviceView(Sh4uView):
     url = f"{API_BASE}/devices/{{device_id}}"
     name = "api:smarthome4u:device"
@@ -1692,6 +1701,7 @@ VIEWS = (
     TemplatesView,
     ActionView,
     DevicesView,
+    HelpersView,
     DeviceView,
     EntityView,
     AreasView,

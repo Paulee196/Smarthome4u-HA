@@ -594,6 +594,16 @@ async def test_pomocnici_se_zobrazi(
     assert druhy.get("timer.peceni") == "timer"
     assert druhy.get("schedule.topeni") == "schedule"
 
+    helpers_response = await client.get("/api/smarthome4u/helpers")
+    assert helpers_response.status == 200
+    helpers = (await helpers_response.json())["helpers"]
+    helper_ids = {helper["id"] for helper in helpers}
+    assert {"input_text.poznamka", "input_datetime.budik", "counter.kava",
+            "timer.peceni", "schedule.topeni"} <= helper_ids
+    assert next(helper for helper in helpers if helper["id"] == "counter.kava")[
+        "capability"
+    ]["kind"] == "counter"
+
     # A musí jít i ovládat, ne jen zobrazit.
     odpoved = await client.post(
         "/api/smarthome4u/action",

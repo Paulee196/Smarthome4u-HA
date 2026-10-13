@@ -122,6 +122,7 @@ export const api = {
   entitiesBatch: (ids) => request("POST", "entities/batch", { ids }),
 
   devices: () => request("GET", "devices"),
+  helpers: () => request("GET", "helpers"),
   device: (id) => request("GET", `devices/${enc(id)}`),
   updateDevice: (id, body) => request("POST", `devices/${enc(id)}`, body),
   updateEntity: (id, body) => request("POST", `entities/${enc(id)}`, body),

@@ -28,6 +28,7 @@ Vše v `home.py`.
 | `helpers.entity_registry.async_get` | Registr entit, persistentní ID | veřejné |
 | `helpers.floor_registry.async_get` | Patra | veřejné |
 | `hass.states.async_all` / `get` | Aktuální stavy | veřejné |
+| `hass.states.async_all` + registr entit | Samostatný živý seznam pomocníků (od 0.15.2) | veřejné |
 | `hass.config_entries.async_entries` | Připojené integrace | veřejné |
 | `er.async_entries_for_device` | Entity jednoho zařízení | veřejné |
 | `device.primary_config_entry` | Vlastník zařízení (HA 2026.8+) | veřejné |
