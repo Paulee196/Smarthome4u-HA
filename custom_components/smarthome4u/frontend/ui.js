@@ -92,6 +92,13 @@ export function emptyState(text) {
   return h("p", { class: "muted", text });
 }
 
+export function loadingState(text) {
+  return h("div", { class: "loading-state", role: "status" }, [
+    h("span", { class: "loading-state__spinner", "aria-hidden": "true" }),
+    h("span", { text }),
+  ]);
+}
+
 /* ------------------------------------------------------------------ */
 /* Hlášky                                                              */
 /* ------------------------------------------------------------------ */

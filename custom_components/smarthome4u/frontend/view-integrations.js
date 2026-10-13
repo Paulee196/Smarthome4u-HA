@@ -14,6 +14,7 @@ import {
   confirmDialog,
   dialog,
   emptyState,
+  loadingState,
   textInput,
   toast,
 } from "./ui.js";
@@ -32,13 +33,18 @@ export async function renderHelpers(root, ctx) {
 }
 
 export async function renderIntegrations(root, ctx) {
+  const loading = loadingState(t.integrations.loading);
+  root.append(loading);
   let data;
   try {
     data = await api.integrations();
   } catch (error) {
+    loading.remove();
     root.append(emptyState(error.message));
     return;
   }
+  loading.remove();
+  if (!root.isConnected) return;
 
   root.append(
     h("div", { class: "row row--end" }, [

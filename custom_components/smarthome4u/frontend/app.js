@@ -14,7 +14,7 @@ import { renderHome } from "./view-home.js";
 import { renderRooms } from "./view-rooms.js";
 import { renderScenes } from "./view-scenes.js";
 import { renderAutomations } from "./view-automations.js";
-import { renderDevices } from "./view-devices.js";
+import { renderDevices, resetDevicesTab } from "./view-devices.js";
 import { renderSettings } from "./view-settings.js";
 
 /* Uživatel vidí jen to, co denně používá. Automatizace, zařízení
@@ -172,6 +172,7 @@ function readRoute() {
 function onRouteChange() {
   const next = readRoute();
   if (next === state.route) return;
+  if (next === "devices") resetDevicesTab();
   state.route = next;
   closeDialog();
   bezpecne(draw());
@@ -223,6 +224,7 @@ function paintUpravit() {
 
 function navigate(route) {
   if (!ROUTES[route]) route = "home";
+  if (route === "devices") resetDevicesTab();
   if (route !== "home") state.editing = false;
   closeDialog();
   state.route = route;

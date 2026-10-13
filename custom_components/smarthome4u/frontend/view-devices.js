@@ -15,19 +15,24 @@ import {
   dialog,
   emptyState,
   field,
+  loadingState,
   section,
   selectInput,
   textInput,
   toast,
 } from "./ui.js";
 
-const TAB_KEY = "sh4u.devices.tab";
+let activeTab = "devices";
+
+export function resetDevicesTab() {
+  activeTab = "devices";
+}
 
 export async function renderDevices(root, ctx) {
   const body = h("div", { class: "view" });
 
   const show = async (tab) => {
-    writeTab(tab);
+    activeTab = tab;
     const current = h("div", { class: "view" });
     body.replaceChildren(current);
     if (tab === "integrations") await renderIntegrations(current, ctx);
@@ -35,27 +40,10 @@ export async function renderDevices(root, ctx) {
     else await renderDeviceList(current, ctx);
   };
 
-  root.append(tabs(readTab(), show));
+  root.append(tabs(activeTab, show));
   root.append(body);
 
-  await show(readTab());
-}
-
-function readTab() {
-  try {
-    const ulozeny = localStorage.getItem(TAB_KEY);
-    return ["integrations", "helpers"].includes(ulozeny) ? ulozeny : "devices";
-  } catch {
-    return "devices";
-  }
-}
-
-function writeTab(tab) {
-  try {
-    localStorage.setItem(TAB_KEY, tab);
-  } catch {
-    /* Soukromé okno - jen se to nezapamatuje. */
-  }
+  await show(activeTab);
 }
 
 function tabs(active, onChange) {
@@ -92,7 +80,7 @@ function tabs(active, onChange) {
 /* ------------------------------------------------------------------ */
 
 async function renderDeviceList(root, ctx) {
-  const loading = h("p", { class: "muted", text: t.devices.loading });
+  const loading = loadingState(t.devices.loading);
   root.append(loading);
   let data;
   try {

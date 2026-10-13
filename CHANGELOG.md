@@ -2,6 +2,15 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.15.1]
+
+### Opraveno
+
+- Hlavní položka Zařízení vždy otevře seznam zařízení. Dříve si pamatovala
+  naposledy otevřené Integrace, takže kliknutí působilo jako pomalé načítání
+  zařízení.
+- Zařízení i Integrace ihned ukazují viditelný stav načítání.
+
 ## [0.15.0]
 
 ### Přidáno

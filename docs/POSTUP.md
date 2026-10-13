@@ -4,7 +4,14 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.15.0
+**Aktuální verze v kódu:** 0.15.1
+
+## Oprava otevření Zařízení 0.15.1
+
+- [x] Po kliknutí na hlavní Zařízení se vždy otevře podzáložka Zařízení;
+  starší uložená volba Integrace už toto kliknutí nepřesměruje.
+- [x] Obě síťově načítané podzáložky okamžitě zobrazí stav načítání.
+- [ ] Změřit odezvu obou API na živé instalaci po aktualizaci.
 
 ## Zařízení, scény, skripty a hodiny 0.15.0
 
