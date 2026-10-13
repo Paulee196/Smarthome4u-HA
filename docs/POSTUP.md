@@ -4,7 +4,18 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.14.2
+**Aktuální verze v kódu:** 0.15.0
+
+## Zařízení, scény, skripty a hodiny 0.15.0
+
+- [x] Omezena opakovaná příprava stejného modelu entit při jednom HTTP
+  požadavku; katalog integrací se načítá až při přidávání nové integrace.
+- [x] Zařízení ukazují stav načítání a seznam se vykresluje po dávkách.
+- [x] Scénu lze vytvořit z vybraných zařízení bez závislosti na místnosti.
+- [x] Skript lze vytvořit z pořadí povolených akcí, uložit do `scripts.yaml`,
+  spustit přes HA a smazat, pokud vznikl v aplikaci.
+- [x] Horní lišta zobrazuje živý čas a datum.
+- [ ] Ověřit rychlost a nové editory ve skutečné domácnosti po instalaci.
 
 ## Výběr obrázku plánku z HA 0.14.2
 

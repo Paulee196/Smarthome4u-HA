@@ -12,7 +12,7 @@ import hashlib
 import logging
 import os
 import tempfile
-import time
+import uuid
 from functools import wraps
 from pathlib import Path
 from typing import Any
@@ -672,7 +672,8 @@ class IntegrationsView(Sh4uView):
     @handler
     @technician
     async def get(self, request: web.Request) -> web.Response:
-        names = await _integration_names(self.hass)
+        # Na pouhý seznam nenačítejte stovky manifestů katalogu.
+        names = self.hass.data.get(DOMAIN, {}).get("names", {})
         devices = dr.async_get(self.hass)
 
         per_entry: dict[str, int] = {}
@@ -913,30 +914,44 @@ class ScenesView(Sh4uView):
     @technician
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
-        area_id = payload.get("areaId")
-
-        if not isinstance(area_id, str) or _area_or_none(self.hass, area_id) is None:
-            raise ApiError("Vyberte prosím místnost.")
+        selected = payload.get("entityRefs")
+        views = []
+        if selected is not None:
+            if not isinstance(selected, list) or not 1 <= len(selected) <= 100:
+                raise ApiError("Vyberte alespoň jedno zařízení, nejvýš 100.")
+            home = self.home_for(request)
+            for entity_ref in selected:
+                view = home.entity(self.entity_id_from_ref(entity_ref))
+                if view is None or view["capability"].get("kind") not in SNAPSHOT_KINDS:
+                    raise ApiError("Tohle zařízení nejde uložit do scény.")
+                if not view["available"]:
+                    raise ApiError("Nedostupné zařízení nejde uložit do scény.")
+                views.append(view)
+        else:
+            # Starší verze frontendu posílají celou místnost.
+            area_id = payload.get("areaId")
+            if not isinstance(area_id, str) or _area_or_none(self.hass, area_id) is None:
+                raise ApiError("Vyberte prosím místnost.")
+            views = [view for room in self.home_for(request).rooms()
+                     if room["id"] == area_id for view in room["entities"]]
 
         snapshot: dict[str, Any] = {}
-        for room in self.home.rooms():
-            if room["id"] != area_id:
+        for view in views:
+            kind = view["capability"].get("kind")
+            if kind not in SNAPSHOT_KINDS or not view["available"]:
                 continue
-            for view in room["entities"]:
-                kind = view["capability"].get("kind")
-                if kind not in SNAPSHOT_KINDS or not view["available"]:
-                    continue
-
-                record: dict[str, Any] = {"state": view["state"]}
-                for key in SNAPSHOT_ATTRIBUTES.get(kind, ()):
-                    if view["attributes"].get(key) is not None:
-                        record[key] = view["attributes"][key]
-                snapshot[view["id"]] = record
+            record: dict[str, Any] = {"state": view["state"]}
+            for key in SNAPSHOT_ATTRIBUTES.get(kind, ()):
+                if view["attributes"].get(key) is not None:
+                    record[key] = view["attributes"][key]
+            snapshot[view["id"]] = record
 
         if not snapshot:
-            raise ApiError("V téhle místnosti není co uložit.")
+            raise ApiError("Vybraná zařízení nemají stav, který lze uložit.")
+        if not self.hass.services.has_service("scene", "reload"):
+            raise ApiError("Scény nejsou v Home Assistantu aktivní.", 503, "scene_unavailable")
 
-        scene_id = str(int(time.time() * 1000))
+        scene_id = uuid.uuid4().hex
         await config_files.save_scene(
             self.hass,
             {"id": scene_id, "name": self.name_of(payload), "entities": snapshot},
@@ -954,6 +969,74 @@ class SceneDeleteView(Sh4uView):
     @technician
     async def post(self, request: web.Request, scene_id: str) -> web.Response:
         await config_files.delete_scene(self.hass, scene_id)
+        return web.json_response({"ok": True})
+
+
+# Krátké bezpečné akce, které mají ve skriptu jednoznačný význam bez hodnoty.
+SCRIPT_ACTIONS = {
+    "light": frozenset({"turn_on", "turn_off"}),
+    "switch": frozenset({"turn_on", "turn_off"}),
+    "cover": frozenset({"open", "close"}),
+    "fan": frozenset({"turn_on", "turn_off"}),
+    "climate": frozenset({"turn_on", "turn_off"}),
+    "lock": frozenset({"lock", "unlock"}),
+    "scene": frozenset({"activate"}),
+    "script": frozenset({"run"}),
+    "button": frozenset({"press"}),
+    "media_player": frozenset({"play_pause", "stop"}),
+}
+
+
+class ScriptsView(Sh4uView):
+    url = f"{API_BASE}/scripts"
+    name = "api:smarthome4u:scripts"
+
+    @handler
+    @technician
+    async def post(self, request: web.Request) -> web.Response:
+        payload = await self.body(request)
+        name = self.name_of(payload)
+        steps = payload.get("steps")
+        if not isinstance(steps, list) or not 1 <= len(steps) <= 20:
+            raise ApiError("Přidejte 1 až 20 kroků skriptu.")
+
+        home = self.home_for(request)
+        sequence = []
+        for step in steps:
+            if not isinstance(step, dict) or not isinstance(step.get("action"), str):
+                raise ApiError("Neplatný krok skriptu.")
+            view = home.entity(self.entity_id_from_ref(step.get("entityRef")))
+            if view is None:
+                raise ApiError("Zařízení už neexistuje.")
+            kind = view["capability"].get("kind")
+            action = step["action"]
+            if action not in SCRIPT_ACTIONS.get(kind, ()):
+                raise ApiError("Tuto akci nelze přidat do skriptu.")
+            domain, service, data = capability.resolve_action(kind, view["domain"], action)
+            item = {"action": f"{domain}.{service}", "target": {"entity_id": view["id"]}}
+            if data:
+                item["data"] = data
+            sequence.append(item)
+
+        script_id = f"sh4u_{uuid.uuid4().hex[:16]}"
+        if not self.hass.services.has_service("script", "reload"):
+            raise ApiError("Skripty nejsou v Home Assistantu aktivní.", 503, "script_unavailable")
+        await config_files.save_script(
+            self.hass, script_id, {"alias": name, "sequence": sequence, "mode": "single"}
+        )
+        return web.json_response({"ok": True, "id": script_id})
+
+
+class ScriptDeleteView(Sh4uView):
+    url = f"{API_BASE}/scripts/{{script_id}}/delete"
+    name = "api:smarthome4u:script:delete"
+
+    @handler
+    @technician
+    async def post(self, request: web.Request, script_id: str) -> web.Response:
+        if not script_id.startswith("sh4u_") or len(script_id) != 21:
+            raise ApiError("Tento skript nelze smazat z této aplikace.")
+        await config_files.delete_script(self.hass, script_id)
         return web.json_response({"ok": True})
 
 
@@ -1629,6 +1712,8 @@ VIEWS = (
     AutomationDeleteView,
     ScenesView,
     SceneDeleteView,
+    ScriptsView,
+    ScriptDeleteView,
     SettingsView,
     PresetView,
     RoleView,

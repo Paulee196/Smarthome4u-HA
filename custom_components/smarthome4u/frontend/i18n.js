@@ -165,13 +165,34 @@ export const t = {
     scenes: "Scény",
     scripts: "Skripty",
     empty: "Zatím nemáte žádné scény.",
-    create: "Uložit stav místnosti jako scénu",
+    create: "Nová scéna",
+    createScript: "Nový skript",
     sceneName: "Název scény",
-    pickRoom: "Místnost, jejíž stav se uloží",
+    pickDevices: "Zařízení ve scéně",
+    searchDevices: "Hledat zařízení",
+    pickAtLeastOne: "Vyberte alespoň jedno zařízení.",
+    noDevices: "Nemáte dostupné zařízení, jehož stav lze uložit do scény.",
+    noMatches: "Žádné zařízení neodpovídá hledání.",
+    emptyScripts: "Zatím nemáte žádné skripty.",
+    noScriptDevices: "Nemáte zařízení ani scénu, které může skript ovládat.",
+    scriptName: "Název skriptu",
+    scriptHint: "Skript vykoná vybrané kroky v uvedeném pořadí.",
+    device: "Zařízení nebo scéna",
+    action: "Co se má stát",
+    addStep: "Přidat krok",
+    tooManySteps: "Skript může mít nejvýš 20 kroků.",
+    step: (number) => `Krok ${number}`,
+    moveUp: "Nahoru",
+    moveDown: "Dolů",
+    scriptActions: {
+      turn_on: "Zapnout", turn_off: "Vypnout", open: "Otevřít",
+      close: "Zavřít", lock: "Zamknout", unlock: "Odemknout",
+      activate: "Aktivovat scénu", run: "Spustit skript", press: "Stisknout",
+      play_pause: "Přehrát nebo pozastavit", stop: "Zastavit",
+    },
     createdWith: (n) => `Scéna uložena. Zapsáno zařízení: ${n}.`,
     hint:
-      "Scéna si zapamatuje, jak jsou právě nastavená světla, zásuvky, " +
-      "žaluzie a topení ve vybrané místnosti.",
+      "Vyberte zařízení. Scéna si zapamatuje jejich aktuální nastavení.",
   },
 
   automations: {
@@ -386,6 +407,7 @@ export const t = {
 
   devices: {
     title: "Zařízení",
+    loading: "Načítám zařízení…",
     empty: "Zatím nemáte žádná zařízení.",
     manufacturer: "Výrobce",
     model: "Model",

@@ -1,6 +1,6 @@
-"""Zápis automatizací a scén.
+"""Zápis automatizací, scén a skriptů.
 
-Píšeme do `automations.yaml` a `scenes.yaml`, tedy do běžných konfiguračních
+Píšeme do `automations.yaml`, `scenes.yaml` a `scripts.yaml`, tedy do běžných konfiguračních
 souborů, které Home Assistant sám používá pro své editory. Po zápisu se volá
 standardní služba reload.
 
@@ -20,6 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 AUTOMATIONS = "automations.yaml"
 SCENES = "scenes.yaml"
+SCRIPTS = "scripts.yaml"
 
 
 class ConfigFileError(Exception):
@@ -44,6 +45,27 @@ def _read(path: str) -> list[dict[str, Any]]:
 
 
 def _write(path: str, items: list[dict[str, Any]]) -> None:
+    tmp = f"{path}.sh4u.tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        handle.write(dump(items))
+    os.replace(tmp, path)
+
+
+def _read_scripts(path: str) -> dict[str, Any]:
+    if not os.path.isfile(path):
+        return {}
+    try:
+        content = load_yaml(path)
+    except Exception as err:  # noqa: BLE001
+        raise ConfigFileError("Soubor scripts.yaml nejde přečíst") from err
+    if content is None:
+        return {}
+    if not isinstance(content, dict):
+        raise ConfigFileError("Soubor scripts.yaml nemá očekávaný tvar slovníku")
+    return content
+
+
+def _write_scripts(path: str, items: dict[str, Any]) -> None:
     tmp = f"{path}.sh4u.tmp"
     with open(tmp, "w", encoding="utf-8") as handle:
         handle.write(dump(items))
@@ -118,3 +140,31 @@ async def delete_scene(hass: HomeAssistant, scene_id: str) -> None:
 
     await hass.async_add_executor_job(work)
     await hass.services.async_call("scene", "reload", blocking=True)
+
+
+async def save_script(hass: HomeAssistant, script_id: str, config: dict) -> None:
+    path = hass.config.path(SCRIPTS)
+
+    def work() -> None:
+        scripts = _read_scripts(path)
+        if script_id in scripts:
+            raise ConfigFileError("Skript s tímto ID už existuje")
+        scripts[script_id] = config
+        _write_scripts(path, scripts)
+
+    await hass.async_add_executor_job(work)
+    await hass.services.async_call("script", "reload", blocking=True)
+
+
+async def delete_script(hass: HomeAssistant, script_id: str) -> None:
+    path = hass.config.path(SCRIPTS)
+
+    def work() -> None:
+        scripts = _read_scripts(path)
+        if script_id not in scripts:
+            raise ConfigFileError("Skript už v souboru není")
+        del scripts[script_id]
+        _write_scripts(path, scripts)
+
+    await hass.async_add_executor_job(work)
+    await hass.services.async_call("script", "reload", blocking=True)

@@ -72,6 +72,9 @@ class Home:
     def __init__(self, hass: HomeAssistant, settings=None) -> None:
         self.hass = hass
         self.settings = settings
+        # Platí pouze pro jeden HTTP požadavek. Další požadavek čte živý HA stav.
+        self._visible_cache: dict[bool, list[dict]] = {}
+        self._rooms_cache: dict[bool, list[dict]] = {}
 
     def _velikost(self, entity_id: str) -> str | None:
         """Velikost dlaždice zvolená správcem."""
@@ -162,6 +165,8 @@ class Home:
     # ------------------------------------------------------------------
 
     def _visible(self, *, technical: bool = False) -> list[dict]:
+        if technical in self._visible_cache:
+            return self._visible_cache[technical]
         registry = er.async_get(self.hass)
         result = []
 
@@ -184,6 +189,7 @@ class Home:
 
             result.append(view)
 
+        self._visible_cache[technical] = result
         return result
 
     # ------------------------------------------------------------------
@@ -191,6 +197,8 @@ class Home:
     # ------------------------------------------------------------------
 
     def rooms(self, *, technical: bool = False) -> list[dict]:
+        if technical in self._rooms_cache:
+            return self._rooms_cache[technical]
         areas = ar.async_get(self.hass)
         floors = fr.async_get(self.hass)
 
@@ -222,7 +230,9 @@ class Home:
             )
 
         payload.sort(key=_room_sort_key)
-        return self._serad_mistnosti(payload)
+        ordered = self._serad_mistnosti(payload)
+        self._rooms_cache[technical] = ordered
+        return ordered
 
     # ------------------------------------------------------------------
     # Ruční rozvržení

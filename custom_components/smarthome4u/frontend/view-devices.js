@@ -28,10 +28,11 @@ export async function renderDevices(root, ctx) {
 
   const show = async (tab) => {
     writeTab(tab);
-    body.replaceChildren();
-    if (tab === "integrations") await renderIntegrations(body, ctx);
-    else if (tab === "helpers") await renderHelpers(body, ctx);
-    else await renderDeviceList(body, ctx);
+    const current = h("div", { class: "view" });
+    body.replaceChildren(current);
+    if (tab === "integrations") await renderIntegrations(current, ctx);
+    else if (tab === "helpers") await renderHelpers(current, ctx);
+    else await renderDeviceList(current, ctx);
   };
 
   root.append(tabs(readTab(), show));
@@ -91,13 +92,18 @@ function tabs(active, onChange) {
 /* ------------------------------------------------------------------ */
 
 async function renderDeviceList(root, ctx) {
+  const loading = h("p", { class: "muted", text: t.devices.loading });
+  root.append(loading);
   let data;
   try {
     data = await api.devices();
   } catch (error) {
+    loading.remove();
     root.append(emptyState(error.message));
     return;
   }
+  loading.remove();
+  if (!root.isConnected) return;
 
   if (!data.devices.length) {
     root.append(emptyState(t.devices.empty));
@@ -111,20 +117,26 @@ async function renderDeviceList(root, ctx) {
     grouped.get(key).push(device);
   }
 
+  // První položky se ukážou hned; další várky neblokují kreslení prohlížeče.
+  let rendered = 0;
   for (const [areaName, devices] of grouped) {
-    root.append(
-      h("section", { class: "panel" }, [
+    const rows = h("div", { class: "stack" });
+    root.append(h("section", { class: "panel" }, [
         h("div", { class: "panel__head" }, [
           h("span", { class: "panel__glyph" }, icon("rooms")),
           h("h2", { class: "panel__title", text: areaName }),
         ]),
-        h(
-          "div",
-          { class: "stack" },
-          devices.map((device) => deviceRow(ctx, device)),
-        ),
-      ]),
-    );
+        rows,
+      ]));
+    for (let start = 0; start < devices.length; start += 40) {
+      rows.append(...devices.slice(start, start + 40).map((device) => deviceRow(ctx, device)));
+      rendered += 40;
+      if (rendered >= 40) {
+        rendered = 0;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (!root.isConnected) return;
+      }
+    }
   }
 }
 

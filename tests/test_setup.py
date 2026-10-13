@@ -19,6 +19,7 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
+from homeassistant.util.yaml import load_yaml
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_mock_service,
@@ -348,6 +349,47 @@ async def test_pudorys(
     )
     assert odpoved.status == 400
 
+
+async def test_scena_a_skript_bez_mistnosti(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Vybraná entita vytvoří trvalou scénu a skript s ověřenou akcí."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("light.lampa", "on", {"supported_color_modes": ["onoff"]})
+    hass.services.async_register("scene", "reload", lambda call: None)
+    hass.services.async_register("script", "reload", lambda call: None)
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    client = await hass_client()
+
+    scene = await client.post("/api/smarthome4u/scenes", json={
+        "name": "Večer", "entityRefs": ["entity:light.lampa"],
+    })
+    assert scene.status == 200, await scene.text()
+    scene_id = (await scene.json())["id"]
+    scenes = load_yaml(hass.config.path("scenes.yaml"))
+    assert next(item for item in scenes if item["id"] == scene_id)["entities"]["light.lampa"]["state"] == "on"
+
+    script = await client.post("/api/smarthome4u/scripts", json={
+        "name": "Rozsvítit", "steps": [{"entityRef": "entity:light.lampa", "action": "turn_on"}],
+    })
+    assert script.status == 200, await script.text()
+    script_id = (await script.json())["id"]
+    scripts = load_yaml(hass.config.path("scripts.yaml"))
+    assert scripts[script_id]["sequence"] == [
+        {"action": "light.turn_on", "target": {"entity_id": "light.lampa"}},
+    ]
+
+    invalid = await client.post("/api/smarthome4u/scripts", json={
+        "name": "Nepovolený", "steps": [{"entityRef": "entity:light.lampa", "action": "unlock"}],
+    })
+    assert invalid.status == 400
+
+    removed = await client.post(f"/api/smarthome4u/scripts/{script_id}/delete", json={})
+    assert removed.status == 200, await removed.text()
+    assert script_id not in load_yaml(hass.config.path("scripts.yaml"))
 
 async def test_automatizace_z_editoru(
     hass: HomeAssistant, frontend_je_pripraveny, hass_client

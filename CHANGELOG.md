@@ -2,6 +2,21 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.15.0]
+
+### Přidáno
+
+- Horní lišta ukazuje aktuální čas a datum a průběžně je obnovuje.
+- Scénu lze vytvořit z konkrétních zařízení, včetně nezařazených do místnosti.
+- V sekci Scény lze sestavit skript s více kroky, změnit jejich pořadí,
+  spouštět jej a smazat skript vytvořený aplikací.
+
+### Zrychleno
+
+- Model domácnosti počítá viditelné entity a místnosti při jednom požadavku
+  jen jednou. Seznam Integrace už kvůli zobrazení nenačítá celý katalog.
+- V Zařízeních se položky vykreslují po dávkách, takže první jsou vidět dříve.
+
 ## [0.14.2]
 
 ### Přidáno

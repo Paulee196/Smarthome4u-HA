@@ -169,6 +169,8 @@ export const api = {
   deleteAutomation: (id) => request("POST", `automations/${enc(id)}/delete`, {}),
   createScene: (body) => request("POST", "scenes", body),
   deleteScene: (id) => request("POST", `scenes/${enc(id)}/delete`, {}),
+  createScript: (body) => request("POST", "scripts", body),
+  deleteScript: (id) => request("POST", `scripts/${enc(id)}/delete`, {}),
 
   action: (entityId, action, value) =>
     request("POST", "action", { entityId, action, value }),

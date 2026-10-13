@@ -73,11 +73,17 @@ class Smarthome4uPanel extends HTMLElement {
       this._unsubscribe = null;
     }
     clearTimeout(this._timer);
+    clearInterval(this._clockTimer);
+    this._clockTimer = null;
 
     if (this._naZmenu) {
       window.removeEventListener("resize", this._naZmenu);
       this._naZmenu = null;
     }
+  }
+
+  connectedCallback() {
+    if (this._ready) this._startClock();
   }
 
   /* ---------------------------------------------------------------- */
@@ -103,6 +109,10 @@ class Smarthome4uPanel extends HTMLElement {
               <em id="app-version"></em></span>
             <h1 class="header__title" id="view-title">Domů</h1>
           </div>
+          <div class="header__clock">
+            <time id="header-time"></time>
+            <time id="header-date"></time>
+          </div>
           <div class="header__right">
             <button class="button button--ghost" type="button"
               id="settings-button">Nastavení</button>
@@ -116,6 +126,7 @@ class Smarthome4uPanel extends HTMLElement {
     root.append(shell);
 
     this._shell = shell;
+    this._startClock();
     setHost(root);
     mount(root);
 
@@ -133,6 +144,24 @@ class Smarthome4uPanel extends HTMLElement {
 
     this._naZmenu = () => this._zkontrolovat();
     window.addEventListener("resize", this._naZmenu);
+  }
+
+  _startClock() {
+    if (this._clockTimer) return;
+    const time = this.shadowRoot?.getElementById("header-time");
+    const date = this.shadowRoot?.getElementById("header-date");
+    if (!time || !date) return;
+    const update = () => {
+      const now = new Date();
+      time.textContent = now.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+      time.dateTime = now.toTimeString().slice(0, 5);
+      date.textContent = now.toLocaleDateString("cs-CZ", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+      });
+      date.dateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    };
+    update();
+    this._clockTimer = setInterval(update, 15000);
   }
 
   /* ---------------------------------------------------------------- */

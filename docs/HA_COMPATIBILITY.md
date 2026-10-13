@@ -49,7 +49,7 @@ Vše v `api.py`.
 | `fr.async_create` / `async_update` / `async_delete` | Patra | veřejné |
 | `dr.async_update_device` | Název a místnost zařízení | veřejné |
 | `er.async_update_entity` | Název a místnost entity | veřejné |
-| `hass.services.async_call` | Všechny ovládací akce | veřejné |
+| `hass.services.async_call` | Ovládací akce, `scene.reload` a `script.reload` po zápisu | veřejné |
 | `hass.config_entries.async_remove` | Odebrání integrace | veřejné |
 
 Smazání místnosti nemaže zařízení. Zůstanou nezařazená.
@@ -89,7 +89,8 @@ vybraný obrázek se zkopíruje do vlastní složky Smarthome4u.
 | Soubor | Účel | Reload |
 |---|---|---|
 | `automations.yaml` | Automatizace ze šablon | `automation.reload` |
-| `scenes.yaml` | Scény ze stavu místnosti | `scene.reload` |
+| `scenes.yaml` | Scény ze stavu vybraných zařízení | `scene.reload` |
+| `scripts.yaml` | Skripty vytvořené z povolených akcí | `script.reload` |
 
 Zapisuje se přes dočasný soubor a atomické přejmenování, aby výpadek napájení
 nepoškodil konfiguraci.
