@@ -12,7 +12,6 @@ import { t } from "./i18n.js";
 import { api } from "./api.js";
 import { renderFloorplan } from "./view-floorplan.js";
 import { vykreslitPlochu } from "./blocks.js";
-import { renderHomeExperience, renderOverviewExperience, renderTuyaExperience } from "./dashboard-experiences.js";
 import { h, button } from "./ui.js";
 
 export async function renderHome(root, ctx) {
@@ -29,22 +28,7 @@ export async function renderHome(root, ctx) {
     return;
   }
 
-  const experiences = {
-    tuya: renderTuyaExperience,
-    home: renderHomeExperience,
-    prehled: renderOverviewExperience,
-  };
-  root.append((experiences[preset] || renderTuyaExperience)(ctx));
-
-  const personal = h("section", { class: "personal-board" }, [
-    h("div", { class: "personal-board__head" }, [
-      h("span", { class: "experience__eyebrow", text: "PŘIZPŮSOBENÁ PLOCHA" }),
-      h("h2", { text: "Moje bloky" }),
-      h("p", { text: "Přesuňte, změňte nebo odeberte je tlačítkem Upravit plochu." }),
-    ]),
-  ]);
-  vykreslitPlochu(personal, ctx);
-  root.append(personal);
+  vykreslitPlochu(root, ctx);
 }
 
 function prepinacPloch(ctx, active) {

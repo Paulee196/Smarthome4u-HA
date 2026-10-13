@@ -135,6 +135,7 @@ export function card(entity, volby = {}) {
   const interactive = Boolean(primary) || detail;
   const velikost = VELIKOSTI_DLAZDIC.includes(volby.size) ? volby.size : "m";
   const appearance = volby.appearance || {};
+  const editing = Boolean(volby.editing);
   const color = ["mint", "blue", "violet", "amber", "rose"].includes(appearance.color)
     ? appearance.color : "default";
   // Velká dlaždice s ovládáním má smysl jen tam, kde je co ovládat.
@@ -200,6 +201,7 @@ export function card(entity, volby = {}) {
       "card--" + stav,
       "card--" + velikost,
       "card--tone-" + color,
+      editing ? "card--edit" : "",
       stara ? "card--" + stara : "",
     ]
       .filter(Boolean)
@@ -231,10 +233,18 @@ export function card(entity, volby = {}) {
     if (ovladani) {
       ovladani.replaceChildren(...buildControls(next, { jenOvladani: true }));
     }
+    if (editing) {
+      for (const control of root.querySelectorAll(
+        ".card__hit, .card__more, .card__ovladani button, .card__ovladani input, .card__ovladani select",
+      )) {
+        control.disabled = true;
+        control.tabIndex = -1;
+      }
+    }
   }
 
   paint(entity);
-  watch(entity.id, paint);
+  if (!editing) watch(entity.id, paint);
   return root;
 }
 

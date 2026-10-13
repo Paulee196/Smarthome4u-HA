@@ -1406,12 +1406,18 @@ class DashboardView(Sh4uView):
             nadpis = blok.get("title")
             if isinstance(nadpis, str) and nadpis.strip():
                 novy["title"] = nadpis.strip()[:60]
+            if isinstance(blok.get("subtitle"), str):
+                novy["subtitle"] = blok["subtitle"].strip()[:120]
             if isinstance(blok.get("icon"), str) and blok["icon"] in IKONY_DLAZDIC:
                 novy["icon"] = blok["icon"]
             if isinstance(blok.get("color"), str) and blok["color"] in BARVY_DLAZDIC:
                 novy["color"] = blok["color"]
             if blok.get("height") in ("compact", "normal", "large"):
                 novy["height"] = blok["height"]
+            if blok.get("metric") in (
+                "lightsOn", "openCount", "unlockedCount", "rooms", "devices"
+            ):
+                novy["metric"] = blok["metric"]
 
             # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.
             sirka = blok.get("cols")

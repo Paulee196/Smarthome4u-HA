@@ -2503,6 +2503,147 @@ textarea.input {
 /* Přehled HA nechává informační bloky čitelné a pohromadě. */
 .plocha--prehled .cards { --sh-card-min: 170px; }
 
+/* Přímý editor dlaždic: náhled je totožná karta jako v ovládacím režimu. */
+.dashboard-intro {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: var(--sh-gap-lg);
+  padding: clamp(24px, 4vw, 48px);
+  border-radius: var(--sh-radius-lg);
+  background: var(--sh-surface-raised);
+  border: var(--sh-hairline) solid var(--sh-border);
+}
+.dashboard-intro h2 { margin: 0; font-size: clamp(28px, 4vw, 48px); line-height: 1.1; }
+.dashboard-intro p { margin: 0; color: var(--sh-text-muted); }
+.dashboard-intro__glyph { position: absolute; top: var(--sh-gap-lg); right: var(--sh-gap-lg); opacity: .45; }
+.dashboard-intro__glyph .icon { width: 48px; height: 48px; }
+.dashboard-intro--tuya {
+  background: linear-gradient(115deg, var(--sh-tile-blue-bg), var(--sh-tile-mint-bg));
+  border: 0;
+}
+.dashboard-intro--home {
+  min-height: 220px;
+  background: linear-gradient(125deg, var(--sh-tile-violet-bg), var(--sh-surface-raised) 70%);
+}
+.dashboard-intro--prehled {
+  border-radius: var(--sh-radius-sm);
+  border-left: 5px solid var(--sh-accent);
+}
+.plocha--home .panel { padding: clamp(20px, 3vw, 36px); }
+.plocha--home .cards--rooms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.plocha--home .card--room { min-height: 140px; }
+.plocha--home .dashboard-block--type-room {
+  background: var(--sh-surface-raised);
+  border: 1px solid var(--sh-border);
+  min-height: 220px;
+}
+.plocha--home .dashboard-block--type-room .panel__head {
+  border-bottom: 1px solid var(--sh-border);
+  padding-bottom: var(--sh-gap-md);
+  margin-bottom: var(--sh-gap-md);
+}
+.plocha--home .dashboard-block--type-room .panel__title { font-size: var(--sh-size-lg); }
+.plocha--prehled { gap: var(--sh-gap-sm); }
+.plocha--prehled .panel { border-radius: var(--sh-radius-sm); }
+.plocha--prehled .stav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.plocha--prehled .stav__radek { min-width: 0; }
+.metric-card {
+  display: grid;
+  align-content: space-between;
+  gap: var(--sh-gap-sm);
+  min-height: 165px;
+  padding: var(--sh-gap-lg);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-sm);
+  background: var(--sh-surface-raised);
+}
+.metric-card__icon { display: inline-flex; }
+.metric-card__value { font-size: clamp(34px, 4vw, 58px); line-height: 1; font-variant-numeric: tabular-nums; }
+.metric-card__label { color: var(--sh-text-muted); font-size: var(--sh-size-sm); }
+
+.studio { display: grid; gap: var(--sh-gap-md); }
+.studio__library {
+  display: grid;
+  align-content: start;
+  gap: var(--sh-gap-sm);
+  padding: var(--sh-gap-md);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-md);
+  background: var(--sh-surface);
+  min-width: 0;
+}
+.studio__library p { margin: 0; }
+.studio__search, .studio__filter {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sh-touch-target);
+  padding: 8px 12px;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-sm);
+  background: var(--sh-surface-raised);
+  color: var(--sh-text);
+  font: inherit;
+}
+.studio__library-list { display: grid; gap: 4px; max-height: 350px; overflow: auto; }
+.studio__library-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--sh-touch-target);
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--sh-radius-sm);
+  background: transparent;
+  color: var(--sh-text);
+  font: inherit;
+  text-align: left;
+  cursor: grab;
+}
+.studio__library-item:hover, .studio__library-item:focus-visible {
+  background: var(--sh-accent-quiet);
+  border-color: var(--sh-accent);
+}
+.studio__library-icon { display: inline-flex; width: 24px; flex: 0 0 24px; }
+.studio__library-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.studio__library-item small { color: var(--sh-text-muted); }
+.cards--studio { align-content: start; }
+.cards > [hidden] { display: none; }
+.cards--studio:empty { min-height: 200px; }
+.card--edit { outline: 2px dashed var(--sh-accent); outline-offset: -3px; }
+.card--edit .card__hit, .card--edit .card__ovladani, .card--edit .card__more {
+  pointer-events: none;
+}
+.card__edit-actions {
+  display: flex;
+  gap: 3px;
+  margin-top: auto;
+  padding: 5px;
+  background: var(--sh-surface);
+  border-top: 1px solid var(--sh-border);
+}
+.card__edit-button {
+  flex: 1;
+  min-width: 36px;
+  min-height: var(--sh-touch-target);
+  border: 0;
+  border-radius: var(--sh-radius-sm);
+  background: transparent;
+  color: var(--sh-text);
+  font: inherit;
+  cursor: pointer;
+}
+.card__edit-button:hover, .card__edit-button:focus-visible { background: var(--sh-accent-quiet); }
+.card__edit-button--danger:hover { color: var(--sh-error); }
+.card__edit-button--drag { touch-action: none; cursor: grab; }
+@media (min-width: 1100px) {
+  .studio { grid-template-columns: minmax(210px, 250px) minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .plocha--prehled .stav { grid-template-columns: 1fr; }
+}
+
 /* Bod na plánku lze otevřít, přetáhnout i upravit nezávisle. */
 .plan__bod { padding: 0; }
 .plan__bod-hit {
@@ -2589,7 +2730,11 @@ textarea.input {
   font: inherit;
   cursor: pointer;
 }
-.catalog__chip[aria-pressed="true"] { background: #146f78; border-color: #146f78; color: #fff; }
+.catalog__chip[aria-pressed="true"] {
+  background: var(--sh-accent-quiet);
+  border-color: var(--sh-accent);
+  color: var(--sh-accent-ink);
+}
 .catalog__search {
   flex: 0 1 250px;
   min-height: 42px;

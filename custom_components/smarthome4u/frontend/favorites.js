@@ -14,7 +14,7 @@ import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { editAppearance } from "./appearance.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
-import { icon, iconFor } from "./icons.js";
+import { iconFor } from "./icons.js";
 import { vybratZarizeni } from "./picker.js";
 import { h, closeDialog } from "./ui.js";
 
@@ -46,16 +46,34 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
 
   const uloz = (zmena) => ulozitBlok({ ...blok, ...zmena });
 
-  const mrizka = h("div", { class: "cards" });
+  const mrizka = h("div", { class: "cards cards--studio", "aria-label": t.studio.layout });
   for (const entity of zarizeni) {
     mrizka.append(misto(ctx, entity, velikost(entity), seznam, velikosti, styly, uloz));
   }
   mrizka.append(prazdneMisto(ctx, seznam, uloz));
 
+  // Knihovna je použitelná i dotykem; na počítači lze zařízení pustit
+  // přímo na vybranou dlaždici nebo na prázdné místo na konci mřížky.
+  mrizka.addEventListener("dragover", (event) => {
+    if (!Array.from(event.dataTransfer?.types || []).includes("application/x-smarthome4u-ref")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+  mrizka.addEventListener("drop", (event) => {
+    const ref = event.dataTransfer?.getData("application/x-smarthome4u-ref");
+    if (!ref || seznam.includes(ref)) return;
+    event.preventDefault();
+    const target = event.target.closest?.(`[${ATRIBUT_KLICE}]`);
+    const position = target ? seznam.indexOf(target.getAttribute(ATRIBUT_KLICE)) : seznam.length;
+    const next = [...seznam];
+    next.splice(Math.max(0, position), 0, ref);
+    uloz({ entities: next });
+  });
+
   // Prázdné místo klíč nemá, takže se do pořadí nedostane.
   povolitPretahovani(mrizka, (poradi) => uloz({ entities: poradi }));
 
-  return mrizka;
+  return h("div", { class: "studio" }, [knihovna(ctx, seznam, uloz), mrizka]);
 }
 
 /* ------------------------------------------------------------------ */
@@ -65,47 +83,87 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
 function misto(ctx, entity, velikost, seznam, velikosti, styly, uloz) {
   const ref = ctx.entityRef(entity);
   const vzhled = styly[ref] || {};
-
-  const obal = h(
-    "div",
-    { class: `card card--edit card--${velikost} card--tone-${vzhled.color || "default"}` },
-    [
-      h(
-        "button",
-        {
-          class: "card__hit",
-          type: "button",
-          "aria-label": entity.name + " - " + t.editor.tileMenu,
-          onclick: () => nabidka(ctx, entity, velikost, seznam, velikosti, styly, uloz),
-        },
-        [
-          h("span", { class: "card__icon" }, vzhled.icon ? icon(vzhled.icon, "icon icon--lg") : iconFor(entity, "icon icon--lg")),
-          h("span", { class: "card__name", text: vzhled.label || entity.name }),
-          h("span", {
-            class: "card__state",
-            text: t.editor.sizes[velikost] + " · " + t.favorites.tapToEdit,
-          }),
-        ],
-      ),
-      h("button", {
-        class: "dnd__uchyt",
-        type: "button",
-        "data-dnd-handle": "",
-        "aria-label": `${t.editor.drag}: ${vzhled.label || entity.name}`,
-        text: "⠿",
-      }),
-      h("button", {
-        class: "card__more card__more--danger",
-        type: "button",
-        "aria-label": t.favorites.remove,
-        text: "✕",
-        onclick: () => odebrat(ref, seznam, velikosti, styly, uloz),
-      }),
-    ],
-  );
+  const obal = card(entity, { size: velikost, appearance: vzhled, editing: true });
+  // Editor kreslí stejnou kartu jako ovládací režim. Během úprav jsou
+  // skutečné akce zablokované, aby tažení nespouštělo zařízení.
+  for (const control of obal.querySelectorAll("button, input, select")) {
+    control.disabled = true;
+    control.tabIndex = -1;
+  }
+  obal.append(h("div", { class: "card__edit-actions" }, [
+    h("button", {
+      class: "card__edit-button card__edit-button--drag", type: "button",
+      "data-dnd-handle": "", "aria-label": `${t.editor.drag}: ${vzhled.label || entity.name}`,
+      title: t.editor.drag, text: "⠿",
+    }),
+    h("button", {
+      class: "card__edit-button", type: "button", text: "⋯",
+      "aria-label": entity.name + " - " + t.editor.tileMenu,
+      onclick: () => nabidka(ctx, entity, velikost, seznam, velikosti, styly, uloz),
+    }),
+    h("button", {
+      class: "card__edit-button", type: "button", text: "↔",
+      "aria-label": `${t.editor.size}: ${t.editor.sizes[velikost]}`,
+      onclick: () => {
+        const sizes = ["s", "m", "l", "xl"];
+        uloz({ sizes: { ...velikosti, [ref]: sizes[(sizes.indexOf(velikost) + 1) % sizes.length] } });
+      },
+    }),
+    h("button", {
+      class: "card__edit-button card__edit-button--danger", type: "button",
+      "aria-label": t.favorites.remove, text: "✕",
+      onclick: () => odebrat(ref, seznam, velikosti, styly, uloz),
+    }),
+  ]));
 
   obal.setAttribute(ATRIBUT_KLICE, ref);
   return obal;
+}
+
+function knihovna(ctx, seznam, uloz) {
+  const roomById = new Map((ctx.model.rooms || []).flatMap((room) =>
+    (room.entities || []).map((entity) => [entity.id, room.name || ""])));
+  const entities = [...ctx.allEntities(), ...(ctx.model.scenes || [])].filter((entity) =>
+    entity.capability?.kind !== "unsupported" && !seznam.includes(ctx.entityRef(entity)));
+  const search = h("input", { class: "studio__search", type: "search",
+    placeholder: t.studio.search, "aria-label": t.studio.search });
+  const kind = h("select", { class: "studio__filter", "aria-label": t.studio.filter });
+  const kinds = [...new Set(entities.map((entity) => entity.capability?.kind || "other"))].sort();
+  kind.append(h("option", { value: "", text: t.studio.allKinds }));
+  for (const value of kinds) kind.append(h("option", { value,
+    text: t.editor.kinds[value] || value }));
+  const list = h("div", { class: "studio__library-list" });
+  function draw() {
+    const query = search.value.trim().toLocaleLowerCase("cs");
+    const matched = entities.filter((entity) =>
+      (!kind.value || (entity.capability?.kind || "other") === kind.value)
+      && (!query || `${entity.name} ${roomById.get(entity.id) || ""}`
+        .toLocaleLowerCase("cs").includes(query)));
+    list.replaceChildren(...matched.slice(0, 40).map((entity) => {
+      const ref = ctx.entityRef(entity);
+      const item = h("button", { class: "studio__library-item", type: "button",
+        draggable: "true", title: t.studio.dragHint,
+        onclick: () => uloz({ entities: [...seznam, ref] }) }, [
+        h("span", { class: "studio__library-icon" }, iconFor(entity)),
+        h("span", { class: "studio__library-name", text: entity.name }),
+        h("small", { text: roomById.get(entity.id) || "" }),
+      ]);
+      item.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("application/x-smarthome4u-ref", ref);
+        event.dataTransfer.effectAllowed = "copy";
+      });
+      return item;
+    }));
+    if (!matched.length) list.append(h("p", { class: "muted", text: t.studio.empty }));
+  }
+  search.addEventListener("input", draw);
+  kind.addEventListener("change", draw);
+  draw();
+  return h("aside", { class: "studio__library" }, [
+    h("strong", { text: t.studio.library }),
+    h("p", { class: "muted", text: t.studio.hint }),
+    search, kind, list,
+  ]);
 }
 
 function prazdneMisto(ctx, seznam, uloz) {

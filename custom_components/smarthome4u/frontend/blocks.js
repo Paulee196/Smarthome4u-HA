@@ -36,8 +36,10 @@ export const MAX_SLOUPCU = 4;
    ploše po něm nezůstane prázdné místo - kromě režimu úprav, kde musí
    být vidět, aby se s ním dalo hnout. */
 export const BLOKY = {
+  headline: { glyf: "home", render: (ctx, blok) => nadpisPlochy(ctx, blok) },
   clock: { glyf: "home", render: (ctx) => hodiny(ctx) },
   status: { glyf: "lighting", render: (ctx) => stavDomu(ctx) },
+  metric: { glyf: "lighting", render: (ctx, blok) => metrika(ctx, blok) },
   alerts: { glyf: "security", render: (ctx, blok, ulozit) => upozorneni(ctx, blok, ulozit) },
   open: { glyf: "window", render: (ctx, blok, ulozit) => otevrene(ctx, blok, ulozit) },
   playing: { glyf: "media", render: (ctx) => prehravac(ctx) },
@@ -49,11 +51,18 @@ export const BLOKY = {
     glyf: "devices",
     render: (ctx, blok, ulozit) => zarizeni(ctx, blok, ulozit),
   },
+  room: {
+    glyf: "rooms",
+    render: (ctx, blok, ulozit) => zarizeni(ctx, blok, ulozit),
+  },
 };
 
 /* Co jde přidat. Pořadí je pořadí v nabídce. */
 export const NABIDKA = [
+  "headline",
   "entities",
+  "room",
+  "metric",
   "scenes",
   "rooms",
   "lights",
@@ -90,39 +99,56 @@ export function vychozi(preset, model) {
 
   if (preset === "tuya") {
     return {
-      columns: 2,
+      columns: 3,
       blocks: [
-        { id: "tuya-scenes", type: "scenes", cols: 2 },
+        { id: "tuya-headline", type: "headline", cols: 3,
+          title: t.dashboardIntro.tuya.title,
+          subtitle: t.dashboardIntro.tuya.description, icon: "home" },
+        { id: "tuya-scenes", type: "scenes", cols: 3 },
         { id: "tuya-devices", type: "entities", title: t.blocks.entities,
-          entities: vybrane, cols: 2 },
+          entities: vybrane, cols: 3 },
       ],
     };
   }
 
   if (preset === "home") {
+    const rooms = (model.rooms || []).filter((room) => room.entities?.length).slice(0, 20);
     return {
       columns: 2,
       blocks: [
-        { id: "home-scenes", type: "scenes", cols: 2 },
-        { id: "home-playing", type: "playing" },
-        { id: "home-alerts", type: "alerts" },
-        { id: "home-devices", type: "entities", title: t.home.favorites,
-          entities: vybrane, cols: 2 },
+        { id: "home-headline", type: "headline", cols: 2,
+          title: t.dashboardIntro.home.title,
+          subtitle: t.dashboardIntro.home.description, icon: "rooms" },
+        ...rooms.map((room, index) => ({
+          id: `home-room-${index}`, type: "room", title: room.name || t.rooms.unassigned,
+          entities: (room.entities || []).filter((e) =>
+            (e.capability?.controllable || e.capability?.kind === "camera") && e.available)
+            .slice(0, 12).map((e) => e.ref || e.id),
+          cols: 1,
+        })),
+        ...(!rooms.length ? [{ id: "home-devices", type: "room", title: t.home.favorites,
+          entities: vybrane, cols: 2 }] : []),
       ],
     };
   }
 
   return {
-    columns: 2,
+    columns: 3,
     blocks: [
-      {
-        id: "b1",
-        type: "entities",
-        title: t.home.favorites,
-        entities: vybrane,
-        cols: 2,
-      },
-      { id: "b2", type: "actions", cols: 2 },
+      { id: "overview-headline", type: "headline", cols: 3,
+        title: t.dashboardIntro.prehled.title,
+        subtitle: t.dashboardIntro.prehled.description, icon: "home" },
+      { id: "overview-lights-count", type: "metric", metric: "lightsOn",
+        title: t.metrics.lightsOn, icon: "lighting", color: "amber" },
+      { id: "overview-open-count", type: "metric", metric: "openCount",
+        title: t.metrics.openCount, icon: "window", color: "blue" },
+      { id: "overview-lock-count", type: "metric", metric: "unlockedCount",
+        title: t.metrics.unlockedCount, icon: "lock", color: "mint" },
+      { id: "overview-alerts", type: "alerts", cols: 2 },
+      { id: "overview-open", type: "open" },
+      { id: "overview-lights", type: "lights", cols: 2 },
+      { id: "overview-clock", type: "clock" },
+      { id: "overview-actions", type: "actions", cols: 3 },
     ],
   };
 }
@@ -213,7 +239,8 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
     const tone = ["mint", "blue", "violet", "amber", "rose"].includes(blok.color)
       ? blok.color : "default";
     obsah.classList.add("dashboard-block", "dashboard-block--" + tone,
-      "dashboard-block--" + (blok.height || "normal"));
+      "dashboard-block--" + (blok.height || "normal"),
+      "dashboard-block--type-" + blok.type);
     const title = obsah.querySelector(".panel__title");
     if (title && blok.title) title.textContent = blok.title;
     const glyph = obsah.querySelector(".panel__glyph");
@@ -317,9 +344,13 @@ function nabidnoutBloky(ctx, bloky, ulozit) {
 
 function novyBlok(typ) {
   const blok = { id: "b" + Date.now().toString(36), type: typ };
-  if (typ === "entities") {
-    blok.title = t.blocks.entities;
+  if (typ === "entities" || typ === "room") {
+    blok.title = t.blocks[typ];
     blok.entities = [];
+  }
+  if (typ === "metric") {
+    blok.metric = "lightsOn";
+    blok.title = t.metrics.lightsOn;
   }
   return blok;
 }
@@ -400,14 +431,26 @@ function hodiny() {
   }, 15000);
 
   return h("section", { class: "panelh" }, [
+    h("h2", { class: "panel__title", text: t.blocks.clock }),
     h("div", { class: "panelh__cas-blok" }, [cas, datum]),
+  ]);
+}
+
+function nadpisPlochy(ctx, blok) {
+  const preset = ctx.model.preset || "tuya";
+  const defaults = t.dashboardIntro[preset] || t.dashboardIntro.tuya;
+  return h("header", { class: `dashboard-intro dashboard-intro--${preset}` }, [
+    h("span", { class: "experience__eyebrow", text: defaults.eyebrow }),
+    h("span", { class: "dashboard-intro__glyph panel__glyph" }, icon(blok.icon || "home")),
+    h("h2", { class: "panel__title", text: blok.title || defaults.title }),
+    h("p", { text: blok.subtitle === undefined ? defaults.description : blok.subtitle }),
   ]);
 }
 
 function stavDomu(ctx) {
   const souhrn = ctx.model.summary || {};
 
-  return h("section", { class: "panel stav" }, [
+  return ramec(t.blocks.status, "home", h("div", { class: "stav" }, [
     veta(
       "lighting",
       souhrn.lightsOn
@@ -429,6 +472,23 @@ function stavDomu(ctx) {
         : t.status.allClosed,
       Boolean(souhrn.openCount),
     ),
+  ]));
+}
+
+function metrika(ctx, blok) {
+  const summary = ctx.model.summary || {};
+  const values = {
+    lightsOn: summary.lightsOn || 0,
+    openCount: summary.openCount || 0,
+    unlockedCount: summary.unlockedCount || 0,
+    rooms: (ctx.model.roomSummaries || []).length,
+    devices: ctx.allEntities().length,
+  };
+  const metric = Object.hasOwn(values, blok.metric) ? blok.metric : "lightsOn";
+  return h("section", { class: "metric-card" }, [
+    h("span", { class: "metric-card__icon panel__glyph" }, icon(blok.icon || "lighting")),
+    h("strong", { class: "metric-card__value", text: String(values[metric]) }),
+    h("span", { class: "metric-card__label panel__title", text: blok.title || t.metrics[metric] }),
   ]);
 }
 
@@ -576,12 +636,49 @@ function zarizeni(ctx, blok, ulozitBlok) {
   const ids = blok.entities || [];
   if (!ids.length && !ctx.editing) return null;
 
+  const grid = mrizkaZarizeni(ctx, blok, ulozitBlok);
+  const catalog = (ctx.model.preset === "tuya" && !ctx.editing)
+    ? katalogZarizeni(ctx, blok, grid) : grid;
+
   return ramec(
     blok.title || t.blocks.entities,
-    "devices",
+    blok.type === "room" ? "rooms" : "devices",
     h("div", { class: "stack" }, [
       ctx.editing && h("p", { class: "muted", text: t.favorites.hint }),
-      mrizkaZarizeni(ctx, blok, ulozitBlok),
+      catalog,
     ]),
   );
+}
+
+function katalogZarizeni(ctx, blok, grid) {
+  const entityCards = [...grid.children];
+  const displayed = (blok.entities || []).map((ref) => ctx.entityByRef(ref)).filter(Boolean);
+  for (let index = 0; index < entityCards.length; index++) {
+    const entity = displayed[index];
+    entityCards[index].dataset.kind = entity?.capability?.kind || "other";
+    entityCards[index].dataset.name = (blok.tileStyles?.[ctx.entityRef(entity)]?.label
+      || entity?.name || "").toLocaleLowerCase("cs");
+  }
+  const types = [...new Set(entityCards.map((item) => item.dataset.kind))];
+  const filters = h("div", { class: "catalog__filters", role: "group", "aria-label": t.studio.categories });
+  const search = h("input", { class: "catalog__search", type: "search",
+    placeholder: t.studio.searchBoard, "aria-label": t.studio.searchBoard });
+  let active = "";
+  function draw() {
+    const query = search.value.trim().toLocaleLowerCase("cs");
+    for (const item of entityCards) item.hidden = Boolean(
+      (active && item.dataset.kind !== active) || (query && !item.dataset.name.includes(query)));
+    for (const button of filters.children) button.setAttribute("aria-pressed",
+      String(button.dataset.kind === active));
+  }
+  for (const [kind, label] of [["", t.studio.all], ...types.map((kind) =>
+    [kind, t.editor.kinds[kind] || kind])]) {
+    filters.append(h("button", { class: "catalog__chip", type: "button", text: label,
+      dataset: { kind }, onclick: () => { active = kind; draw(); } }));
+  }
+  search.addEventListener("input", draw);
+  draw();
+  return h("div", { class: "stack" }, [
+    h("div", { class: "catalog__controls" }, [filters, search]), grid,
+  ]);
 }

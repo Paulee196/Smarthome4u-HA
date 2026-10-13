@@ -46,6 +46,8 @@ export function editAppearance(title, current, save, config = {}) {
 export function editBlockAppearance(block, save, types = []) {
   const name = textInput(block.title || "", t.blocks[block.type]);
   name.maxLength = 60;
+  const subtitle = textInput(block.subtitle || "", t.editor.subtitle);
+  subtitle.maxLength = 120;
   const kind = selectInput(options(types, t.blocks), block.type);
   const glyph = selectInput(options(ICONS, t.editor.icons, true), block.icon || "");
   const color = selectInput(options(COLORS, t.editor.colors), block.color || "default");
@@ -54,21 +56,30 @@ export function editBlockAppearance(block, save, types = []) {
     { value: "normal", label: t.editor.heightNormal },
     { value: "large", label: t.editor.heightLarge },
   ], block.height || "normal");
+  const metric = selectInput(options(Object.keys(t.metrics), t.metrics),
+    block.metric || "lightsOn");
   dialog(t.editor.blockAppearance, h("div", { class: "stack appearance-editor" }, [
     field(t.editor.blockType, kind),
+    ...(block.type === "metric" ? [field(t.editor.metricSource, metric)] : []),
     field(t.editor.label, name),
+    ...(block.type === "headline" ? [field(t.editor.subtitle, subtitle)] : []),
     field(t.editor.icon, glyph),
     field(t.editor.color, color),
     field(t.editor.blockHeight, height),
     h("div", { class: "row" }, [
       button(t.action.cancel, closeDialog, "button--ghost"),
       button(t.action.save, () => {
+        const title = name.value.trim();
+        const adjustedTitle = kind.value === "metric" && block.type === "metric"
+          && title === t.metrics[block.metric] ? t.metrics[metric.value] : title;
         closeDialog();
         save({
           ...block,
           type: kind.value,
           ...(kind.value === "entities" && block.type !== "entities" ? { entities: [] } : {}),
-          title: name.value.trim() || undefined,
+          ...(kind.value === "metric" ? { metric: metric.value } : {}),
+          title: adjustedTitle || undefined,
+          ...(kind.value === "headline" ? { subtitle: subtitle.value.trim() } : {}),
           icon: glyph.value || undefined,
           color: color.value,
           height: height.value,

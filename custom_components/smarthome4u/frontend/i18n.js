@@ -531,8 +531,8 @@ export const t = {
     add: "Přidat zařízení",
     remove: "Odebrat z plochy",
     hint:
-      "Klepnutím na dlaždici změníte velikost nebo vyměníte zařízení. " +
-      "Přetažením změníte pořadí, křížkem dlaždici odeberete.",
+      "Dlaždici upravíte tlačítkem ⋯, velikost změníte ↔ a za ⠿ ji přetáhnete. " +
+      "Zařízení lze přidat z knihovny vedle mřížky.",
   },
 
   presets: {
@@ -555,8 +555,40 @@ export const t = {
     },
   },
 
+  dashboardIntro: {
+    tuya: { eyebrow: "MOJE DOMÁCNOST", title: "Rychlé ovládání",
+      description: "Oblíbená zařízení a scény na dosah." },
+    home: { eyebrow: "MÍSTNOSTI", title: "Domov",
+      description: "Přehled podle místností a každodenních činností." },
+    prehled: { eyebrow: "HOME ASSISTANT", title: "Stav domácnosti",
+      description: "Důležité stavy a události pohromadě." },
+    lights: (count) => `${count} světel svítí`,
+    open: (count) => `${count} otevřeno`,
+  },
+  studio: {
+    layout: "Rozvržení dlaždic",
+    library: "Knihovna zařízení",
+    hint: "Klepněte na zařízení nebo ho přetáhněte do mřížky.",
+    dragHint: "Klepněte pro přidání nebo přetáhněte na plochu",
+    search: "Hledat zařízení nebo místnost",
+    filter: "Typ zařízení",
+    allKinds: "Všechny typy",
+    empty: "Žádné další zařízení.",
+    all: "Vše",
+    categories: "Kategorie zařízení",
+    searchBoard: "Hledat na ploše",
+  },
+  metrics: {
+    lightsOn: "Rozsvícená světla",
+    openCount: "Otevřená okna a dveře",
+    unlockedCount: "Odemčené zámky",
+    rooms: "Místnosti",
+    devices: "Zařízení",
+  },
+
   /* Názvy bloků. Musí říct, co blok ukazuje, ne jak se jmenuje uvnitř. */
   blocks: {
+    headline: "Úvod plochy",
     clock: "Hodiny",
     status: "Stav domu",
     alerts: "Upozornění",
@@ -567,9 +599,12 @@ export const t = {
     rooms: "Místnosti",
     actions: "Rychlé akce",
     entities: "Vybraná zařízení",
+    room: "Skupina zařízení",
+    metric: "Číselný přehled",
   },
 
   blocksHint: {
+    headline: "Název a krátký popis plochy",
     clock: "Velké hodiny a datum",
     status: "Svítí, zamčeno, zavřeno - třemi větami",
     alerts: "Kouř, voda, plyn. Ukáže se, jen když je co hlásit",
@@ -580,6 +615,8 @@ export const t = {
     rooms: "Dlaždice místností s teplotou",
     actions: "Zhasnout vše a přechod do místností",
     entities: "Zařízení, která si vyberete sám",
+    room: "Samostatná skupina s vlastním názvem a zařízeními",
+    metric: "Jedna hodnota ze stavu domácnosti",
   },
 
   editor: {
@@ -614,11 +651,13 @@ export const t = {
       "stmívání, polohu žaluzie nebo teplotu bez otevírání detailu.",
     tileMenu: "Upravit dlaždici",
     label: "Vlastní název",
+    subtitle: "Krátký popis",
     labelHint: "Prázdné pole použije název z Home Assistantu.",
     icon: "Ikona",
     color: "Barva",
     automatic: "Automaticky",
     blockAppearance: "Vzhled bloku",
+    metricSource: "Zobrazovaná hodnota",
     blockType: "Obsah bloku",
     automaticTilesHint: "Úpravou této dlaždice se blok změní na vlastní výběr zařízení.",
     blockHeight: "Výška bloku",
@@ -671,6 +710,9 @@ export const t = {
       button: "Tlačítko",
       presence: "Přítomnost osoby",
       camera: "Kamera",
+      scene: "Scéna",
+      script: "Skript",
+      automation: "Automatizace",
       text: "Text",
       datetime: "Datum a čas",
       counter: "Počítadlo",

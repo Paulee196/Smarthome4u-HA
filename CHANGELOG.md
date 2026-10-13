@@ -2,6 +2,21 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.14.0]
+
+### Změněno
+
+- Dlaždice jsou přímo součástí upravitelné plochy. Editor ukazuje jejich
+  skutečný vzhled a dostupné ovládání, zatímco během úprav blokuje akce.
+- Zařízení lze přidat z knihovny hledáním, klepnutím nebo přetažením.
+- Chytrá domácnost má filtrovatelnou mřížku, Domov skupiny místností a
+  Přehled HA samostatně upravitelné ukazatele.
+- Úvodní bloky dashboardů lze upravit stejně jako ostatní bloky.
+
+### Opraveno
+
+- Zmizela oddělená automatická část dashboardu, kterou nešlo přizpůsobit.
+
 ## [0.13.0]
 
 ### Změněno

@@ -3,8 +3,25 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 24. 9. 2026
-**Aktuální verze v kódu:** 0.13.0
+**Poslední aktualizace:** 13. 10. 2026
+**Aktuální verze v kódu:** 0.14.0
+
+## Přímý editor ploch 0.14.0
+
+- [x] Odstraněny automatické neupravitelné plochy nad editorem.
+- [x] Skutečné dlaždice zařízení se upravují přímo na ploše; při úpravě
+  nemohou spustit akci v domácnosti.
+- [x] Knihovna zařízení umožňuje hledání podle názvu a místnosti, filtr typu,
+  přidání klepnutím a přetažení do mřížky.
+- [x] Úvodní blok každé plochy a číselné ukazatele Přehledu HA lze samostatně
+  přejmenovat, přesunout a upravit; dlaždice místností mají vlastní obsah.
+- [x] Starší uložené sestavy zůstávají čitelné; výchozí sestavy se generují
+  odděleně pro každou podobu plochy.
+- [x] Lokální DOM ověření vykreslení a základních úprav tří ploch.
+- [ ] Vizuální a dotykové ověření nové verze v živé instalaci HA.
+- [ ] Editor automatického plánku bez nahraného půdorysu.
+
+Podklady a rozdíly proti Tesseře jsou v [TESSERA_INSPIRACE.md](TESSERA_INSPIRACE.md).
 
 ## Čtyři odlišné plochy 0.13.0
 
