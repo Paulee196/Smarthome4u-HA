@@ -2816,6 +2816,23 @@ textarea.input {
 .floorplan-rooms__map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .floorplan-rooms__zone { display: flex; flex-direction: column; gap: 7px; min-height: 124px; padding: 17px; border: 2px solid var(--sh-border); border-radius: 8px 22px 8px 22px; background: var(--sh-surface); color: var(--sh-text); font: inherit; text-align: left; cursor: pointer; }
 .floorplan-rooms__zone[aria-pressed="true"] { border-color: var(--sh-accent); background: var(--sh-accent-quiet); }
+.floorplan-rooms__zone-wrap { position: relative; min-width: 0; }
+.floorplan-rooms__zone-wrap .floorplan-rooms__zone { width: 100%; height: 100%; }
+.floorplan-rooms__zone--large, .floorplan-rooms__zone-wrap--large { grid-column: span 2; }
+.floorplan-rooms__drag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: var(--sh-touch-target);
+  height: var(--sh-touch-target);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-sm);
+  background: var(--sh-surface-raised);
+  color: var(--sh-text);
+  font: inherit;
+  cursor: grab;
+  touch-action: none;
+}
 .floorplan-rooms__zone-icon { color: var(--sh-accent); }
 .floorplan-rooms__zone small { margin-top: auto; color: var(--sh-text-muted); }
 .floorplan-rooms__detail { margin-top: 18px; padding: 22px; border: 1px solid var(--sh-border); border-radius: 20px; background: var(--sh-surface); }

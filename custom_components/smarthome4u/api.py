@@ -1418,6 +1418,8 @@ class DashboardView(Sh4uView):
                 "lightsOn", "openCount", "unlockedCount", "rooms", "devices"
             ):
                 novy["metric"] = blok["metric"]
+            if isinstance(blok.get("roomId"), str):
+                novy["roomId"] = blok["roomId"][:80]
 
             # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.
             sirka = blok.get("cols")

@@ -495,6 +495,16 @@ export const t = {
 
   floorplan: {
     title: "Půdorys",
+    eyebrow: "OVLÁDÁNÍ NA PLÁNKU",
+    homePlan: "Plánek domácnosti",
+    automaticPlan: "Automatický plánek místností",
+    planHint: "Klepněte na značku zařízení nebo vyberte místnost pod plánkem.",
+    automaticHint: "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys nahrajete tlačítkem nahoře.",
+    roomsOnPlan: "Místnosti v plánku",
+    selectedRoom: "VYBRANÁ MÍSTNOST",
+    noControls: "V této místnosti nejsou vybraná zařízení.",
+    roomState: (lights, temperature) =>
+      `${lights} světel svítí${temperature == null ? "" : ` · ${temperature} °C`}`,
     upload: "Nahrát plánek",
     uploadHint:
       "Vyberte obrázek půdorysu bytu nebo domu. PNG, JPG nebo WEBP, " +
@@ -562,6 +572,8 @@ export const t = {
       description: "Přehled podle místností a každodenních činností." },
     prehled: { eyebrow: "HOME ASSISTANT", title: "Stav domácnosti",
       description: "Důležité stavy a události pohromadě." },
+    pudorys: { eyebrow: "OVLÁDÁNÍ NA PLÁNKU", title: "Plánek domácnosti",
+      description: "Místnosti a zařízení na jednom plánku." },
     lights: (count) => `${count} světel svítí`,
     open: (count) => `${count} otevřeno`,
   },

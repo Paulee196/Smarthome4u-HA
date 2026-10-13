@@ -2,6 +2,15 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.14.1]
+
+### Přidáno
+
+- Automatický plánek místností má upravitelné zóny a vlastní dlaždice
+  zařízení. Zóny lze přesouvat, přejmenovat a měnit jejich ikonu, barvu
+  a velikost.
+- Úvod plánku lze upravit jako ostatní úvodní bloky.
+
 ## [0.14.0]
 
 ### Změněno

@@ -7,8 +7,11 @@
 
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
-import { card, openControls } from "./controls.js";
-import { editAppearance } from "./appearance.js";
+import { openControls } from "./controls.js";
+import { editAppearance, editBlockAppearance } from "./appearance.js";
+import { vychozi } from "./blocks.js";
+import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
+import { mrizkaZarizeni } from "./favorites.js";
 import { icon, iconFor } from "./icons.js";
 import { vybratZarizeni } from "./picker.js";
 import {
@@ -20,6 +23,8 @@ import {
   selectInput,
   toast,
 } from "./ui.js";
+
+let selectedRoomId = null;
 
 export async function renderFloorplan(root, ctx) {
   let plan;
@@ -36,63 +41,138 @@ export async function renderFloorplan(root, ctx) {
     root.append(
       h("div", { class: "row row--end" }, [
         jeTechnik && button(t.floorplan.upload, () => nahrat(ctx), "button--ghost"),
-        ctx.editing &&
+        ctx.editing && plan.image &&
           button(t.floorplan.addDevice, () => pridatBod(ctx, plan), "button--ghost"),
       ]),
     );
   }
 
-  root.append(h("div", { class: "floorplan-intro" }, [
-    h("span", { class: "experience__eyebrow", text: "OVLÁDÁNÍ NA PLÁNKU" }),
-    h("h2", { text: plan.image ? "Plánek domácnosti" : "Automatický plánek místností" }),
-    h("p", { text: plan.image
-      ? "Klepněte na značku zařízení nebo vyberte místnost pod plánkem."
-      : "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys nahrajete tlačítkem nahoře." }),
-  ]));
+  const board = floorplanBoard(ctx, Boolean(plan.image));
+  const headline = board.find((block) => block.type === "headline");
+  const intro = h("div", { class: "floorplan-intro dashboard-intro dashboard-block"
+    + ` dashboard-block--${headline?.color || "default"}`
+    + ` dashboard-block--${headline?.height || "normal"}` }, [
+    h("span", { class: "experience__eyebrow", text: t.floorplan.eyebrow }),
+    h("span", { class: "dashboard-intro__glyph" }, icon(headline?.icon || "home")),
+    h("h2", { text: headline?.title || (plan.image
+      ? t.floorplan.homePlan : t.floorplan.automaticPlan) }),
+    h("p", { text: headline?.subtitle === undefined
+      ? (plan.image ? t.floorplan.planHint : t.floorplan.automaticHint)
+      : headline.subtitle }),
+  ]);
+  if (ctx.editing && headline) intro.append(button(t.editor.blockAppearance,
+    () => editBlockAppearance(headline,
+      (next) => saveFloorplanBoard(ctx, board.map((block) =>
+        block.id === headline.id ? next : block)), ["headline"]), "button--ghost"));
+  root.append(intro);
 
   if (plan.image) root.append(platno(ctx, plan));
-  root.append(prehledMistnosti(ctx, !plan.image));
+  root.append(prehledMistnosti(ctx, !plan.image, board));
+}
+
+function floorplanBoard(ctx, hasImage) {
+  const rooms = (ctx.model.rooms || []).filter((room) => room.entities?.length).slice(0, 29);
+  const roomIds = new Set(rooms.map((room) => String(room.id)));
+  const defaults = vychozi("pudorys", ctx.model).blocks;
+  const stored = (ctx.model.board?.blocks || []).filter((block) =>
+    block.type !== "room" || roomIds.has(String(block.roomId)));
+  const savedRooms = new Set(stored.map((block) => String(block.roomId || "")));
+  const defaultHeadline = defaults.find((block) => block.type === "headline");
+  defaultHeadline.title = hasImage ? t.floorplan.homePlan : t.floorplan.automaticPlan;
+  defaultHeadline.subtitle = hasImage ? t.floorplan.planHint : t.floorplan.automaticHint;
+  const extra = defaults.filter((block) =>
+    block.type === "headline"
+      ? !stored.some((saved) => saved.type === "headline")
+      : !savedRooms.has(block.roomId));
+  return [...extra.filter((block) => block.type === "headline"), ...stored,
+    ...extra.filter((block) => block.type === "room")].slice(0, 30);
+}
+
+async function saveFloorplanBoard(ctx, blocks) {
+  try {
+    await api.saveDashboard("pudorys", 2, blocks);
+    toast(t.notice.saved);
+    await ctx.refresh();
+  } catch (error) {
+    toast(error.message, true);
+  }
 }
 
 /* Plánek funguje hned po instalaci, i když uživatel nemá obrázek domu. */
-function prehledMistnosti(ctx, schematic) {
-  const rooms = (ctx.model.rooms || []).filter((r) => r.entities?.length);
+function prehledMistnosti(ctx, schematic, blocks) {
+  const rooms = (ctx.model.rooms || []).filter((r) => r.entities?.length).slice(0, 29);
   const summaries = ctx.model.roomSummaries || [];
   if (!rooms.length) return emptyState(t.rooms.empty);
+  const blockFor = (room) => blocks.find((block) =>
+    block.type === "room" && String(block.roomId) === String(room.id));
+  const orderedRooms = [...rooms].sort((a, b) =>
+    (blocks.indexOf(blockFor(a)) < 0 ? blocks.length : blocks.indexOf(blockFor(a)))
+    - (blocks.indexOf(blockFor(b)) < 0 ? blocks.length : blocks.indexOf(blockFor(b))));
+
+  const saveBlock = (changed) => saveFloorplanBoard(ctx, blocks.map((block) =>
+    block.id === changed.id ? changed : block));
 
   const root = h("section", { class: "floorplan-rooms" + (schematic ? " floorplan-rooms--schematic" : "") });
-  const map = h("div", { class: "floorplan-rooms__map", role: "group", "aria-label": "Místnosti v plánku" });
+  const map = h("div", { class: "floorplan-rooms__map", role: "group", "aria-label": t.floorplan.roomsOnPlan });
   const detail = h("div", { class: "floorplan-rooms__detail" });
-  let active = String(rooms[0].id);
+  let active = orderedRooms.some((room) => String(room.id) === selectedRoomId)
+    ? selectedRoomId : String(orderedRooms[0].id);
 
   function draw() {
-    const room = rooms.find((r) => String(r.id) === active) || rooms[0];
+    const room = orderedRooms.find((r) => String(r.id) === active) || orderedRooms[0];
     const info = summaries.find((r) => r.id === room.id) || {};
-    const entities = (room.entities || []).filter((e) => e.capability?.controllable || e.capability?.kind === "camera");
+    const block = blockFor(room);
+    const title = block?.title || room.name || t.rooms.unassigned;
     detail.replaceChildren(
       h("div", { class: "floorplan-rooms__detail-head" }, [
-        h("span", { class: "experience__eyebrow", text: "VYBRANÁ MÍSTNOST" }),
-        h("h3", { text: room.name || t.rooms.unassigned }),
-        h("p", { text: `${info.lightsOn || 0} světel svítí${info.temperature == null ? "" : ` · ${info.temperature} °C`}` }),
+        h("span", { class: "experience__eyebrow", text: t.floorplan.selectedRoom }),
+        h("h3", { text: title }),
+        h("p", { text: t.floorplan.roomState(info.lightsOn || 0, info.temperature) }),
+        ctx.editing && block && button(t.editor.blockAppearance,
+          () => editBlockAppearance(block, saveBlock, ["room"]), "button--ghost"),
       ]),
-      entities.length
-        ? h("div", { class: "cards floorplan-rooms__devices" }, entities.slice(0, 16).map((e) => card(e)))
-        : h("p", { class: "muted", text: "V místnosti nejsou ovladatelná zařízení." }),
+      block && (block.entities?.length || ctx.editing)
+        ? mrizkaZarizeni(ctx, block, saveBlock)
+        : h("p", { class: "muted", text: t.floorplan.noControls }),
     );
-    for (const zone of map.children) zone.setAttribute("aria-pressed", String(zone.dataset.room === active));
+    for (const item of map.children) {
+      const zone = item.classList.contains("floorplan-rooms__zone")
+        ? item : item.querySelector(".floorplan-rooms__zone");
+      zone?.setAttribute("aria-pressed", String(zone.dataset.room === active));
+    }
   }
 
-  for (const room of rooms) {
+  for (const room of orderedRooms) {
     const info = summaries.find((r) => r.id === room.id) || {};
-    map.append(h("button", {
-      class: "floorplan-rooms__zone", type: "button", dataset: { room: String(room.id) },
-      onclick: () => { active = String(room.id); draw(); },
+    const block = blockFor(room);
+    const zone = h("button", {
+      class: `floorplan-rooms__zone card card--tone-${block?.color || "default"}`
+        + (block?.height === "large" ? " floorplan-rooms__zone--large" : ""),
+      type: "button", dataset: { room: String(room.id) },
+      onclick: () => { active = String(room.id); selectedRoomId = active; draw(); },
     }, [
-      h("span", { class: "floorplan-rooms__zone-icon" }, icon("rooms")),
-      h("strong", { text: room.name || t.rooms.unassigned }),
-      h("small", { text: `${info.lightsOn || 0} svítí${info.temperature == null ? "" : ` · ${info.temperature} °C`}` }),
-    ]));
+      h("span", { class: "floorplan-rooms__zone-icon" }, icon(block?.icon || "rooms")),
+      h("strong", { text: block?.title || room.name || t.rooms.unassigned }),
+      h("small", { text: t.floorplan.roomState(info.lightsOn || 0, info.temperature) }),
+    ]);
+    if (ctx.editing && block) {
+      const wrapper = h("div", { class: "floorplan-rooms__zone-wrap"
+        + (block.height === "large" ? " floorplan-rooms__zone-wrap--large" : "") }, [
+        zone,
+        h("button", { class: "floorplan-rooms__drag", type: "button",
+          "data-dnd-handle": "", "aria-label": `${t.editor.drag}: ${block.title || room.name}`,
+          text: "⠿" }),
+      ]);
+      wrapper.setAttribute(ATRIBUT_KLICE, block.id);
+      map.append(wrapper);
+    } else map.append(zone);
   }
+  if (ctx.editing) povolitPretahovani(map, (order) => {
+    const byId = new Map(blocks.map((block) => [block.id, block]));
+    saveFloorplanBoard(ctx, [...blocks.filter((block) => block.type === "headline"),
+      ...order.map((id) => byId.get(id)).filter(Boolean),
+      ...blocks.filter((block) => block.type !== "headline" && !order.includes(block.id))]);
+  });
   root.append(map, detail);
   draw();
   return root;

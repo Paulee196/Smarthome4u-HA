@@ -29,8 +29,8 @@ Prostudované primární zdroje:
 
 ## Další práce
 
-- Doplnit plnohodnotný editor automatického plánku místností bez nahraného
-  obrázku. Pojmenování místností zůstává v evidenci Home Assistantu.
+- Na automatickém plánku lze přeskládat a upravit zóny místností i jejich
+  dlaždice. Pojmenování místností v Home Assistantu zůstává samostatné.
 - Ověřit nové ovládání v živé instalaci HA na telefonu a dotykovém panelu.
 - Rozšířit editor o vrácení kroku a možnost rozpracované změny potvrdit
   najednou. Současný editor ukládá po jednotlivých změnách.

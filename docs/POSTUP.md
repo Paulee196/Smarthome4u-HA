@@ -4,7 +4,18 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.14.0
+**Aktuální verze v kódu:** 0.14.1
+
+## Editor plánku 0.14.1
+
+- [x] Automatický plánek a detail místnosti používají vlastní uložené
+  dlaždice, knihovnu zařízení a stejný editor jako ostatní plochy.
+- [x] Zóny místností lze přesouvat a měnit jejich název, ikonu, barvu a
+  velikost. Úvod plánku lze také upravit.
+- [x] Název a skutečné zařazení místnosti nadále spravuje Home Assistant;
+  zde se upravuje pouze její podoba na dashboardu.
+- [x] Místní DOM ověření vykreslení plánku a uložení změny dlaždice.
+- [ ] Dotykové a vizuální ověření na živé instalaci HA.
 
 ## Přímý editor ploch 0.14.0
 
@@ -19,7 +30,7 @@ dalo navázat z jakéhokoliv počítače.
   odděleně pro každou podobu plochy.
 - [x] Lokální DOM ověření vykreslení a základních úprav tří ploch.
 - [ ] Vizuální a dotykové ověření nové verze v živé instalaci HA.
-- [ ] Editor automatického plánku bez nahraného půdorysu.
+- [x] Editor automatického plánku bez nahraného půdorysu.
 
 Podklady a rozdíly proti Tesseře jsou v [TESSERA_INSPIRACE.md](TESSERA_INSPIRACE.md).
 

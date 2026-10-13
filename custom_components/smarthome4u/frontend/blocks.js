@@ -132,6 +132,24 @@ export function vychozi(preset, model) {
     };
   }
 
+  if (preset === "pudorys") {
+    return {
+      columns: 2,
+      blocks: [
+        { id: "plan-headline", type: "headline", title: t.dashboardIntro.pudorys.title,
+          subtitle: t.dashboardIntro.pudorys.description, icon: "home", cols: 2 },
+        ...(model.rooms || []).filter((room) => room.entities?.length)
+        .slice(0, 29).map((room) => ({
+          id: `plan-${String(room.id).slice(0, 35)}`, type: "room", roomId: String(room.id),
+          title: room.name || t.rooms.unassigned,
+          entities: (room.entities || []).filter((entity) =>
+            entity.capability?.controllable || entity.capability?.kind === "camera")
+            .slice(0, 16).map((entity) => entity.ref || entity.id),
+        })),
+      ],
+    };
+  }
+
   return {
     columns: 3,
     blocks: [
