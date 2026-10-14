@@ -2,6 +2,15 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.17.1]
+
+### Změněno
+
+- Pod obrázkem plánku se místnosti trvale nezobrazují. Detail vybrané místnosti
+  se otevře pouze gestem, kterému je v editoru přiřazena akce „Otevřít místnost“.
+- Při úpravě plánku zůstává dostupný seznam místností a editor jejich detailů,
+  včetně místností bez zařízení. Otevřený detail lze zase zavřít.
+
 ## [0.17.0]
 
 ### Přidáno

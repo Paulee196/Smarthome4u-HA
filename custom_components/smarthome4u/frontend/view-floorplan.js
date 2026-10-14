@@ -76,7 +76,7 @@ export async function renderFloorplan(root, ctx) {
 
   const roomsView = prehledMistnosti(ctx, !plan.image, board, rooms);
   if (plan.image) root.append(platno(ctx, plan, rooms, roomsView.select));
-  root.append(roomsView.element);
+  if (roomsView.element) root.append(roomsView.element);
 }
 
 function floorplanRooms(ctx, plan) {
@@ -100,12 +100,17 @@ function floorplanBoard(ctx, hasImage, allRooms) {
   const defaultHeadline = defaults.find((block) => block.type === "headline");
   defaultHeadline.title = hasImage ? t.floorplan.homePlan : t.floorplan.automaticPlan;
   defaultHeadline.subtitle = hasImage ? t.floorplan.planHint : t.floorplan.automaticHint;
-  const extra = defaults.filter((block) =>
-    block.type === "headline"
-      ? !stored.some((saved) => saved.type === "headline")
-      : !savedRooms.has(block.roomId));
-  return [...extra.filter((block) => block.type === "headline"), ...stored,
-    ...extra.filter((block) => block.type === "room")].slice(0, 30);
+  const missingRooms = rooms.filter((room) => !savedRooms.has(String(room.id)))
+    .map((room) => defaults.find((block) => block.type === "room"
+      && String(block.roomId) === String(room.id)) || {
+      id: `plan-${String(room.id).slice(0, 35)}`,
+      type: "room", roomId: String(room.id), title: room.name || t.rooms.unassigned,
+      entities: [],
+    });
+  return [
+    ...(!stored.some((block) => block.type === "headline") ? [defaultHeadline] : []),
+    ...stored, ...missingRooms,
+  ].slice(0, 30);
 }
 
 async function saveFloorplanBoard(ctx, blocks) {
@@ -122,7 +127,10 @@ async function saveFloorplanBoard(ctx, blocks) {
 function prehledMistnosti(ctx, schematic, blocks, allRooms) {
   const rooms = allRooms.slice(0, 29);
   const summaries = ctx.model.roomSummaries || [];
-  if (!rooms.length) return { element: emptyState(t.rooms.empty), select: () => {} };
+  if (!rooms.length) return {
+    element: schematic || ctx.editing ? emptyState(t.rooms.empty) : null,
+    select: () => {},
+  };
   const blockFor = (room) => blocks.find((block) =>
     block.type === "room" && String(block.roomId) === String(room.id));
   const orderedRooms = [...rooms].sort((a, b) =>
@@ -132,7 +140,13 @@ function prehledMistnosti(ctx, schematic, blocks, allRooms) {
   const saveBlock = (changed) => saveFloorplanBoard(ctx, blocks.map((block) =>
     block.id === changed.id ? changed : block));
 
-  const root = h("section", { class: "floorplan-rooms" + (schematic ? " floorplan-rooms--schematic" : "") });
+  const showMap = schematic || ctx.editing;
+  const root = h("section", {
+    class: "floorplan-rooms" + (schematic ? " floorplan-rooms--schematic" : "")
+      + (!showMap ? " floorplan-rooms--detail-only" : ""),
+    role: "region", "aria-label": t.floorplan.selectedRoom,
+  });
+  if (!showMap) root.hidden = true;
   const map = h("div", { class: "floorplan-rooms__map", role: "group", "aria-label": t.floorplan.roomsOnPlan });
   const detail = h("div", { class: "floorplan-rooms__detail" });
   let active = orderedRooms.some((room) => String(room.id) === selectedRoomId)
@@ -150,6 +164,8 @@ function prehledMistnosti(ctx, schematic, blocks, allRooms) {
         h("p", { text: t.floorplan.roomState(info.lightsOn || 0, info.temperature) }),
         ctx.editing && block && button(t.editor.blockAppearance,
           () => editBlockAppearance(block, saveBlock, ["room"]), "button--ghost"),
+        !schematic && !ctx.editing && button(t.action.close,
+          () => { root.hidden = true; }, "button--ghost"),
       ]),
       block && (block.entities?.length || ctx.editing)
         ? mrizkaZarizeni(ctx, block, saveBlock)
@@ -193,7 +209,8 @@ function prehledMistnosti(ctx, schematic, blocks, allRooms) {
       ...order.map((id) => byId.get(id)).filter(Boolean),
       ...blocks.filter((block) => block.type !== "headline" && !order.includes(block.id))]);
   });
-  root.append(map, detail);
+  if (showMap) root.append(map);
+  root.append(detail);
   draw();
   return {
     element: root,
@@ -202,7 +219,8 @@ function prehledMistnosti(ctx, schematic, blocks, allRooms) {
       active = String(roomId);
       selectedRoomId = active;
       draw();
-      detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      root.hidden = false;
+      detail.scrollIntoView({ behavior: "smooth", block: "start" });
     },
   };
 }
@@ -322,7 +340,7 @@ function znackaPlan(ctx, plan, marker, owner, vse, platno, selectRoom, isRoom) {
   } else {
     installGestures(hit, (gesture) => {
       const fallback = gesture === "single"
-        ? isRoom ? { mode: "room" } : { mode: "details", entityRef: owner.ref || owner.id }
+        ? isRoom ? { mode: "none" } : { mode: "details", entityRef: owner.ref || owner.id }
         : { mode: "none" };
       const action = marker.actions?.[gesture] || fallback;
       if (action.mode === "room") return selectRoom(owner.id);
@@ -491,7 +509,7 @@ async function editMarker(ctx, plan, marker, owner, isRoom, addOnSave = false) {
   const gestureRows = {};
   for (const gesture of ["single", "double", "hold"]) {
     const current = marker.actions?.[gesture] || (gesture === "single"
-      ? { mode: isRoom ? "room" : "details", entityRef: owner.ref || owner.id }
+      ? { mode: isRoom ? "none" : "details", entityRef: owner.ref || owner.id }
       : { mode: "none" });
     const mode = selectInput([], current.mode);
     const picker = targetPicker(entities,

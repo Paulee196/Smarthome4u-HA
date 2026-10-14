@@ -533,7 +533,7 @@ export const t = {
     eyebrow: "OVLÁDÁNÍ NA PLÁNKU",
     homePlan: "Plánek domácnosti",
     automaticPlan: "Automatický plánek místností",
-    planHint: "Klepněte na značku zařízení nebo vyberte místnost pod plánkem.",
+    planHint: "Klepněte na značku. Detail místnosti se zobrazí jen tehdy, když jej značce nastavíte jako akci.",
     automaticHint: "Místnosti jsme poskládali z Home Assistanta. Vlastní půdorys vyberete tlačítkem nahoře.",
     roomsOnPlan: "Místnosti v plánku",
     selectedRoom: "VYBRANÁ MÍSTNOST",

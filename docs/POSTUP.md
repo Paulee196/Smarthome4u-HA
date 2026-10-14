@@ -4,7 +4,16 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 14. 10. 2026
-**Aktuální verze v kódu:** 0.17.0
+**Aktuální verze v kódu:** 0.17.1
+
+## Detail místnosti až po gestu 0.17.1
+
+- [x] V běžném zobrazení obrázku nejsou pod plánkem stále vidět karty místností.
+- [x] Detail se otevře jen akcí „Otevřít místnost“ na jednom ze tří gest
+  značky místnosti; výchozí akce staré značky už detail neotevírá sama.
+- [x] V režimu úprav jsou místnosti i jejich detaily dostupné pro nastavení
+  vzhledu a obsahu, včetně prázdných místností.
+- [ ] Ověřit na živém telefonu po aktualizaci.
 
 ## Značky plánku a mobilní kiosk 0.17.0
 
