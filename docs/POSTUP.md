@@ -3,8 +3,20 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 13. 10. 2026
-**Aktuální verze v kódu:** 0.16.0
+**Poslední aktualizace:** 14. 10. 2026
+**Aktuální verze v kódu:** 0.17.0
+
+## Značky plánku a mobilní kiosk 0.17.0
+
+- [x] Značka místnosti i zařízení má volbu textu/ikony, čtyři základní velikosti,
+  měřítko 50–250 % a přesnou polohu na obrázku.
+- [x] Jedno klepnutí, dvojklepnutí a podržení lze samostatně mapovat na
+  otevření místnosti či ovládání, povolenou akci zařízení, scénu, skript
+  nebo pomocníka. Backend cíl i akci ověřuje vůči Home Assistantu.
+- [x] Značka může sledovat stav jiné entity nebo převzít barvu světla.
+- [x] Vypnutí kiosku ihned odebere styly ze skořápky HA i režim celého panelu;
+  starší odpovědi nastavení změnu nepřepíšou.
+- [ ] Ověřit na živém telefonu a nástěnném panelu po instalaci vydání.
 
 ## Použitelný plánek 0.16.0
 

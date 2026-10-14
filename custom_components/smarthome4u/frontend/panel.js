@@ -24,6 +24,7 @@ class Smarthome4uPanel extends HTMLElement {
     this._pending = new Set();
     this._timer = null;
     this._unsubscribe = null;
+    this._kioskRequest = 0;
   }
 
   set hass(hass) {
@@ -134,7 +135,16 @@ class Smarthome4uPanel extends HTMLElement {
     window.addEventListener(MOTIV_ZMENEN, () => this._uplatnitMotiv());
 
     this._uplatnitKiosk();
-    window.addEventListener("sh4u-kiosk-changed", () => this._uplatnitKiosk());
+    window.addEventListener("sh4u-kiosk-changed", (event) => {
+      if (typeof event.detail?.kiosk === "boolean") {
+        ++this._kioskRequest;
+        this._kiosk = event.detail.kiosk;
+        this.classList.toggle("sh4u-kiosk", this._kiosk);
+        this._shell?.classList.toggle("shell--kiosk", this._kiosk);
+        if (!this._kiosk) this._nouzoveSrovnani(false);
+      }
+      this._uplatnitKiosk();
+    });
 
     // Zásuvka Home Assistantu se dosouvá se zpožděním. Než se dosune,
     // nemá smysl kontrolovat, jestli panel sedí.
@@ -195,12 +205,14 @@ class Smarthome4uPanel extends HTMLElement {
    * a přilepí se na okno. Pak nezáleží na tom, jak široká je zásuvka.
    */
   async _uplatnitKiosk() {
+    const request = ++this._kioskRequest;
     try {
       const nastaveni = await api.kiosk();
+      if (request !== this._kioskRequest) return;
       this._kiosk = nastaveni.kiosk !== false;
     } catch {
-      // Nepodařilo se zeptat. Kiosk je ve výchozím stavu zapnutý, ale
-      // hádat se tu nebudeme - zůstane, co platilo.
+      // Při chybě ponecháme poslední potvrzené nastavení.
+      if (request !== this._kioskRequest) return;
       if (this._kiosk === undefined) return;
     }
 

@@ -7,7 +7,7 @@
 
 import { api } from "./api.js";
 import { t, describeState } from "./i18n.js";
-import { openControls } from "./controls.js";
+import { openControls, watch } from "./controls.js";
 import { editAppearance, editBlockAppearance } from "./appearance.js";
 import { vychozi } from "./blocks.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
@@ -20,6 +20,8 @@ import {
   closeDialog,
   dialog,
   emptyState,
+  field,
+  numberInput,
   selectInput,
   toast,
 } from "./ui.js";
@@ -45,7 +47,7 @@ export async function renderFloorplan(root, ctx) {
           button(t.floorplan.editPlan, () => ctx.startEditing()),
         jeTechnik && button(t.floorplan.upload, () => nahrat(ctx), "button--ghost"),
         ctx.editing && plan.image &&
-          button(t.floorplan.addDevice, () => pridatBod(ctx, plan), "button--ghost"),
+          button(t.floorplan.addIcon, () => pridatBod(ctx, plan), "button--ghost"),
         ctx.editing && plan.image &&
           button(t.floorplan.addRoom, () => pridatMistnost(ctx, plan), "button--ghost"),
       ]),
@@ -211,7 +213,7 @@ function prehledMistnosti(ctx, schematic, blocks, allRooms) {
 
 function platno(ctx, plan, rooms, selectRoom) {
   const vse = new Map(
-    ctx.allEntities().flatMap((e) => [
+    [...ctx.allEntities(), ...(plan.entities || [])].flatMap((e) => [
       [e.id, e],
       [e.ref || e.id, e],
     ]),
@@ -265,120 +267,287 @@ function platno(ctx, plan, rooms, selectRoom) {
   for (const bod of plan.points) {
     const entity = vse.get(bod.entityRef || bod.entityId);
     if (!entity) continue;
-    vrstva.append(znacka(ctx, plan, bod, entity, platno));
+    vrstva.append(znacka(ctx, plan, bod, entity, vse, platno));
   }
 
   const mistnosti = new Map(rooms.map((room) => [String(room.id), room]));
   for (const marker of plan.rooms || []) {
     const room = mistnosti.get(String(marker.roomId));
-    if (room) vrstva.append(znackaMistnosti(ctx, plan, marker, room, platno, selectRoom));
+    if (room) vrstva.append(znackaMistnosti(ctx, plan, marker, room, vse, platno, selectRoom));
   }
 
   return stage;
 }
 
-function znackaMistnosti(ctx, plan, marker, room, platno, selectRoom) {
+function znackaMistnosti(ctx, plan, marker, room, vse, platno, selectRoom) {
+  return znackaPlan(ctx, plan, marker, room, vse, platno, selectRoom, true);
+}
+
+function znacka(ctx, plan, marker, entity, vse, platno) {
+  return znackaPlan(ctx, plan, marker, entity, vse, platno, () => {}, false);
+}
+
+function znackaPlan(ctx, plan, marker, owner, vse, platno, selectRoom, isRoom) {
   const color = ["mint", "blue", "violet", "amber", "rose"].includes(marker.color)
     ? marker.color : "default";
   const size = ["s", "m", "l", "xl"].includes(marker.size) ? marker.size : "m";
-  const name = marker.label || room.name || t.rooms.unassigned;
-  const element = h("div", {
-    class: `plan__bod plan__room plan__bod--tone-${color} plan__bod--${size}`,
+  const name = marker.label || owner.name || t.rooms.unassigned;
+  const display = marker.display || "both";
+  const hit = h("button", {
+    class: "plan__bod-hit", type: "button", "aria-label": name,
   }, [
-    h("button", {
-      class: "plan__bod-hit", type: "button",
-      "aria-label": `${t.floorplan.selectedRoom}: ${name}`,
-      onclick: () => { if (!ctx.editing) selectRoom(room.id); },
-    }, [marker.icon ? icon(marker.icon) : icon("rooms"), h("span", { text: name })]),
+    display !== "label" && (marker.icon ? icon(marker.icon) :
+      isRoom ? icon("rooms") : iconFor(owner)),
+    display !== "icon" && h("span", { class: "plan__jmeno", text: name }),
+  ]);
+  const element = h("div", {
+    class: `plan__bod${isRoom ? " plan__room" : ""} plan__bod--tone-${color} plan__bod--${size} plan__bod--display-${display}`,
+  }, [
+    hit,
     ctx.editing && h("button", {
       class: "plan__bod-edit", type: "button", text: "⋯",
-      "aria-label": `${t.floorplan.editRoom}: ${name}`,
-      onclick: () => upravitMistnost(ctx, plan, marker, room),
+      "aria-label": `${t.editor.editPoint}: ${name}`,
+      onclick: () => editMarker(ctx, plan, marker, owner, isRoom),
     }),
   ]);
   element.style.left = `${marker.x}%`;
   element.style.top = `${marker.y}%`;
+  element.style.setProperty("--plan-scale", String((marker.scale || 100) / 100));
   if (ctx.editing) {
     element.classList.add("plan__bod--edit");
     element.addEventListener("pointerdown", (event) => {
       if (event.target.closest(".plan__bod-edit")) return;
       zacitTahat(event, element, marker, plan, platno);
     });
+  } else {
+    installGestures(hit, (gesture) => {
+      const fallback = gesture === "single"
+        ? isRoom ? { mode: "room" } : { mode: "details", entityRef: owner.ref || owner.id }
+        : { mode: "none" };
+      const action = marker.actions?.[gesture] || fallback;
+      if (action.mode === "room") return selectRoom(owner.id);
+      if (action.mode === "none") return;
+      const target = vse.get(action.entityRef || owner.ref || owner.id);
+      if (!target) return toast(t.floorplan.targetMissing, true);
+      if (action.mode === "details") return openControls(target);
+      return api.action(target.id, action.mode).catch((error) => toast(error.message, true));
+    }, Boolean(marker.actions?.double && marker.actions.double.mode !== "none"),
+    Boolean(marker.actions?.hold && marker.actions.hold.mode !== "none"));
+  }
+
+  const feedbackRef = marker.feedbackRef || (!isRoom ? owner.ref || owner.id : null);
+  const source = vse.get(feedbackRef);
+  function updateFeedback(entity) {
+    const feedback = marker.feedback || (isRoom ? "none" : "state");
+    const active = feedback !== "none" && entity.state === "on";
+    element.classList.toggle("plan__bod--on", active);
+    element.classList.remove("plan__bod--live-color");
+    element.style.removeProperty("--plan-live-color");
+    if (active && feedback === "light_color") {
+      const rgb = entity.attributes?.rgb_color;
+      if (Array.isArray(rgb) && rgb.length === 3 && rgb.every((n) =>
+        Number.isInteger(n) && n >= 0 && n <= 255)) {
+        element.style.setProperty("--plan-live-color", `rgb(${rgb.join(",")})`);
+        element.classList.add("plan__bod--live-color");
+      }
+    }
+  }
+  if (source) {
+    updateFeedback(source);
+    watch(source.id, (next) => { if (element.isConnected) updateFeedback(next); });
   }
   return element;
 }
 
-function upravitMistnost(ctx, plan, marker, room) {
-  const extra = button(t.favorites.remove, async () => {
-    closeDialog();
-    plan.rooms = plan.rooms.filter((item) => item !== marker);
-    await ulozitBody(ctx, plan);
-  }, "button--ghost");
-  editAppearance(marker.label || room.name, marker, async (appearance) => {
-    Object.assign(marker, appearance);
-    await ulozitBody(ctx, plan);
-  }, { extra });
+function installGestures(hit, run, hasDouble, hasHold) {
+  let tapTimer = null;
+  let holdTimer = null;
+  let held = false;
+  let origin = null;
+  hit.addEventListener("pointerdown", (event) => {
+    if (!hasHold || event.button !== 0) return;
+    held = false;
+    origin = { x: event.clientX, y: event.clientY };
+    holdTimer = setTimeout(() => { held = true; run("hold"); }, 600);
+  });
+  hit.addEventListener("pointermove", (event) => {
+    if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 12) {
+      clearTimeout(holdTimer);
+      origin = null;
+    }
+  });
+  for (const eventName of ["pointerup", "pointercancel", "pointerleave"]) {
+    hit.addEventListener(eventName, () => { clearTimeout(holdTimer); origin = null; });
+  }
+  hit.addEventListener("contextmenu", (event) => {
+    if (!hasHold) return;
+    event.preventDefault();
+    clearTimeout(holdTimer);
+    if (held) return;
+    held = true;
+    run("hold");
+  });
+  hit.addEventListener("click", () => {
+    if (held) { held = false; return; }
+    if (!hasDouble) { run("single"); return; }
+    if (tapTimer) {
+      clearTimeout(tapTimer);
+      tapTimer = null;
+      run("double");
+    } else tapTimer = setTimeout(() => {
+      tapTimer = null;
+      run("single");
+    }, 300);
+  });
 }
 
-function znacka(ctx, plan, bod, entity, platno) {
-  const { tone } = describeState(entity);
-  const color = ["mint", "blue", "violet", "amber", "rose"].includes(bod.color)
-    ? bod.color : "default";
-  const size = ["s", "m", "l", "xl"].includes(bod.size) ? bod.size : "m";
-  const prvek = h("div", {
-    class: `plan__bod plan__bod--${tone} plan__bod--tone-${color} plan__bod--${size}`,
-  }, [
-    h("button", {
-      class: "plan__bod-hit", type: "button",
-      "aria-label": bod.label || entity.name,
-      onclick: () => { if (!ctx.editing) openControls(entity); },
-    }, [
-      bod.icon ? icon(bod.icon, "icon") : iconFor(entity, "icon"),
-      h("span", { class: "plan__jmeno", text: bod.label || entity.name }),
-    ]),
-    ctx.editing && h("button", {
-      class: "plan__bod-edit", type: "button", text: "⋯",
-      "aria-label": t.editor.editPoint,
-      onclick: () => upravitBod(ctx, plan, bod, entity),
-    }),
-  ]);
+const ACTIONS_BY_KIND = {
+  light: ["toggle", "turn_on", "turn_off"],
+  switch: ["toggle", "turn_on", "turn_off"],
+  fan: ["toggle", "turn_on", "turn_off"],
+  automation: ["toggle", "turn_on", "turn_off", "run"],
+  scene: ["activate"], script: ["run"], button: ["press"],
+  counter: ["increment", "decrement", "reset"],
+  timer: ["start", "pause", "cancel"],
+  cover: ["open", "close", "stop"],
+  lock: ["open"],
+};
 
-  prvek.style.left = `${bod.x}%`;
-  prvek.style.top = `${bod.y}%`;
+function targetPicker(entities, initial, onChange = () => {}) {
+  let value = initial || "";
+  const selected = () => entities.find((entity) => (entity.ref || entity.id) === value);
+  const trigger = button(selected()?.name || t.floorplan.chooseTarget, () => {
+    search.hidden = !search.hidden;
+    list.hidden = search.hidden;
+    if (!search.hidden) { draw(); search.focus(); }
+  }, "button--ghost");
+  const search = h("input", { class: "input", type: "search",
+    placeholder: t.picker.search, "aria-label": t.picker.search });
+  const list = h("div", { class: "floorplan-target-picker__list" });
+  search.hidden = true;
+  list.hidden = true;
+  function draw() {
+    const query = search.value.trim().toLocaleLowerCase();
+    const found = entities.filter((entity) =>
+      !query || `${entity.name} ${entity.domain}`.toLocaleLowerCase().includes(query));
+    list.replaceChildren(...found.slice(0, 40).map((entity) => button(
+      `${entity.name} · ${entity.domain}`, () => {
+        value = entity.ref || entity.id;
+        trigger.textContent = entity.name;
+        search.hidden = true;
+        list.hidden = true;
+        onChange(entity);
+      }, "floorplan-target-picker__item")));
+    if (!found.length) list.append(emptyState(t.picker.nothing));
+  }
+  search.addEventListener("input", draw);
+  return { element: h("div", { class: "floorplan-target-picker" }, [trigger, search, list]),
+    get value() { return value; }, get entity() { return selected(); } };
+}
 
-  if (ctx.editing) {
-    prvek.classList.add("plan__bod--edit");
-    prvek.addEventListener("pointerdown", (udalost) => {
-      if (udalost.target.closest(".plan__bod-edit")) return;
-      zacitTahat(udalost, prvek, bod, plan, platno);
-    });
+function setOptions(select, options, preferred) {
+  select.replaceChildren(...options.map(([value, label]) =>
+    h("option", { value, text: label })));
+  select.value = options.some(([value]) => value === preferred) ? preferred : options[0][0];
+}
+
+async function editMarker(ctx, plan, marker, owner, isRoom, addOnSave = false) {
+  let entities;
+  try {
+    entities = (await api.floorplanTargets()).entities || [];
+  } catch (error) {
+    toast(error.message, true);
+    return;
+  }
+  const name = marker.label || owner.name;
+  const appearance = h("div", { class: "stack" });
+  const display = selectInput([
+    { value: "both", label: t.floorplan.displayBoth },
+    { value: "icon", label: t.floorplan.displayIcon },
+    { value: "label", label: t.floorplan.displayLabel },
+  ], marker.display || "both");
+  appearance.append(field(t.floorplan.display, display));
+  const scale = numberInput(marker.scale || 100, 50, 250, 10);
+  const x = numberInput(marker.x, 0, 100, 0.1);
+  const y = numberInput(marker.y, 0, 100, 0.1);
+  appearance.append(field(t.floorplan.scale, scale),
+    field(t.floorplan.positionX, x), field(t.floorplan.positionY, y));
+
+  const feedback = selectInput([], marker.feedback || (isRoom ? "none" : "state"));
+  const feedbackTarget = targetPicker(entities,
+    marker.feedbackRef || (!isRoom ? owner.ref || owner.id : ""), refreshFeedback);
+  function refreshFeedback() {
+    const options = [["none", t.floorplan.feedbackNone]];
+    if (feedbackTarget.entity) options.push(["state", t.floorplan.feedbackState]);
+    if (feedbackTarget.entity?.domain === "light") {
+      options.push(["light_color", t.floorplan.feedbackLightColor]);
+    }
+    setOptions(feedback, options, feedback.value || marker.feedback || "none");
+  }
+  refreshFeedback();
+  appearance.append(field(t.floorplan.feedback, feedback),
+    field(t.floorplan.feedbackTarget, feedbackTarget.element));
+
+  const gestureRows = {};
+  for (const gesture of ["single", "double", "hold"]) {
+    const current = marker.actions?.[gesture] || (gesture === "single"
+      ? { mode: isRoom ? "room" : "details", entityRef: owner.ref || owner.id }
+      : { mode: "none" });
+    const mode = selectInput([], current.mode);
+    const picker = targetPicker(entities,
+      current.entityRef || (!isRoom ? owner.ref || owner.id : ""), refreshMode);
+    const targetField = field(t.floorplan.actionTarget, picker.element);
+    function refreshMode() {
+      const options = [["none", t.floorplan.actionModes.none]];
+      if (isRoom) options.push(["room", t.floorplan.actionModes.room]);
+      if (picker.entity) {
+        options.push(["details", t.floorplan.actionModes.details]);
+        for (const action of ACTIONS_BY_KIND[picker.entity.capability?.kind] || []) {
+          options.push([action, t.floorplan.actionModes[action]]);
+        }
+      }
+      setOptions(mode, options, mode.value || current.mode);
+    }
+    mode.addEventListener("change", refreshMode);
+    refreshMode();
+    appearance.append(h("div", { class: "floorplan-action-row" }, [
+      field(t.floorplan.gestures[gesture], mode), targetField,
+    ]));
+    gestureRows[gesture] = { mode, picker };
   }
 
-  return prvek;
-}
-
-function upravitBod(ctx, plan, bod, entity) {
-  const extra = h("div", { class: "row" }, [
-    button(t.favorites.replace, () => {
-      closeDialog();
-      vybratZarizeni(ctx, {
-        nadpis: t.favorites.replace,
-        onVyber: async (ref) => {
-          bod.entityRef = ref;
-          await ulozitBody(ctx, plan);
-        },
-      });
-    }, "button--ghost"),
-    button(t.favorites.remove, async () => {
-      closeDialog();
-      plan.points = plan.points.filter((p) => p !== bod);
-      await ulozitBody(ctx, plan);
-    }, "button--ghost"),
-  ]);
-  editAppearance(bod.label || entity.name, bod, async (appearance) => {
-    Object.assign(bod, appearance);
+  if (!isRoom) {
+    const anchor = targetPicker(entities, marker.entityRef || owner.ref || owner.id);
+    appearance.prepend(field(t.floorplan.iconEntity, anchor.element));
+    appearance.anchor = anchor;
+  }
+  if (!addOnSave) appearance.append(button(t.favorites.remove, async () => {
+    closeDialog();
+    if (isRoom) plan.rooms = plan.rooms.filter((item) => item !== marker);
+    else plan.points = plan.points.filter((item) => item !== marker);
     await ulozitBody(ctx, plan);
-  }, { extra });
+  }, "button--ghost"));
+
+  editAppearance(name, marker, async (style) => {
+    Object.assign(marker, style);
+    marker.display = display.value;
+    marker.scale = Math.min(250, Math.max(50, Number(scale.value) || 100));
+    marker.x = Math.min(100, Math.max(0, Number(x.value) || 0));
+    marker.y = Math.min(100, Math.max(0, Number(y.value) || 0));
+    marker.feedback = feedback.value;
+    if (marker.feedback === "none") delete marker.feedbackRef;
+    else marker.feedbackRef = feedbackTarget.value;
+    if (!isRoom) marker.entityRef = appearance.anchor.value;
+    marker.actions = Object.fromEntries(Object.entries(gestureRows).map(([key, row]) =>
+      [key, row.mode.value === "none" || row.mode.value === "room"
+        ? { mode: row.mode.value }
+        : { mode: row.mode.value, entityRef: row.picker.value }]));
+    if (addOnSave) {
+      if (isRoom) plan.rooms.push(marker);
+      else plan.points.push(marker);
+    }
+    await ulozitBody(ctx, plan);
+  }, { extra: appearance });
 }
 
 async function ulozitBody(ctx, plan) {
@@ -551,7 +720,7 @@ function vybratUmisteni(ctx, plan, coords) {
   dialog(t.floorplan.placeTitle, h("p", { class: "muted", text: t.floorplan.placeHint }),
     h("div", { class: "row" }, [
       button(t.floorplan.addRoom, () => { closeDialog(); pridatMistnost(ctx, plan, coords); }),
-      button(t.floorplan.addDevice, () => { closeDialog(); pridatBod(ctx, plan, coords); }, "button--ghost"),
+      button(t.floorplan.addIcon, () => { closeDialog(); pridatBod(ctx, plan, coords); }, "button--ghost"),
     ]));
 }
 
@@ -571,27 +740,34 @@ function pridatMistnost(ctx, plan, coords = { x: 50, y: 50 }) {
   ]), h("div", { class: "row" }, [
     button(t.action.cancel, closeDialog, "button--ghost"),
     button(t.action.add, async () => {
-      plan.rooms = [...(plan.rooms || []), { roomId: choice.value, ...coords }];
+      const room = available.find((item) => String(item.id) === choice.value);
       closeDialog();
-      await ulozitBody(ctx, plan);
+      await editMarker(ctx, plan, { roomId: choice.value, ...coords }, room, true, true);
     }),
   ]));
 }
 
-function pridatBod(ctx, plan, coords = { x: 50, y: 50 }) {
+async function pridatBod(ctx, plan, coords = { x: 50, y: 50 }) {
+  let entities;
+  try {
+    entities = (await api.floorplanTargets()).entities || [];
+  } catch (error) {
+    toast(error.message, true);
+    return;
+  }
   const jiz = new Set(plan.points.map((b) => b.entityRef || b.entityId));
-  const available = ctx.allEntities().some((entity) =>
-    entity.capability?.controllable && !jiz.has(entity.ref || entity.id));
+  const available = entities.some((entity) => !jiz.has(entity.ref || entity.id));
   if (!available) {
     toast(t.floorplan.nothingToAdd, true);
     return;
   }
   vybratZarizeni(ctx, {
-    nadpis: t.floorplan.addDevice,
-    filtr: (entity) => entity.capability?.controllable && !jiz.has(entity.ref || entity.id),
+    nadpis: t.floorplan.addIcon,
+    entities,
+    filtr: (entity) => !jiz.has(entity.ref || entity.id),
     onVyber: async (ref) => {
-      plan.points.push({ entityRef: ref, ...coords });
-      await ulozitBody(ctx, plan);
+      const owner = entities.find((entity) => (entity.ref || entity.id) === ref);
+      await editMarker(ctx, plan, { entityRef: ref, ...coords }, owner, false, true);
     },
   });
 }

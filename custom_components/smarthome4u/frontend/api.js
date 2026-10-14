@@ -145,6 +145,7 @@ export const api = {
 
   kiosk: () => request("GET", "kiosk"),
   floorplan: () => request("GET", "floorplan"),
+  floorplanTargets: () => request("GET", "floorplan/targets"),
   floorplanFiles: () => request("GET", "floorplan/files"),
   saveFloorplan: (body) => request("POST", "floorplan", body),
   uploadFloorplan: (data) => request("POST", "floorplan/image", { data }),

@@ -1883,7 +1883,7 @@ textarea.input {
 
 .plan__bod {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--plan-scale, 1));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2706,7 +2706,7 @@ textarea.input {
   font: inherit;
   cursor: pointer;
 }
-.plan__bod--s .plan__jmeno { display: none; }
+.plan__bod--s .plan__jmeno { font-size: var(--sh-size-2xs); }
 .plan__bod--l .plan__bod-hit, .plan__bod--xl .plan__bod-hit {
   min-width: 88px;
   min-height: 72px;
@@ -2858,6 +2858,19 @@ textarea.input {
 .plan__room.plan__bod--s .plan__bod-hit { font-size: var(--sh-size-xs); }
 .plan__room.plan__bod--l .plan__bod-hit,
 .plan__room.plan__bod--xl .plan__bod-hit { min-height: var(--sh-touch-target); }
+.plan__bod--live-color {
+  border-color: var(--plan-live-color);
+  background: color-mix(in srgb, var(--plan-live-color) 28%, var(--sh-surface));
+  color: var(--sh-text);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--plan-live-color) 55%, transparent);
+}
+.floorplan-action-row { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--sh-border); }
+.floorplan-target-picker { display: grid; gap: 6px; min-width: 0; }
+.floorplan-target-picker > .button { justify-content: flex-start; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.floorplan-target-picker [hidden] { display: none; }
+.floorplan-target-picker__list { display: grid; gap: 4px; max-height: 210px; overflow-y: auto; }
+.floorplan-target-picker__item { display: block; width: 100%; padding: 8px 10px; border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); background: var(--sh-surface); color: var(--sh-text); font: inherit; text-align: left; cursor: pointer; }
+.floorplan-target-picker__item:hover { border-color: var(--sh-accent); }
 .floorplan-rooms { margin-top: 22px; }
 .floorplan-rooms--schematic { display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(320px, 1fr); gap: 18px; }
 .floorplan-rooms__map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }

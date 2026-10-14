@@ -29,8 +29,7 @@ const MAX_VYSLEDKU = 60;
 export function vybratZarizeni(ctx, volby) {
   const { nadpis, vybrane, filtr, onVyber } = volby;
 
-  const vse = ctx
-    .allEntities()
+  const vse = (volby.entities || ctx.allEntities())
     .filter(filtr || ((entity) => entity.capability?.kind !== "unsupported"));
 
   const mistnosti = new Map(

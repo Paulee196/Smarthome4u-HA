@@ -52,10 +52,12 @@ const CSS_ZASUVKA = `
   }
 `;
 
-let nastaveni = { kiosk: true, landing: true };
+// Bez potvrzeného nastavení nesmíme na telefonu schovat rozhraní HA.
+let nastaveni = { kiosk: false, landing: true };
 
 /* Co je právě uplatněné. Bez toho by pozorovatel DOM točil dokola. */
 let uplatneno = null;
+let pozadavekNastaveni = 0;
 
 /* ------------------------------------------------------------------ */
 /* Přístup do skořápky Home Assistantu                                 */
@@ -87,17 +89,20 @@ function naPanelu() {
 /* ------------------------------------------------------------------ */
 
 async function nacistNastaveni() {
+  const cislo = ++pozadavekNastaveni;
   try {
     const hass = korenovyPrvek()?.hass;
-    const token = hass?.auth?.data?.access_token;
-    if (!token) return;
+    const token = hass?.auth?.data?.access_token || hass?.auth?.accessToken;
 
     const odpoved = await fetch("/api/smarthome4u/kiosk", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "same-origin",
+      cache: "no-store",
     });
-    if (!odpoved.ok) return;
+    if (!odpoved.ok || cislo !== pozadavekNastaveni) return;
 
     const data = await odpoved.json();
+    if (cislo !== pozadavekNastaveni) return;
     nastaveni = {
       kiosk: data.kiosk !== false,
       landing: data.landing !== false,
@@ -150,7 +155,8 @@ function uplatnit() {
 
     // Zásuvka se objeví až po prvním vykreslení, proto se pokus opakuje,
     // dokud ji nenajdeme.
-    if (uplatneno === zapnout && (prvek || !zapnout)) return;
+    if (uplatneno === zapnout && (prvek || !zapnout)
+      && (zapnout || !host.getElementById(STYLE_ID))) return;
     uplatneno = prvek || !zapnout ? zapnout : null;
 
     if (zapnout) {
@@ -219,7 +225,12 @@ function sledovat() {
   if (host) pozorovatel.observe(host, { childList: true, subtree: true });
 
   // Změnu nastavení v aplikaci chceme poznat bez obnovení stránky.
-  window.addEventListener("sh4u-kiosk-changed", async () => {
+  window.addEventListener("sh4u-kiosk-changed", async (event) => {
+    if (typeof event.detail?.kiosk === "boolean") {
+      ++pozadavekNastaveni;
+      nastaveni.kiosk = event.detail.kiosk;
+      uplatnit();
+    }
     await nacistNastaveni();
     uplatnit();
   });

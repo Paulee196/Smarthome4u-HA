@@ -214,6 +214,18 @@ class Home:
             result.append(view)
         return sorted(result, key=lambda item: (item["name"].casefold(), item["id"]))
 
+    def floorplan_targets(self) -> list[dict]:
+        """Entities usable as a floorplan icon, action or state indicator."""
+        allowed = {
+            "light", "switch", "cover", "climate", "lock", "fan",
+            "media_player", "camera", "scene", "script", "automation",
+            "button", "number", "select", "text", "datetime",
+            "counter", "timer", "sensor", "binary_sensor",
+        }
+        result = [view for view in self._visible(technical=True)
+                  if view["capability"].get("kind") in allowed]
+        return sorted(result, key=lambda item: (item["name"].casefold(), item["id"]))
+
     # ------------------------------------------------------------------
     # Místnosti
     # ------------------------------------------------------------------

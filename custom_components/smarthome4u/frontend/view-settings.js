@@ -152,7 +152,11 @@ function sekceVzhled(ctx, nastaveni) {
       await api.saveSettings(zmena);
       toast(t.notice.saved);
       // Aby se lišta schovala hned, bez obnovení stránky.
-      window.dispatchEvent(new CustomEvent("sh4u-kiosk-changed"));
+      if ("kiosk" in zmena) {
+        window.dispatchEvent(new CustomEvent("sh4u-kiosk-changed", {
+          detail: { kiosk: zmena.kiosk },
+        }));
+      }
       if ("bigControls" in zmena) await ctx.refresh();
       return true;
     } catch (error) {

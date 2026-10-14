@@ -356,6 +356,56 @@ async def test_pudorys(
     assert plan["rooms"][0]["x"] == 30
     assert {item["id"] for item in plan["availableRooms"]} >= {room.id}
 
+    hass.states.async_set("scene.vecer", "scening", {"friendly_name": "Večer"})
+    hass.states.async_set("input_boolean.rezim", "off", {"friendly_name": "Režim"})
+    targets = await (await client.get("/api/smarthome4u/floorplan/targets")).json()
+    assert {"light.lampa", "scene.vecer", "input_boolean.rezim"} <= {
+        item["id"] for item in targets["entities"]
+    }
+    response = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={
+            "points": [{
+                "entityId": "light.lampa", "x": 25, "y": 75,
+                "display": "icon", "scale": 150, "feedback": "light_color",
+                "feedbackRef": "light.lampa",
+                "actions": {
+                    "single": {"mode": "toggle", "entityRef": "input_boolean.rezim"},
+                    "double": {"mode": "activate", "entityRef": "scene.vecer"},
+                    "hold": {"mode": "details", "entityRef": "light.lampa"},
+                },
+            }],
+            "rooms": [{
+                "roomId": room.id, "x": 30, "y": 40,
+                "display": "label", "scale": 80,
+                "actions": {"single": {"mode": "room"}},
+            }],
+        },
+    )
+    assert response.status == 200, await response.text()
+    plan = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert plan["points"][0]["actions"]["double"]["mode"] == "activate"
+    assert plan["points"][0]["scale"] == 150
+    assert plan["rooms"][0]["actions"]["single"]["mode"] == "room"
+    assert {"scene.vecer", "input_boolean.rezim"} <= {
+        item["id"] for item in plan["entities"]
+    }
+
+    response = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"points": [{"entityId": "light.lampa", "x": 25, "y": 75,
+                          "actions": {"single": {"mode": "activate",
+                                                 "entityRef": "input_boolean.rezim"}}}]},
+    )
+    assert response.status == 400
+    response = await client.post(
+        "/api/smarthome4u/floorplan",
+        json={"points": [], "rooms": [{"roomId": room.id, "x": 120, "y": 40}]},
+    )
+    assert response.status == 400
+    plan = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert len(plan["points"]) == 1
+
     response = await client.post(
         "/api/smarthome4u/floorplan",
         json={"rooms": [{"roomId": room.id, "x": 120, "y": 40}]},

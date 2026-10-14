@@ -2,6 +2,21 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.17.0]
+
+### Přidáno
+
+- Na plánku lze pro každou značku nastavit ikonu nebo text, velikost a přesnou
+  polohu. Jedno klepnutí, dvojklepnutí a podržení mají vlastní akci a cíl.
+- Značky umí ovládat zařízení, spustit scénu či skript a reagovat na stav nebo
+  aktuální barvu světla. Cílem může být také pomocník Home Assistanta.
+
+### Opraveno
+
+- Vypnutí kiosk režimu se na telefonu projeví ihned. Starší odpověď serveru
+  už znovu nezapne právě vypnutý režim a při nedostupném nastavení se
+  rozhraní Home Assistanta neschovává.
+
 ## [0.16.0]
 
 ### Přidáno

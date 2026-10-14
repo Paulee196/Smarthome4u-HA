@@ -1302,6 +1302,7 @@ class FloorplanView(Sh4uView):
             return web.json_response({"image": None, "points": [], "rooms": []})
 
         plan = settings.floorplan
+        home = self.home_for(request)
         body = []
         for point in plan["points"]:
             entity_ref = point.get("entityRef") or point.get("entityId")
@@ -1314,7 +1315,7 @@ class FloorplanView(Sh4uView):
                     "entityId": entity_id,
                     "x": point.get("x"),
                     "y": point.get("y"),
-                    **tile_style(point),
+                    **floorplan_style(self.hass, point, owner_ref=entity_ref, strict=False),
                 }
             )
         areas = ar.async_get(self.hass)
@@ -1327,13 +1328,29 @@ class FloorplanView(Sh4uView):
                 "roomId": area_id,
                 "x": marker.get("x"),
                 "y": marker.get("y"),
-                **tile_style(marker),
+                **floorplan_style(self.hass, marker, room=True, strict=False),
             })
+        entity_refs = set()
+        for marker in [*body, *rooms]:
+            if marker.get("entityRef"):
+                entity_refs.add(marker["entityRef"])
+            if marker.get("feedbackRef"):
+                entity_refs.add(marker["feedbackRef"])
+            for action in marker.get("actions", {}).values():
+                if action.get("entityRef"):
+                    entity_refs.add(action["entityRef"])
+        entities = []
+        for ref in entity_refs:
+            entity_id = refs.entity_id_for_ref(self.hass, ref)
+            view = home.entity(entity_id) if entity_id else None
+            if view:
+                entities.append(view)
         return web.json_response(
             {
                 "image": f"{USER_URL}/{plan['image']}" if plan["image"] else None,
                 "points": body,
                 "rooms": rooms,
+                "entities": entities,
                 "availableRooms": [
                     {"id": area.id, "name": area.name}
                     for area in sorted(areas.areas.values(), key=lambda item: item.name.lower())
@@ -1348,6 +1365,8 @@ class FloorplanView(Sh4uView):
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
         payload = await self.body(request)
+        ocistene = None
+        clean = None
 
         if "points" in payload:
             body = payload["points"]
@@ -1371,11 +1390,9 @@ class FloorplanView(Sh4uView):
                         "entityRef": entity_ref,
                         "x": round(x, 2),
                         "y": round(y, 2),
-                        **tile_style(bod),
+                        **floorplan_style(self.hass, bod, owner_ref=entity_ref),
                     }
                 )
-
-            await settings.set_floorplan_points(ocistene)
 
         if "rooms" in payload:
             markers = payload["rooms"]
@@ -1401,11 +1418,23 @@ class FloorplanView(Sh4uView):
                     "roomId": room_id,
                     "x": round(x, 2),
                     "y": round(y, 2),
-                    **tile_style(marker),
+                    **floorplan_style(self.hass, marker, room=True),
                 })
+        if ocistene is not None:
+            await settings.set_floorplan_points(ocistene)
+        if clean is not None:
             await settings.set_floorplan_rooms(clean)
 
         return web.json_response({"ok": True})
+
+
+class FloorplanTargetsView(Sh4uView):
+    url = f"{API_BASE}/floorplan/targets"
+    name = "api:smarthome4u:floorplan:targets"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        return web.json_response({"entities": self.home_for(request).floorplan_targets()})
 
 
 def floorplan_roots(hass: HomeAssistant) -> dict[str, Path]:
@@ -1545,6 +1574,103 @@ def tile_style(raw: Any) -> dict[str, str]:
         if isinstance(value, str) and value in allowed:
             result[key] = value
     return result
+
+
+FLOORPLAN_ACTIONS = frozenset({
+    "none", "details", "room", "toggle", "turn_on", "turn_off",
+    "activate", "run", "increment", "decrement", "reset",
+    "start", "pause", "cancel", "press", "open", "close", "stop",
+})
+
+
+def floorplan_style(
+    hass: HomeAssistant, raw: dict, *, owner_ref: str | None = None,
+    room: bool = False, strict: bool = True,
+) -> dict:
+    """Validated presentation and gesture actions; HA resolves all targets."""
+    style = tile_style(raw)
+    scale = raw.get("scale", 100)
+    if (not isinstance(scale, (int, float)) or isinstance(scale, bool)
+        or not 50 <= scale <= 250):
+        if strict:
+            raise ApiError("Velikost značky musí být mezi 50 a 250 %.")
+        scale = 100
+    style["scale"] = round(scale, 1)
+    display = raw.get("display", "both")
+    if display not in ("icon", "label", "both"):
+        if strict:
+            raise ApiError("Neplatné zobrazení značky.")
+        display = "both"
+    style["display"] = display
+
+    feedback = raw.get("feedback", "state" if owner_ref else "none")
+    if feedback not in ("none", "state", "light_color"):
+        if strict:
+            raise ApiError("Neplatné zvýraznění značky.")
+        feedback = "none"
+    feedback_ref = raw.get("feedbackRef") or owner_ref
+    if feedback != "none":
+        resolved = refs.normalize_ref(hass, feedback_ref) if feedback_ref else None
+        entity_id = refs.entity_id_for_ref(hass, resolved) if resolved else None
+        state = hass.states.get(entity_id) if entity_id else None
+        if state is None or (feedback == "light_color" and state.domain != "light"):
+            if strict:
+                raise ApiError("Pro zvýraznění vyberte existující světlo nebo entitu.")
+            feedback = "none"
+        else:
+            style["feedbackRef"] = resolved
+    style["feedback"] = feedback
+
+    actions = raw.get("actions", {})
+    if not isinstance(actions, dict):
+        if strict:
+            raise ApiError("Neplatné akce značky.")
+        actions = {}
+    clean_actions = {}
+    for gesture in ("single", "double", "hold"):
+        action = actions.get(gesture)
+        if action is None:
+            continue
+        if not isinstance(action, dict) or action.get("mode") not in FLOORPLAN_ACTIONS:
+            if strict:
+                raise ApiError("Neplatná akce značky.")
+            continue
+        mode = action["mode"]
+        if mode == "none":
+            clean_actions[gesture] = {"mode": mode}
+            continue
+        if mode == "room":
+            if not room:
+                if strict:
+                    raise ApiError("Místnost lze otevřít jen její značkou.")
+                continue
+            clean_actions[gesture] = {"mode": mode}
+            continue
+        target_ref = action.get("entityRef") or owner_ref
+        resolved = refs.normalize_ref(hass, target_ref) if target_ref else None
+        entity_id = refs.entity_id_for_ref(hass, resolved) if resolved else None
+        state = hass.states.get(entity_id) if entity_id else None
+        if state is None:
+            if strict:
+                raise ApiError("Cíl akce už neexistuje.")
+            clean_actions[gesture] = {"mode": "none"}
+            continue
+        if mode != "details":
+            view = Home(hass).entity(entity_id)
+            try:
+                capability.resolve_action(
+                    view["capability"].get("kind", "unsupported"),
+                    view["domain"], mode, None,
+                )
+            except capability.ActionNotAllowed as err:
+                if strict:
+                    raise ApiError("Tuto akci vybrané zařízení neumí.") from err
+                clean_actions[gesture] = {"mode": "none"}
+                continue
+        clean_actions[gesture] = {"mode": mode, "entityRef": resolved}
+    if clean_actions:
+        style["actions"] = clean_actions
+    return style
 
 
 class DashboardView(Sh4uView):
@@ -1777,6 +1903,7 @@ VIEWS = (
     KioskView,
     LayoutView,
     FloorplanView,
+    FloorplanTargetsView,
     FloorplanFilesView,
     FloorplanImageView,
     ClassifyView,
