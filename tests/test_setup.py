@@ -857,14 +857,15 @@ async def test_pudorys_prezije_prejmenovani_entity(
     hass.states.async_set("light.bod_novy", "off", {"supported_color_modes": ["onoff"]})
 
     plan = await (await client.get("/api/smarthome4u/floorplan")).json()
-    assert plan["points"] == [
-        {
-            "entityRef": entry_record.id,
-            "entityId": "light.bod_novy",
-            "x": 10,
-            "y": 20,
-        }
-    ]
+    assert len(plan["points"]) == 1
+    point = plan["points"][0]
+    assert {key: point[key] for key in ("entityRef", "entityId", "x", "y")} == {
+        "entityRef": entry_record.id,
+        "entityId": "light.bod_novy",
+        "x": 10,
+        "y": 20,
+    }
+    assert point["feedbackRef"] == entry_record.id
 
 
 async def test_svetlo_je_jen_svetlo(
