@@ -54,7 +54,8 @@ export const BLOKY = {
   scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
   auto_rooms: { glyf: "rooms", fields: EDIT_COMMON,
-    render: (ctx, blok, ulozit) => automatickeMistnosti(ctx, blok, ulozit) },
+    render: (ctx, blok, ulozit, selectRoom) =>
+      automatickeMistnosti(ctx, blok, ulozit, selectRoom) },
   floorplan: { glyf: "home", fields: EDIT_COMMON,
     render: (ctx, blok) => vlozenyPlanek(ctx, blok) },
   actions: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => rychleAkce(ctx) },
@@ -106,13 +107,13 @@ const JEDNOU = new Set(["clock", "status", "rooms", "auto_rooms", "floorplan", "
  */
 export function vychozi(preset, model) {
   if (preset === "overview") return {
-    columns: 2,
+    columns: 4,
     blocks: [
-      { id: "overview-headline", type: "headline", cols: 2,
+      { id: "overview-headline", type: "headline", cols: 4,
         title: t.dashboardIntro.overview.title,
         subtitle: t.dashboardIntro.overview.description },
-      { id: "overview-status", type: "status", cols: 2 },
-      { id: "auto-rooms", type: "auto_rooms", cols: 2 },
+      { id: "overview-status", type: "status", cols: 4 },
+      { id: "auto-rooms", type: "auto_rooms", cols: 4 },
     ],
   };
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
@@ -202,9 +203,14 @@ export function vychozi(preset, model) {
 
 export function vykreslitPlochu(root, ctx) {
   const preset = ctx.model.preset || "overview";
-  const sestava = ctx.model.board?.blocks
+  let sestava = ctx.model.board?.blocks
     ? ctx.model.board
     : vychozi(ctx.model.dashboardTemplate || preset, ctx.model);
+  if (preset === "overview" && sestava.columns === 2) {
+    sestava = { columns: 4, blocks: sestava.blocks.map((block) => ({
+      ...block, cols: Math.min(4, Math.max(1, block.cols || 1) * 2),
+    })) };
+  }
 
   const sloupce = Math.min(MAX_SLOUPCU, Math.max(1, sestava.columns || 1));
   const bloky = sestava.blocks;
@@ -213,7 +219,10 @@ export function vykreslitPlochu(root, ctx) {
     ulozitSestavu(ctx, { columns: sloupce, ...nove, blocks: nove.blocks || bloky });
 
   if (ctx.editing) {
-    root.append(listaSloupcu(sloupce, (n) => ulozit({ columns: n })));
+    root.append(listaSloupcu(sloupce, (n) => ulozit({ columns: n,
+      blocks: bloky.map((block) => ({ ...block,
+        cols: Math.min(n, Math.max(1, Math.round((block.cols || 1) * n / sloupce))),
+      })) })));
   }
 
   const workspace = ctx.editing ? h("div", { class: "dashboard-editor" }) : root;
@@ -228,19 +237,27 @@ export function vykreslitPlochu(root, ctx) {
     || !bloky.some((block) => block.id === selectedBlock.id))) {
     selectedBlock = { preset, id: bloky[0]?.id || null };
   }
-  const selectBlock = (id) => {
-    selectedBlock = { preset, id };
+  const selectBlock = (id, roomId = null) => {
+    selectedBlock = { preset, id, roomId };
     for (const child of plocha.children) {
       child.classList.toggle("blok--vybrany", Boolean(id)
         && child.getAttribute(ATRIBUT_KLICE) === id);
     }
+    for (const room of plocha.querySelectorAll(".auto-rooms__room")) {
+      room.classList.toggle("auto-rooms__room--selected", Boolean(roomId)
+        && room.getAttribute(ATRIBUT_KLICE) === roomId);
+    }
+    const preview = [...plocha.children].find((child) =>
+      child.getAttribute(ATRIBUT_KLICE) === id);
     panel?.replaceChildren(renderBlockPanel(ctx, bloky, sloupce,
-      bloky.find((block) => block.id === id), (next) => ulozit({ blocks: next })));
+      bloky.find((block) => block.id === id), (next) => ulozit({ blocks: next }),
+      preview, roomId));
   };
 
   for (const blok of bloky) {
     const prvek = jedenBlok(ctx, blok, bloky, sloupce,
       (b) => ulozit({ blocks: b }), () => selectBlock(blok.id),
+      (roomId) => selectBlock(blok.id, roomId),
       selectedBlock?.preset === preset && selectedBlock.id === blok.id);
     if (prvek) plocha.append(prvek);
   }
@@ -252,7 +269,7 @@ export function vykreslitPlochu(root, ctx) {
       ulozit({ blocks: poradi.map((id) => podleId.get(id)).filter(Boolean) });
     });
     workspace.append(panel);
-    selectBlock(selectedBlock?.id || null);
+    selectBlock(selectedBlock?.id || null, selectedBlock?.roomId || null);
   } else if (!plocha.children.length) {
     plocha.append(emptyState(t.editor.emptyBoard));
   }
@@ -282,7 +299,7 @@ function listaSloupcu(sloupce, onZmena) {
   ]);
 }
 
-function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
+function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, onSelectRoom, selected) {
   const definice = BLOKY[blok.type];
   if (!definice) return null;
 
@@ -291,7 +308,7 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
 
   let obsah = null;
   try {
-    obsah = definice.render(ctx, blok, nahradit);
+    obsah = definice.render(ctx, blok, nahradit, onSelectRoom);
   } catch (error) {
     console.error("[Smarthome4u] Blok se nevykreslil:", blok.type, error);
     obsah = ctx.editing ? emptyState(t.editor.blockFailed) : null;
@@ -306,6 +323,11 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
     obsah.classList.add("dashboard-block", "dashboard-block--" + tone,
       "dashboard-block--" + (blok.height || "normal"),
       "dashboard-block--type-" + blok.type);
+    if (Number.isInteger(blok.minHeight)) obsah.style.minHeight = `${blok.minHeight}px`;
+    if (Number.isInteger(blok.fontSize)) {
+      obsah.classList.add("dashboard-block--text-custom");
+      obsah.style.setProperty("--block-font-size", `${blok.fontSize}px`);
+    }
     const title = obsah.querySelector(".panel__title");
     if (title && blok.title) title.textContent = blok.title;
     const glyph = obsah.querySelector(".panel__glyph");
@@ -352,14 +374,17 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
         "aria-label": t.editor.removeBlock,
         onclick: () => ulozit(bloky.filter((b) => b.id !== blok.id)),
       }),
-      h("button", {
-        class: "blok__akce blok__resize", type: "button", text: "↘",
-        "aria-label": `${t.editor.size}: ${blok.title || t.blocks[blok.type]}`,
-        title: t.editor.snapHint,
-        onpointerdown: (event) => resizeBlock(event, blok, sloupce, obal, nahradit),
-      }),
     ]),
     obsah || emptyState(t.editor.blockEmpty),
+    h("button", {
+      class: "blok__akce blok__resize", type: "button", text: "↘",
+      "aria-label": `${t.editor.size}: ${blok.title || t.blocks[blok.type]}`,
+      title: t.editor.snapHint,
+      onpointerdown: (event) => {
+        onSelect();
+        resizeBlock(event, blok, sloupce, obal, nahradit);
+      },
+    }),
   ]);
 
   obal.style.setProperty("--sirka", String(sirka));
@@ -367,12 +392,47 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
   return obal;
 }
 
-function renderBlockPanel(ctx, blocks, columns, block, save) {
+function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId) {
   const panel = h("div", { class: "dashboard-editor__fields" });
-  panel.append(h("h2", { text: t.editor.properties }));
+  panel.append(h("h2", { text: roomId ? t.editor.roomProperties : t.editor.properties }));
   if (!block) {
     panel.append(emptyState(t.editor.chooseBlock));
     return panel;
+  }
+  if (roomId && block.type === "auto_rooms") {
+    const room = (ctx.model.rooms || []).find((item) => String(item.id || "unassigned") === roomId);
+    if (room) {
+      let layout = { ...(block.roomLayouts?.[roomId] || {}) };
+      const updateRoom = (patch) => {
+        layout = { ...layout, ...patch };
+        save(blocks.map((item) => item.id === block.id ? { ...block,
+          roomLayouts: { ...block.roomLayouts, [roomId]: layout } } : item));
+      };
+      const name = textInput(layout.title || "", room.name || t.rooms.unassigned);
+      name.maxLength = 60;
+      name.addEventListener("change", () => updateRoom({ title: name.value.trim() }));
+      panel.append(field(t.editor.label, name));
+      const width = selectInput([
+        { value: "1", label: t.editor.width(1, 2) },
+        { value: "2", label: t.editor.width(2, 2) },
+      ], String(layout.cols || 1));
+      width.addEventListener("change", () => updateRoom({ cols: Number(width.value) }));
+      panel.append(field(t.editor.columns, width));
+      const font = h("input", { type: "range", min: 12, max: 48, step: 1,
+        value: layout.fontSize || 20 });
+      const value = h("output", { text: `${layout.fontSize || 20} px` });
+      font.addEventListener("input", () => {
+        value.textContent = `${font.value} px`;
+        const target = [...(preview?.querySelectorAll(".auto-rooms__room") || [])]
+          .find((item) => item.getAttribute(ATRIBUT_KLICE) === roomId);
+        target?.style.setProperty("--block-font-size", `${font.value}px`);
+        target?.classList.add("auto-rooms__room--text-custom");
+      });
+      font.addEventListener("change", () => updateRoom({ fontSize: Number(font.value) }));
+      panel.append(h("div", { class: "dashboard-editor__range" },
+        [field(t.editor.fontSize, font), value]));
+      return panel;
+    }
   }
   panel.append(h("p", { class: "muted", text: t.blocksHint[block.type] || "" }));
   let draft = { ...block };
@@ -420,6 +480,29 @@ function renderBlockPanel(ctx, blocks, columns, block, save) {
     })), block.metric || "lightsOn", "metric", t.editor.metricSource),
   };
   for (const key of BLOKY[block.type]?.fields || []) panel.append(fields[key]());
+  const size = h("input", { type: "range", min: 12, max: 72, step: 1,
+    value: block.fontSize || 20 });
+  const sizeValue = h("output", { text: `${block.fontSize || 20} px` });
+  size.addEventListener("input", () => {
+    sizeValue.textContent = `${size.value} px`;
+    const content = preview?.querySelector(".dashboard-block");
+    content?.classList.add("dashboard-block--text-custom");
+    content?.style.setProperty("--block-font-size", `${size.value}px`);
+  });
+  size.addEventListener("change", () => update({ fontSize: Number(size.value) }));
+  panel.append(h("div", { class: "dashboard-editor__range" },
+    [field(t.editor.fontSize, size), sizeValue]));
+  const minHeight = h("input", { type: "range", min: 120, max: 900, step: 10,
+    value: block.minHeight || 120 });
+  const heightValue = h("output", { text: `${block.minHeight || 120} px` });
+  minHeight.addEventListener("input", () => {
+    heightValue.textContent = `${minHeight.value} px`;
+    const content = preview?.querySelector(".dashboard-block");
+    if (content) content.style.minHeight = `${minHeight.value}px`;
+  });
+  minHeight.addEventListener("change", () => update({ minHeight: Number(minHeight.value) }));
+  panel.append(h("div", { class: "dashboard-editor__range" },
+    [field(t.editor.pixelHeight, minHeight), heightValue]));
   if (block.type === "entities" || block.type === "room") {
     panel.append(h("p", { class: "muted", text: t.editor.contentOnCanvas }));
   }
@@ -445,35 +528,31 @@ function resizeBlock(event, block, columns, element, save) {
   const pointerId = event.pointerId;
   handle.setPointerCapture?.(pointerId);
   const initialColumns = Math.min(columns, Math.max(1, block.cols || 1));
-  const heights = ["compact", "normal", "large"];
-  const initialHeight = heights.indexOf(block.height || "normal");
+  const content = element.querySelector(".dashboard-block");
+  const initialHeight = block.minHeight || Math.round(content?.getBoundingClientRect().height || 120);
   const bounds = element.parentElement.getBoundingClientRect();
   const gap = parseFloat(getComputedStyle(element.parentElement).columnGap) || 0;
   const unit = (bounds.width + gap) / columns;
   let nextColumns = initialColumns;
-  let nextHeight = heights[Math.max(0, initialHeight)];
-  const content = element.querySelector(".dashboard-block");
+  let nextHeight = initialHeight;
   function move(next) {
     if (next.pointerId !== pointerId) return;
     nextColumns = window.matchMedia("(min-width: 900px)").matches
       ? Math.min(columns, Math.max(1,
         initialColumns + Math.round((next.clientX - event.clientX) / unit)))
       : initialColumns;
-    nextHeight = heights[Math.min(2, Math.max(0,
-      initialHeight + Math.round((next.clientY - event.clientY) / 70)))];
+    nextHeight = Math.min(900, Math.max(120,
+      Math.round((initialHeight + next.clientY - event.clientY) / 10) * 10));
     element.style.setProperty("--sirka", String(nextColumns));
-    if (content) {
-      content.classList.remove(...heights.map((value) => `dashboard-block--${value}`));
-      content.classList.add(`dashboard-block--${nextHeight}`);
-    }
+    if (content) content.style.minHeight = `${nextHeight}px`;
   }
   function end(next) {
     if (next.pointerId !== pointerId) return;
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
     window.removeEventListener("pointercancel", cancel);
-    if (nextColumns !== initialColumns || nextHeight !== (block.height || "normal")) {
-      save({ ...block, cols: nextColumns, height: nextHeight });
+    if (nextColumns !== initialColumns || nextHeight !== initialHeight) {
+      save({ ...block, cols: nextColumns, minHeight: nextHeight });
     }
   }
   function cancel(next) {
@@ -482,10 +561,7 @@ function resizeBlock(event, block, columns, element, save) {
     window.removeEventListener("pointerup", end);
     window.removeEventListener("pointercancel", cancel);
     element.style.setProperty("--sirka", String(initialColumns));
-    if (content) {
-      content.classList.remove(...heights.map((value) => `dashboard-block--${value}`));
-      content.classList.add(`dashboard-block--${block.height || "normal"}`);
-    }
+    if (content) content.style.minHeight = block.minHeight ? `${block.minHeight}px` : "";
   }
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end);
@@ -822,13 +898,15 @@ function mistnosti(ctx) {
   );
 }
 
-function automatickeMistnosti(ctx, blok, ulozit) {
+function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
   const rooms = ctx.model.rooms || [];
   if (!rooms.length) return ramec(blok.title || t.blocks.auto_rooms,
     "rooms", emptyState(t.rooms.empty));
   const layouts = blok.roomLayouts || {};
-  return ramec(blok.title || t.blocks.auto_rooms, "rooms",
-    h("div", { class: "auto-rooms" }, rooms.map((room) => {
+  const orderedRooms = [...rooms].sort((a, b) =>
+    (layouts[String(a.id || "unassigned")]?.order ?? rooms.indexOf(a))
+    - (layouts[String(b.id || "unassigned")]?.order ?? rooms.indexOf(b)));
+  const grid = h("div", { class: "auto-rooms" }, orderedRooms.map((room) => {
     const key = String(room.id || "unassigned");
     const entities = room.entities || [];
     const refs = entities.map((entity) => ctx.entityRef(entity));
@@ -843,6 +921,7 @@ function automatickeMistnosti(ctx, blok, ulozit) {
       allEntities: () => entities };
     const saveRoom = (next) => ulozit({ ...blok, roomLayouts: {
       ...layouts, [key]: {
+        ...saved,
         entities: next.entities || [],
         excluded: refs.filter((ref) => !(next.entities || []).includes(ref)),
         sizes: next.sizes || {}, tileStyles: next.tileStyles || {},
@@ -856,16 +935,38 @@ function automatickeMistnosti(ctx, blok, ulozit) {
         cards.replaceChildren(mrizkaZarizeni(roomCtx, tileBlock, saveRoom));
         more.remove();
       }, "button--ghost") : null;
-    return h("section", { class: "panel auto-rooms__room" }, [
+    const roomView = h("section", { class: "panel auto-rooms__room"
+      + (saved.cols === 2 ? " auto-rooms__room--wide" : "")
+      + (saved.fontSize ? " auto-rooms__room--text-custom" : ""),
+      onclick: (event) => {
+        if (ctx.editing && !event.target.closest("button, input, select, textarea")) {
+          event.stopPropagation();
+          selectRoom?.(key);
+        }
+      },
+    }, [
       h("div", { class: "panel__head" }, [
         h("span", { class: "panel__glyph" }, icon("rooms")),
-        h("h2", { class: "panel__title", text: room.name || t.rooms.unassigned }),
+        h("h2", { class: "panel__title", text: saved.title || room.name || t.rooms.unassigned }),
         h("span", { class: "muted", text: t.rooms.deviceCount + ": " + entities.length }),
+        ctx.editing && h("button", { class: "button button--ghost", type: "button",
+          text: t.editor.roomProperties, onclick: () => selectRoom?.(key) }),
+        ctx.editing && h("button", { class: "dnd__uchyt", type: "button",
+          "data-dnd-handle": "", "aria-label": `${t.editor.drag}: ${room.name}`,
+          text: "⠿" }),
       ]),
       cards,
       more,
     ]);
-    })));
+    roomView.setAttribute(ATRIBUT_KLICE, key);
+    if (saved.fontSize) roomView.style.setProperty("--block-font-size", `${saved.fontSize}px`);
+    return roomView;
+  }));
+  if (ctx.editing) povolitPretahovani(grid, (order) => ulozit({ ...blok,
+    roomLayouts: Object.fromEntries(order.map((key, index) => [key, {
+      ...(layouts[key] || {}), order: index,
+    }])) }));
+  return ramec(blok.title || t.blocks.auto_rooms, "rooms", grid);
 }
 
 function vlozenyPlanek(ctx, blok) {

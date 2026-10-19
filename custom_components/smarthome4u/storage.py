@@ -260,6 +260,9 @@ class Settings:
         if role == "admin":
             return self.dashboards
         assigned = self.data.get("dashboardAssignments", {}).get(user_id)
+        if role == "technician":
+            return [item for item in self.dashboards if not item.get("ownerId")
+                    or item.get("ownerId") == user_id or item["id"] == assigned]
         default = assigned if assigned in self.dashboard_ids() else self.dashboards[0]["id"]
         return [item for item in self.dashboards
                 if item["id"] == default or item.get("ownerId") == user_id]
@@ -268,6 +271,7 @@ class Settings:
         if ident == PRESET_PUDORYS and role == "admin":
             return True  # Shared floorplan details are stored under this internal key.
         return any(item["id"] == ident and (role == "admin"
+                   or role == "technician" and not item.get("ownerId")
                    or item.get("ownerId") == user_id) for item in self.dashboards)
 
     async def create_dashboard(self, name: str, template: str,
@@ -278,16 +282,17 @@ class Settings:
             entry["ownerId"] = owner_id
         self.dashboards.append(entry)
         if template in ("overview", "pudorys", "blank"):
+            columns = 4 if template in ("overview", "blank") else 2
             blocks = ([
-                {"id": "overview-headline", "type": "headline", "cols": 2,
+                {"id": "overview-headline", "type": "headline", "cols": 4,
                  "title": "Přehled domácnosti"},
-                {"id": "overview-status", "type": "status", "cols": 2},
-                {"id": "auto-rooms", "type": "auto_rooms", "cols": 2},
+                {"id": "overview-status", "type": "status", "cols": 4},
+                {"id": "auto-rooms", "type": "auto_rooms", "cols": 4},
             ] if template == "overview" else
                 [{"id": "floorplan", "type": "floorplan", "cols": 2}]
                 if template == "pudorys" else [])
             self.data.setdefault("dashboard", {})[ident] = {
-                "columns": 2, "blocks": blocks,
+                "columns": columns, "blocks": blocks,
             }
         await self.save()
         return ident

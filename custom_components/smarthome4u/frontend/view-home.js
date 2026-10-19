@@ -17,8 +17,11 @@ export async function renderHome(root, ctx) {
   const preset = ctx.model.preset || "overview";
 
   root.append(prepinacPloch(ctx, preset));
-  root.append(h("div", { class: "row row--end" },
-    button(t.dashboardManager.create, () => ctx.navigate("settings"), "button--ghost")));
+  root.append(h("div", { class: "row row--end" }, [
+    ctx.muzeUpravitPlochu && button(ctx.editing ? t.editor.done : t.editor.edit,
+      () => ctx.editing ? ctx.stopEditing() : ctx.startEditing(), "button--ghost"),
+    button(t.dashboardManager.create, () => ctx.navigate("settings"), "button--ghost"),
+  ]));
 
   if (ctx.editing) {
     root.append(listaUprav(ctx, preset));

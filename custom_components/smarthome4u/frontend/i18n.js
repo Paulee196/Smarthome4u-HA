@@ -742,8 +742,8 @@ export const t = {
   editor: {
     title: "Úprava plochy",
     hint:
-      "Blok přetáhněte za ⠿, velikost změňte za ↘. Klepnutím na název " +
-      "otevřete jeho nastavení vedle plochy. Změny se ukládají automaticky.",
+      "Blok přetáhněte za ⠿, velikost změňte za roh ↘. Klepnutím na blok " +
+      "otevřete jeho nastavení vpravo. Změny se ukládají automaticky.",
     edit: "Upravit plochu",
     addBlock: "Přidat blok",
     removeBlock: "Odebrat blok",
@@ -781,6 +781,9 @@ export const t = {
     blockType: "Obsah bloku",
     automaticTilesHint: "Úpravou této dlaždice se blok změní na vlastní výběr zařízení.",
     blockHeight: "Výška bloku",
+    roomProperties: "Upravit pokoj",
+    pixelHeight: "Přesná výška bloku",
+    fontSize: "Velikost textu",
     heightCompact: "Kompaktní",
     heightNormal: "Normální",
     heightLarge: "Vysoký",

@@ -257,7 +257,7 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     ident = (await created.json())["id"]
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["preset"] == ident
-    assert model["board"] == {"columns": 2, "blocks": []}
+    assert model["board"] == {"columns": 4, "blocks": []}
     initial = await (await client.get("/api/smarthome4u/model?initial=1")).json()
     assert initial["preset"] == "overview"
     current = await (await client.get("/api/smarthome4u/model")).json()
@@ -285,7 +285,7 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     assert restored.status == 200
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [item["id"] for item in model["dashboards"]] == ["overview", ident]
-    assert model["board"] == {"columns": 2, "blocks": []}
+    assert model["board"] == {"columns": 4, "blocks": []}
 
 
 async def test_upravy_automatickych_mistnosti_se_ulozi(
@@ -301,6 +301,7 @@ async def test_upravy_automatickych_mistnosti_se_ulozi(
     client = await hass_client()
     board = [{"id": "auto-rooms", "type": "auto_rooms", "cols": 2,
               "roomLayouts": {"room-a": {
+                  "title": "Obývák", "cols": 2, "fontSize": 24, "order": 0,
                   "entities": ["light.test"], "excluded": [],
                   "sizes": {"light.test": "xl"},
                   "tileStyles": {"light.test": {"label": "Strop", "color": "blue"}},
@@ -313,6 +314,10 @@ async def test_upravy_automatickych_mistnosti_se_ulozi(
     layout = model["board"]["blocks"][0]["roomLayouts"]["room-a"]
     assert layout["entities"] == ["entity:light.test"]
     assert layout["sizes"] == {"entity:light.test": "xl"}
+    assert layout["title"] == "Obývák"
+    assert layout["cols"] == 2
+    assert layout["fontSize"] == 24
+    assert layout["order"] == 0
 
 
 async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -> None:
@@ -323,6 +328,10 @@ async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -
     await settings.assign_dashboard("ucet-b", custom)
     assert [item["id"] for item in settings.dashboards_for("ucet-b", "user")] == [custom]
     assert [item["id"] for item in settings.dashboards_for("ucet-c", "user")] == ["overview"]
+    assert "overview" in [item["id"] for item in settings.dashboards_for(
+        "ucet-c", "technician")]
+    assert settings.can_edit_dashboard("ucet-c", "technician", "overview")
+    assert not settings.can_edit_dashboard("ucet-c", "user", "overview")
 
     old = storage.Settings(hass)
     old.data["dashboard"]["home"] = {
@@ -870,7 +879,8 @@ async def test_plocha_po_blocich(
     hass.bus.async_listen(DASHBOARD_EVENT, lambda event: layout_events.append(event.data))
 
     sestava = [
-        {"id": "b1", "type": "status", "cols": 3, "icon": "home", "color": "mint"},
+        {"id": "b1", "type": "status", "cols": 3, "icon": "home", "color": "mint",
+         "fontSize": 28, "minHeight": 320},
         {
             "id": "b2",
             "type": "entities",
@@ -899,6 +909,8 @@ async def test_plocha_po_blocich(
     assert [b["type"] for b in sestava["blocks"]] == ["status", "entities"]
     assert sestava["blocks"][0]["cols"] == 3
     assert sestava["blocks"][0]["color"] == "mint"
+    assert sestava["blocks"][0]["fontSize"] == 28
+    assert sestava["blocks"][0]["minHeight"] == 320
     # Šířka přes víc sloupců, než plocha má, se zahodí.
     assert "cols" not in sestava["blocks"][1]
     # Co v Home Assistantu není, se tiše vynechá - v seznamu i ve velikostech.

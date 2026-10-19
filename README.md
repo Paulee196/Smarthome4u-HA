@@ -16,6 +16,7 @@ Smarthome4u vypnete, domácnost běží dál.
 
 | Verze | Stav | Obsah |
 |---|---|---|
+| v0.19.3 | **vydáno** | Přímé úpravy Přehledu, změna rozměrů tažením a nastavení textu v pravém panelu |
 | v0.19.2 | **vydáno** | Půdorys pouze jako šablona a blok; trvalý výchozí přehled do smazání |
 | v0.19.1 | **vydáno** | Úvodní přehled po upgradu, úpravy automatických místností a vlastní plochy uživatelů |
 | v0.19.0 | **vydáno** | Vlastní sdílené dashboardy, přiřazení účtům a automatický přehled místností |

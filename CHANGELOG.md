@@ -2,6 +2,20 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.3]
+
+### Opraveno
+
+- Účty ve výchozím plném režimu mohou upravovat společný Přehled a další
+  sdílené plochy. Tlačítko úprav je přímo nad dashboardem.
+- Vybraný blok otevírá nastavení v pravém panelu. Úchyt v pravém dolním rohu
+  mění šířku a výšku přímo na ploše, výška se ukládá v pixelech.
+- V panelu lze měnit velikost textu a výšku bloku s okamžitým náhledem.
+- Pokoj v automatickém Přehledu má vlastní nastavení názvu, šířky a textu;
+  pořadí pokojů lze měnit tažením.
+- Přehled používá jemnější čtyřsloupcovou mřížku. Staré dvousloupcové
+  rozvržení si zachová poměr šířek. Nová prázdná plocha začíná čtyřmi sloupci.
+
 ## [0.19.2]
 
 ### Opraveno

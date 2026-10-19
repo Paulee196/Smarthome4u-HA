@@ -4,7 +4,18 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.19.2
+**Aktuální verze v kódu:** 0.19.3
+
+## Přímý editor dashboardu 0.19.3
+
+- [x] Účet s výchozím plným režimem smí upravit sdílený Přehled.
+- [x] Tlačítko úprav je na ploše, výběr bloku otevírá pravý panel.
+- [x] Tažením rohu lze upravovat šířku po sloupcích a výšku po 10 px;
+  nastavení textu a výšky má živý náhled.
+- [x] Jednotlivé pokoje automatického Přehledu lze vybrat do pravého panelu,
+  přejmenovat, změnit jejich šířku a velikost textu a přeskupit je.
+- [x] Přehled a nové prázdné dashboardy používají čtyřsloupcovou mřížku.
+- [ ] Dotykově a vizuálně ověřit v živé instalaci po vydání.
 
 ## Výchozí přehled a půdorys jako šablona 0.19.2
 

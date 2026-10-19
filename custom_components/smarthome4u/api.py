@@ -1806,6 +1806,10 @@ class DashboardView(Sh4uView):
                 novy["color"] = blok["color"]
             if blok.get("height") in ("compact", "normal", "large"):
                 novy["height"] = blok["height"]
+            if isinstance(blok.get("minHeight"), int) and 120 <= blok["minHeight"] <= 900:
+                novy["minHeight"] = blok["minHeight"]
+            if isinstance(blok.get("fontSize"), int) and 12 <= blok["fontSize"] <= 72:
+                novy["fontSize"] = blok["fontSize"]
             if blok.get("metric") in (
                 "lightsOn", "openCount", "unlockedCount", "rooms", "devices"
             ):
@@ -1856,6 +1860,14 @@ class DashboardView(Sh4uView):
                             or not isinstance(raw, dict):
                         continue
                     layout = {}
+                    if isinstance(raw.get("title"), str):
+                        layout["title"] = raw["title"].strip()[:60]
+                    if raw.get("cols") in (1, 2):
+                        layout["cols"] = raw["cols"]
+                    if isinstance(raw.get("fontSize"), int) and 12 <= raw["fontSize"] <= 48:
+                        layout["fontSize"] = raw["fontSize"]
+                    if isinstance(raw.get("order"), int) and 0 <= raw["order"] <= 60:
+                        layout["order"] = raw["order"]
                     for key in ("entities", "excluded"):
                         items = raw.get(key)
                         if isinstance(items, list):

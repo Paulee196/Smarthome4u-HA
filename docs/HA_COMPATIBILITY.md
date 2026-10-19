@@ -46,6 +46,9 @@ dashboard sdílený nebo vlastněný jedním účtem.
 Od 0.19.2 zůstává starý půdorys v interním úložišti jako zdroj šablony,
 ale není samostatnou položkou katalogu. Při otevření aplikace se přehled
 vybere z existujících dashboardů účtu.
+Od 0.19.3 smí sdílenou plochu upravit také účet ve výchozím plném režimu;
+vlastní plochy dalších účtů zůstávají oddělené. Rozměry a velikost textu
+se ukládají jen jako prezentační data do stejného `Store`.
 Ukládá jen prezentaci, nejvýše 20 kroků na plochu; nepřidává další
 HA WebSocket, službu ani zdroj stavu zařízení. Po uložení vyvolá
 `hass.bus.async_fire` událost `smarthome4u_dashboard_changed` (veřejné API).
