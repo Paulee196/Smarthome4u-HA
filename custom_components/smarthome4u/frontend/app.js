@@ -46,6 +46,7 @@ const rezimKlic = () => `${REZIM_KLIC}.${state.model?.user?.id || "anonymous"}`;
 
 const state = { model: null, route: "home", editing: false, rezim: "user" };
 let el = null;
+let structureRefresh = null;
 
 const ctx = {
   get model() {
@@ -79,6 +80,9 @@ const ctx = {
   get jeTechnik() {
     return state.rezim === "technician";
   },
+  get muzeUpravitPlochu() {
+    return state.model?.user?.role === "admin";
+  },
   prepnoutRezim() {
     state.rezim = state.rezim === "technician" ? "user" : "technician";
     try {
@@ -91,7 +95,7 @@ const ctx = {
     bezpecne(draw());
   },
   startEditing() {
-    if (state.rezim !== "technician") return;
+    if (state.rezim !== "technician" || state.model?.user?.role !== "admin") return;
     state.editing = true;
     navigate("home");
   },
@@ -131,9 +135,13 @@ export function mount(root) {
   window.addEventListener("popstate", onRouteChange);
   window.addEventListener("sh4u-layout-changed", (event) => {
     if (state.editing || state.route !== "home" || !state.model) return;
-    if (event.detail?.preset !== state.model.preset) return;
+    if (event.detail?.preset && event.detail.preset !== state.model.preset) return;
     if (event.detail?.user_id && event.detail.user_id !== state.model.user?.id) return;
     bezpecne(loadModel());
+  });
+  window.addEventListener("sh4u-structure-changed", () => {
+    clearTimeout(structureRefresh);
+    structureRefresh = setTimeout(() => bezpecne(loadModel()), 1200);
   });
 
   loadModel();
@@ -206,7 +214,8 @@ function paintUpravit() {
   const koren = el.settings.getRootNode?.();
   let tlacitko = koren?.getElementById?.("uprava-button");
 
-  const jdeUpravit = state.route === "home" && state.rezim === "technician";
+  const jdeUpravit = state.route === "home" && state.rezim === "technician"
+    && state.model?.user?.role === "admin";
 
   if (!jdeUpravit) {
     tlacitko?.remove();

@@ -34,19 +34,20 @@ Vše v `home.py`.
 | `hass.config_entries.async_entries` | Připojené integrace | veřejné |
 | `er.async_entries_for_device` | Entity jednoho zařízení | veřejné |
 | `device.primary_config_entry` | Vlastník zařízení (HA 2026.8+) | veřejné |
-| `request["hass_user"].id` | Oddělení osobních ploch a kontrola role (HA 2026.8+) | veřejné |
+| `request["hass_user"].id` | Přiřazení sdílené plochy účtu a kontrola role (HA 2026.8+) | veřejné |
 | `hass.auth.async_get_user` | Ověření účtu při přidělení technické role (HA 2026.8+) | veřejné |
 
 Model se nikde necachuje. Při každém požadavku se čte živý stav, takže nemůže
 vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.
 
-Historie úprav ploch (od 0.18.0) používá stejný veřejný
-`homeassistant.helpers.storage.Store` jako ostatní osobní rozvržení. Ukládá
-jen prezentaci, nejvýše 20 kroků na podobu plochy a účet; nepřidává další
+Historie úprav ploch používá veřejný `homeassistant.helpers.storage.Store`.
+Od 0.19.0 jsou sestavy sdílené a historie je vedena podle ID dashboardu.
+Ukládá jen prezentaci, nejvýše 20 kroků na plochu; nepřidává další
 HA WebSocket, službu ani zdroj stavu zařízení. Po uložení vyvolá
 `hass.bus.async_fire` událost `smarthome4u_dashboard_changed` (veřejné API).
 Panel ji přijímá přes stávající HA frontend `connection.subscribeEvents`
-a mimo režim úprav obnoví právě otevřenou plochu stejného účtu.
+a mimo režim úprav obnoví právě otevřenou sdílenou plochu. Nová entita
+ohlášená přes `state_changed` obnoví automatický přehled místností.
 
 ---
 

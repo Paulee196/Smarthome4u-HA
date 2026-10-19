@@ -131,7 +131,7 @@ async def test_write_permissions_use_the_server_role() -> None:
     assert denied.value.status == 403
 
 
-async def test_user_can_edit_own_board_but_not_devices(hass: HomeAssistant) -> None:
+async def test_user_cannot_edit_shared_board_or_devices(hass: HomeAssistant) -> None:
     class Request(dict):
         def __init__(self, user_id: str, payload: dict):
             super().__init__(hass_user=SimpleNamespace(id=user_id, is_admin=False))
@@ -147,11 +147,10 @@ async def test_user_can_edit_own_board_but_not_devices(hass: HomeAssistant) -> N
     hass.data.setdefault(DOMAIN, {})["settings"] = settings
 
     response = await api.DashboardView(hass).post(
-        Request("member", {"preset": "prehled", "blocks": []})
+        Request("member", {"preset": "overview", "blocks": []})
     )
-    assert response.status == 200
-    assert settings.presentation("member", "user").board("prehled")["blocks"] == []
-    assert settings.board("prehled") is None
+    assert response.status == 403
+    assert settings.board("overview") is None
 
     response = await api.DeviceView(hass).post(Request("member", {}), "missing")
     assert response.status == 403

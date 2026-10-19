@@ -53,6 +53,8 @@ export const BLOKY = {
   lights: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
   scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
+  auto_rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => automatickeMistnosti(ctx) },
+  floorplan: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => vlozenyPlanek(ctx) },
   actions: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => rychleAkce(ctx) },
   entities: {
     glyf: "devices",
@@ -71,6 +73,8 @@ export const NABIDKA = [
   "headline",
   "entities",
   "room",
+  "auto_rooms",
+  "floorplan",
   "metric",
   "scenes",
   "rooms",
@@ -84,7 +88,7 @@ export const NABIDKA = [
 ];
 
 /* Bloky, které mají smysl jen jednou. */
-const JEDNOU = new Set(["clock", "status", "rooms", "actions"]);
+const JEDNOU = new Set(["clock", "status", "rooms", "auto_rooms", "floorplan", "actions"]);
 
 /* ------------------------------------------------------------------ */
 /* Výchozí sestavy                                                     */
@@ -99,6 +103,10 @@ const JEDNOU = new Set(["clock", "status", "rooms", "actions"]);
  *            velké písmo, čitelné z dálky
  */
 export function vychozi(preset, model) {
+  if (preset === "overview") return {
+    columns: 2,
+    blocks: [{ id: "auto-rooms", type: "auto_rooms", cols: 2 }],
+  };
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
   const druhy = new Set(["light", "switch", "cover", "climate", "lock", "camera", "fan", "media_player"]);
   const navrh = (model.rooms || []).flatMap((room) => room.entities || [])
@@ -185,10 +193,10 @@ export function vychozi(preset, model) {
 /* ------------------------------------------------------------------ */
 
 export function vykreslitPlochu(root, ctx) {
-  const preset = ctx.model.preset || "tuya";
+  const preset = ctx.model.preset || "overview";
   const sestava = ctx.model.board?.blocks
     ? ctx.model.board
-    : vychozi(preset, ctx.model);
+    : vychozi(ctx.model.dashboardTemplate || preset, ctx.model);
 
   const sloupce = Math.min(MAX_SLOUPCU, Math.max(1, sestava.columns || 1));
   const bloky = sestava.blocks;
@@ -202,7 +210,7 @@ export function vykreslitPlochu(root, ctx) {
 
   const workspace = ctx.editing ? h("div", { class: "dashboard-editor" }) : root;
   if (ctx.editing) root.append(workspace);
-  const plocha = h("div", { class: "plocha plocha--" + preset });
+  const plocha = h("div", { class: "plocha plocha--" + (ctx.model.dashboardTemplate || preset) });
   plocha.style.setProperty("--sloupce", String(sloupce));
   workspace.append(plocha);
   const panel = ctx.editing ? h("aside", {
@@ -411,7 +419,7 @@ function renderBlockPanel(ctx, blocks, columns, block, save) {
     button(t.editor.duplicate, () => {
       const copy = { ...structuredClone(block),
         id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}` };
-      selectedBlock = { preset: ctx.model.preset || "tuya", id: copy.id };
+      selectedBlock = { preset: ctx.model.preset || "overview", id: copy.id };
       const index = blocks.findIndex((item) => item.id === block.id);
       save([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
     }, "button--ghost"),
@@ -542,7 +550,7 @@ function novyBlok(typ) {
 
 async function ulozitSestavu(ctx, sestava) {
   const revision = ++saveRevision;
-  const preset = ctx.model.preset || "tuya";
+  const preset = ctx.model.preset || "overview";
   const task = saveQueue.catch(() => {}).then(async () => {
     await api.saveDashboard(preset, sestava.columns, sestava.blocks);
     if (revision === saveRevision) {
@@ -622,7 +630,7 @@ function hodiny() {
 }
 
 function nadpisPlochy(ctx, blok) {
-  const preset = ctx.model.preset || "tuya";
+  const preset = ctx.model.dashboardTemplate || "overview";
   const defaults = t.dashboardIntro[preset] || t.dashboardIntro.tuya;
   return h("header", { class: `dashboard-intro dashboard-intro--${preset}` }, [
     h("span", { class: "experience__eyebrow", text: defaults.eyebrow }),
@@ -806,6 +814,36 @@ function mistnosti(ctx) {
   );
 }
 
+function automatickeMistnosti(ctx) {
+  const rooms = ctx.model.rooms || [];
+  if (!rooms.length) return emptyState(t.rooms.empty);
+  return h("div", { class: "auto-rooms" }, rooms.map((room) => {
+    const entities = room.entities || [];
+    const cards = h("div", { class: "cards" }, entities.slice(0, 8).map((entity) => card(entity)));
+    const more = entities.length > 8 ? button(t.dashboardManager.showMore(entities.length - 8), () => {
+      cards.replaceChildren(...entities.map((entity) => card(entity)));
+      more.remove();
+    }, "button--ghost") : null;
+    return h("section", { class: "panel auto-rooms__room" }, [
+      h("div", { class: "panel__head" }, [
+        h("span", { class: "panel__glyph" }, icon("rooms")),
+        h("h2", { class: "panel__title", text: room.name || t.rooms.unassigned }),
+        h("span", { class: "muted", text: t.rooms.deviceCount + ": " + entities.length }),
+      ]),
+      cards,
+      more,
+    ]);
+  }));
+}
+
+function vlozenyPlanek(ctx) {
+  const root = h("div", { class: "embedded-floorplan" });
+  import("./view-floorplan.js").then(({ renderFloorplan }) =>
+    renderFloorplan(root, ctx, { embedded: true })).catch((error) =>
+      root.replaceChildren(emptyState(error.message)));
+  return root;
+}
+
 function rychleAkce(ctx) {
   return ramec(
     t.home.quickActions,
@@ -822,7 +860,7 @@ function zarizeni(ctx, blok, ulozitBlok) {
   if (!ids.length && !ctx.editing) return null;
 
   const grid = mrizkaZarizeni(ctx, blok, ulozitBlok);
-  const catalog = (ctx.model.preset === "tuya" && !ctx.editing)
+  const catalog = (ctx.model.dashboardTemplate === "tuya" && !ctx.editing)
     ? katalogZarizeni(ctx, blok, grid) : grid;
 
   return ramec(

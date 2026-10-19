@@ -4,7 +4,20 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.18.0
+**Aktuální verze v kódu:** 0.19.0
+
+## Vlastní dashboardy 0.19.0
+
+- [x] Čistá instalace nabídne přehled místností s živým obsahem z HA;
+  přidání nové entity vyvolá obnovu modelu.
+- [x] Správce vytváří, pojmenovává a maže libovolné plochy. Přiřazení
+  jednomu dashboardu na účet je oddělené od technické role.
+- [x] V editoru jsou šablony původních čtyř podob, prázdná plocha,
+  automatický přehled a vložitelný interaktivní plánek.
+- [x] Přehled lze po smazání jedním krokem obnovit. Poslední dashboard
+  nelze smazat.
+- [x] Upgrade zachovává původní čtyři plochy i osobní sestavy.
+- [ ] Po vydání ověřit přiřazení účtu a editaci plánku v živém HA.
 
 ## Inspirace Panalume a editor dashboardů 0.18.0
 

@@ -2,6 +2,19 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.0]
+
+### Změněno
+
+- Nová instalace začíná jedním přehledem podle místností Home Assistanta.
+  Nové entity se do něj přidávají automaticky.
+- Správce může vytvořit libovolný počet dashboardů, vybrat výchozí šablonu,
+  přejmenovat nebo smazat plochu a přiřadit ji jednotlivým účtům.
+- Plánek lze vložit jako blok do vlastní plochy a dále upravovat jeho značky
+  a detail místností. Automatický přehled lze po smazání obnovit v Nastavení.
+- Při aktualizaci se původní čtyři podoby zachovají jako dashboardy; odlišné
+  osobní sestavy se převedou na vlastní plochy a přiřadí původním účtům.
+
 ## [0.18.0]
 
 ### Přidáno

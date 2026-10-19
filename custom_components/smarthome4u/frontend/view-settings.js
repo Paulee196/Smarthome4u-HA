@@ -14,18 +14,14 @@ import {
   h,
   button,
   confirmDialog,
+  closeDialog,
+  dialog,
   emptyState,
   field,
   selectInput,
+  textInput,
   toast,
 } from "./ui.js";
-
-const PRESET_POPIS = {
-  tuya: "tuya",
-  home: "home",
-  prehled: "prehled",
-  pudorys: "pudorys",
-};
 
 export async function renderSettings(root, ctx) {
   const jeSpravce = ctx.model?.user?.role === "admin";
@@ -264,58 +260,79 @@ function popisek(polozka) {
 
 function sekceDashboard(ctx, nastaveni) {
   const mrizka = h("div", { class: "grid-buttons" });
+  const jeSpravce = ctx.model?.user?.role === "admin";
+  const dashboards = jeSpravce ? (nastaveni.dashboards || []) : (ctx.model.dashboards || []);
+  async function change(body) {
+    try {
+      await api.dashboardCatalog(body);
+      closeDialog();
+      toast(t.notice.saved);
+      await ctx.refresh();
+      ctx.navigate("settings");
+    } catch (error) { toast(error.message, true); }
+  }
+  for (const dashboard of dashboards) {
+    const vybrany = ctx.model.preset === dashboard.id;
+    const choose = button(dashboard.name, async () => {
+      try {
+        await api.setPreset(dashboard.id);
+        await ctx.refresh();
+        ctx.navigate("settings");
+      } catch (error) { toast(error.message, true); }
+    }, vybrany ? "button" : "button--ghost");
+    const actions = [choose];
+    if (jeSpravce) {
+      actions.push(button(t.action.rename, () => {
+        const name = textInput(dashboard.name);
+        dialog(t.dashboardManager.rename, field(t.dashboardManager.name, name),
+          button(t.action.save, () => change({ action: "rename", id: dashboard.id,
+            name: name.value.trim() })));
+      }, "button--ghost"));
+      if (dashboards.length > 1) actions.push(button(t.action.delete, () => confirmDialog(
+        t.dashboardManager.delete, t.dashboardManager.deleteHint,
+        () => change({ action: "delete", id: dashboard.id })), "button--ghost"));
+    }
+    mrizka.append(h("div", { class: "row dashboard-manager__item" }, actions));
+  }
 
-  for (const klic of nastaveni.presets) {
-    const nedostupny = nastaveni.unavailable.includes(klic);
-    const vybrany = ctx.model.preset === klic;
-    const popis = t.presets[PRESET_POPIS[klic]] || { name: klic, description: "" };
-
-    mrizka.append(
-      h(
-        "button",
-        {
-          class: `picker${vybrany ? " picker--active" : ""}`,
-          type: "button",
-          disabled: nedostupny,
-          "aria-pressed": String(vybrany),
-          onclick: async () => {
-            try {
-              await api.setPreset(klic);
-              toast(t.notice.saved);
-              await ctx.refresh();
-              ctx.navigate("settings");
-            } catch (error) {
-              toast(error.message, true);
-            }
-          },
-        },
-        [
-          h("span", { class: "picker__name", text: popis.name }),
-          h("span", {
-            class: "picker__desc",
-            text: nedostupny ? t.presets.comingSoon : popis.description,
-          }),
-        ],
-      ),
-    );
+  const extra = [];
+  if (jeSpravce) {
+    extra.push(button(t.dashboardManager.create, () => {
+      const name = textInput("", t.dashboardManager.name);
+      const template = selectInput([
+        { value: "blank", label: t.dashboardManager.blank },
+        { value: "overview", label: t.dashboardManager.overview },
+        ...["tuya", "home", "pudorys", "prehled"].map((id) => ({
+          value: id, label: t.presets[id].name,
+        })),
+      ], "blank");
+      dialog(t.dashboardManager.create, h("div", { class: "stack" }, [
+        field(t.dashboardManager.name, name), field(t.dashboardManager.template, template),
+      ]), button(t.action.create, () => change({ action: "create",
+        name: name.value.trim(), template: template.value })));
+    }));
+    if (!dashboards.some((item) => item.id === "overview")) {
+      extra.push(button(t.dashboardManager.restoreOverview,
+        () => change({ action: "restoreOverview" }), "button--ghost"));
+    }
+    for (const user of nastaveni.users || []) {
+      if (user.id === nastaveni.adminUserId) continue;
+      const assigned = nastaveni.dashboardAssignments?.[user.id] || dashboards[0]?.id;
+      const picker = selectInput(dashboards.map((item) => ({
+        value: item.id, label: item.name,
+      })), assigned);
+      picker.addEventListener("change", () => change({ action: "assign",
+        id: picker.value, userId: user.id }));
+      extra.push(field(t.dashboardManager.assignedTo(user.name), picker));
+    }
   }
 
   return karta(t.settings.dashboard, "home", [
-    h("p", { class: "muted", text: t.settings.dashboardHint }),
+    h("p", { class: "muted", text: t.dashboardManager.hint }),
     mrizka,
+    ...extra,
     h("div", { class: "row" }, [
-      button(t.settings.editDashboard, () => ctx.startEditing(), "button--ghost"),
-      button(t.settings.editFloorplan, async () => {
-        try {
-          if (ctx.model.preset !== "pudorys") {
-            await api.setPreset("pudorys");
-            await ctx.refresh();
-          }
-          ctx.startEditing();
-        } catch (error) {
-          toast(error.message, true);
-        }
-      }, "button--ghost"),
+      jeSpravce && button(t.settings.editDashboard, () => ctx.startEditing(), "button--ghost"),
       nastaveni.hasLayout &&
         button(
           t.settings.resetLayout,

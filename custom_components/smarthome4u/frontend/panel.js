@@ -285,6 +285,9 @@ class Smarthome4uPanel extends HTMLElement {
       try {
         const entityId = event?.data?.entity_id;
         if (!entityId) return;
+        if (!event?.data?.old_state && event?.data?.new_state) {
+          window.dispatchEvent(new Event("sh4u-structure-changed"));
+        }
 
         this._pending.add(entityId);
         clearTimeout(this._timer);

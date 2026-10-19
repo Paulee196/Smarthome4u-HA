@@ -28,7 +28,7 @@ import {
 
 let selectedRoomId = null;
 
-export async function renderFloorplan(root, ctx) {
+export async function renderFloorplan(root, ctx, { embedded = false } = {}) {
   let plan;
   try {
     plan = await api.floorplan();
@@ -37,7 +37,7 @@ export async function renderFloorplan(root, ctx) {
     return;
   }
 
-  const jeTechnik = ctx.jeTechnik;
+  const jeTechnik = ctx.muzeUpravitPlochu && ctx.jeTechnik;
   const rooms = floorplanRooms(ctx, plan);
 
   if (jeTechnik || ctx.editing) {
@@ -54,7 +54,7 @@ export async function renderFloorplan(root, ctx) {
     );
   }
 
-  const board = floorplanBoard(ctx, Boolean(plan.image), rooms);
+  const board = floorplanBoard(ctx, Boolean(plan.image), rooms, plan.board);
   const headline = board.find((block) => block.type === "headline");
   const intro = h("div", { class: "floorplan-intro dashboard-intro dashboard-block"
     + (plan.image ? " floorplan-intro--image" : "")
@@ -68,11 +68,11 @@ export async function renderFloorplan(root, ctx) {
       ? (plan.image ? t.floorplan.planHint : t.floorplan.automaticHint)
       : headline.subtitle }),
   ]);
-  if (ctx.editing && headline) intro.append(button(t.editor.blockAppearance,
+  if (ctx.editing && headline && !embedded) intro.append(button(t.editor.blockAppearance,
     () => editBlockAppearance(headline,
       (next) => saveFloorplanBoard(ctx, board.map((block) =>
         block.id === headline.id ? next : block)), ["headline"]), "button--ghost"));
-  root.append(intro);
+  if (!embedded) root.append(intro);
 
   const roomsView = prehledMistnosti(ctx, !plan.image, board, rooms);
   if (plan.image) root.append(platno(ctx, plan, rooms, roomsView.select));
@@ -90,11 +90,11 @@ function floorplanRooms(ctx, plan) {
   return [...byId.values()];
 }
 
-function floorplanBoard(ctx, hasImage, allRooms) {
+function floorplanBoard(ctx, hasImage, allRooms, savedBoard) {
   const rooms = allRooms.slice(0, 29);
   const roomIds = new Set(rooms.map((room) => String(room.id)));
   const defaults = vychozi("pudorys", ctx.model).blocks;
-  const stored = (ctx.model.board?.blocks || []).filter((block) =>
+  const stored = ((savedBoard === undefined ? ctx.model.board : savedBoard)?.blocks || []).filter((block) =>
     block.type !== "room" || roomIds.has(String(block.roomId)));
   const savedRooms = new Set(stored.map((block) => String(block.roomId || "")));
   const defaultHeadline = defaults.find((block) => block.type === "headline");

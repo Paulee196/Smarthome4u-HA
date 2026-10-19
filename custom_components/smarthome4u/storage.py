@@ -10,7 +10,9 @@ a nikdo nesahá na soubory ručně.
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
+import uuid
 from copy import deepcopy
 from typing import Any
 
@@ -76,6 +78,9 @@ VYCHOZI: dict[str, Any] = {
     "dashboard": {},
     # Poslední úpravy každé podoby plochy; jen layout, nikdy stav zařízení.
     "dashboardHistory": {},
+    # Sdílený seznam ploch. Chybějící klíč ve staré instalaci spouští převod.
+    "dashboards": None,
+    "dashboardAssignments": {},
 }
 
 
@@ -91,10 +96,15 @@ class Settings:
 
     async def load(self) -> None:
         ulozene = await self._store.async_load()
+        migrate_catalog = not isinstance(ulozene, dict) or not isinstance(
+            ulozene.get("dashboards"), list)
         if isinstance(ulozene, dict):
             # Doplní klíče, které v uloženém souboru ještě nebyly.
             self.data = {**deepcopy(VYCHOZI), **ulozene}
+        self._migrate_dashboards(is_upgrade=isinstance(ulozene, dict))
         self._migrate_entity_ids()
+        if migrate_catalog:
+            await self.save()
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
     async def save(self) -> None:
@@ -133,6 +143,125 @@ class Settings:
         for profile in self.data.get("profiles", {}).values():
             if isinstance(profile, dict):
                 self._migrate_presentation(profile, norm)
+
+    def _migrate_dashboards(self, is_upgrade: bool = False) -> None:
+        """Keep all four legacy boards on upgrades; start fresh homes simply."""
+        if isinstance(self.data.get("dashboards"), list):
+            return
+        old = self.data.get("dashboard", {})
+        legacy = is_upgrade or (isinstance(old, dict) and bool(old))
+        legacy = legacy or bool(self.data.get("floorplan", {}).get("image"))
+        legacy = legacy or self.data.get("preset") != PRESET_TUYA
+        legacy = legacy or bool(self.data.get("profiles"))
+        self.data["dashboards"] = (
+            [{"id": key, "name": name, "template": key} for key, name in (
+                (PRESET_TUYA, "Chytrá domácnost"),
+                (PRESET_HOME, "Domov"),
+                (PRESET_PUDORYS, "Půdorys"),
+                (PRESET_PREHLED, "Přehled HA"),
+            )] if legacy else [self._overview()]
+        )
+        if not legacy:
+            self.data["preset"] = "overview"
+            return
+        # Staré osobní úpravy nesmí při přechodu na sdílený katalog zmizet.
+        # Každou odlišnou sestavu převedeme na samostatnou plochu a účtu
+        # přiřadíme tu, kterou měl naposledy otevřenou.
+        assignments = self.data.setdefault("dashboardAssignments", {})
+        global_boards = self.data.setdefault("dashboard", {})
+        for user_id, profile in self.data.get("profiles", {}).items():
+            if not isinstance(profile, dict):
+                continue
+            personal_boards = profile.get("dashboard", {})
+            imported = {}
+            if isinstance(personal_boards, dict):
+                for key, board in personal_boards.items():
+                    template = PRESETY_ZRUSENE.get(key, key)
+                    if template not in PRESETY or board == global_boards.get(key):
+                        continue
+                    suffix = hashlib.sha256(f"{user_id}:{key}".encode()).hexdigest()[:10]
+                    ident = f"old-{suffix}"
+                    self.data["dashboards"].append({
+                        "id": ident, "name": f"Osobní plocha · {key}",
+                        "template": template,
+                    })
+                    global_boards[ident] = deepcopy(board)
+                    personal_history = profile.get("dashboardHistory", {}).get(key)
+                    if isinstance(personal_history, dict):
+                        self.data.setdefault("dashboardHistory", {})[ident] = deepcopy(
+                            personal_history)
+                    imported[key] = ident
+            selected = PRESETY_ZRUSENE.get(profile.get("preset"), profile.get("preset"))
+            assignments[user_id] = imported.get(selected, selected if selected in PRESETY
+                                                else self.data["dashboards"][0]["id"])
+
+    @staticmethod
+    def _overview() -> dict[str, str]:
+        return {"id": "overview", "name": "Přehled domácnosti", "template": "overview"}
+
+    @property
+    def dashboards(self) -> list[dict[str, str]]:
+        if self.data.get("dashboards") is None:
+            self._migrate_dashboards()
+        return self.data["dashboards"]
+
+    def dashboard_ids(self) -> set[str]:
+        return {item["id"] for item in self.dashboards}
+
+    def dashboards_for(self, user_id: str, role: str) -> list[dict[str, str]]:
+        if role == "admin":
+            return self.dashboards
+        assigned = self.data.get("dashboardAssignments", {}).get(user_id)
+        if assigned and assigned in self.dashboard_ids():
+            return [item for item in self.dashboards if item["id"] == assigned]
+        return self.dashboards[:1]
+
+    async def create_dashboard(self, name: str, template: str) -> str:
+        ident = "d-" + uuid.uuid4().hex[:12]
+        self.dashboards.append({"id": ident, "name": name, "template": template})
+        if template in ("overview", "pudorys", "blank"):
+            block = ({"id": "auto-rooms", "type": "auto_rooms", "cols": 2}
+                     if template == "overview" else
+                     {"id": "floorplan", "type": "floorplan", "cols": 2}
+                     if template == "pudorys" else None)
+            self.data.setdefault("dashboard", {})[ident] = {
+                "columns": 2, "blocks": [block] if block else [],
+            }
+        await self.save()
+        return ident
+
+    async def rename_dashboard(self, ident: str, name: str) -> None:
+        next(item for item in self.dashboards if item["id"] == ident)["name"] = name
+        await self.save()
+
+    async def delete_dashboard(self, ident: str) -> None:
+        if len(self.dashboards) < 2:
+            raise ValueError("last_dashboard")
+        self.data["dashboards"] = [item for item in self.dashboards if item["id"] != ident]
+        self.data.setdefault("dashboard", {}).pop(ident, None)
+        self.data.setdefault("dashboardHistory", {}).pop(ident, None)
+        if self.preset == ident:
+            self.data["preset"] = self.dashboards[0]["id"]
+        for uid, assigned in list(self.data.get("dashboardAssignments", {}).items()):
+            if assigned == ident:
+                self.data["dashboardAssignments"].pop(uid)
+        await self.save()
+
+    async def assign_dashboard(self, user_id: str, ident: str) -> None:
+        if ident not in self.dashboard_ids():
+            raise ValueError(ident)
+        self.data.setdefault("dashboardAssignments", {})[user_id] = ident
+        await self.save()
+
+    async def restore_overview(self) -> str:
+        existing = next((item["id"] for item in self.dashboards
+                         if item["id"] == "overview"), None)
+        if existing:
+            return existing
+        self.dashboards.insert(0, self._overview())
+        self.data.setdefault("dashboard", {}).pop("overview", None)
+        await self.save()
+        return "overview"
 
     @staticmethod
     def _migrate_presentation(data: dict, norm) -> None:
@@ -272,10 +401,10 @@ class Settings:
     def preset(self) -> str:
         hodnota = self.data.get("preset")
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
-        return hodnota if hodnota in PRESETY else PRESET_TUYA
+        return hodnota if hodnota in self.dashboard_ids() else self.dashboards[0]["id"]
 
     async def set_preset(self, preset: str) -> None:
-        if preset not in PRESETY or preset in PRIPRAVUJE_SE:
+        if preset not in self.dashboard_ids():
             raise ValueError(preset)
         self.data["preset"] = preset
         await self.save()
@@ -532,7 +661,7 @@ class UserPresentation(Settings):
     def preset(self) -> str:
         hodnota = self.data.get("preset", self.parent.preset)
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
-        return hodnota if hodnota in PRESETY else self.parent.preset
+        return hodnota if hodnota in self.parent.dashboard_ids() else self.parent.preset
 
     @property
     def kiosk(self) -> bool:

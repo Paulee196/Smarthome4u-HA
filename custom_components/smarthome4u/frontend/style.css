@@ -2594,6 +2594,13 @@ textarea.input {
 .plocha--prehled .panel { border-radius: var(--sh-radius-sm); }
 .plocha--prehled .stav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .plocha--prehled .stav__radek { min-width: 0; }
+
+.auto-rooms { display: grid; gap: var(--sh-gap-md); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.auto-rooms__room { min-width: 0; }
+.embedded-floorplan { width: 100%; min-width: 0; }
+.embedded-floorplan .plan { max-width: 100%; }
+.dashboard-manager__item { flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--sh-border); }
+@media (max-width: 700px) { .auto-rooms { grid-template-columns: 1fr; } }
 .metric-card {
   display: grid;
   align-content: space-between;

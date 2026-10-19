@@ -653,6 +653,8 @@ export const t = {
   },
 
   dashboardIntro: {
+    overview: { eyebrow: "MOJE DOMÁCNOST", title: "Přehled domácnosti",
+      description: "Místnosti a zařízení se aktualizují podle Home Assistanta." },
     tuya: { eyebrow: "MOJE DOMÁCNOST", title: "Rychlé ovládání",
       description: "Oblíbená zařízení a scény na dosah." },
     home: { eyebrow: "MÍSTNOSTI", title: "Domov",
@@ -687,6 +689,8 @@ export const t = {
 
   /* Názvy bloků. Musí říct, co blok ukazuje, ne jak se jmenuje uvnitř. */
   blocks: {
+    auto_rooms: "Místnosti a zařízení automaticky",
+    floorplan: "Plánek domácnosti",
     headline: "Úvod plochy",
     clock: "Hodiny",
     status: "Stav domu",
@@ -703,6 +707,8 @@ export const t = {
   },
 
   blocksHint: {
+    auto_rooms: "Nové místnosti a zařízení se přidají samy podle Home Assistanta",
+    floorplan: "Interaktivní plánek s ikonami a detaily místností",
     headline: "Název a krátký popis plochy",
     clock: "Velké hodiny a datum",
     status: "Svítí, zamčeno, zavřeno - třemi větami",
@@ -716,6 +722,21 @@ export const t = {
     entities: "Zařízení, která si vyberete sám",
     room: "Samostatná skupina s vlastním názvem a zařízeními",
     metric: "Jedna hodnota ze stavu domácnosti",
+  },
+
+  dashboardManager: {
+    hint: "Vytvořte plochy podle potřeby. Správce určuje, kterou plochu uvidí každý další účet.",
+    create: "Nový dashboard",
+    rename: "Přejmenovat dashboard",
+    delete: "Smazat dashboard",
+    deleteHint: "Dashboard a jeho rozvržení se smažou. Účty s tímto dashboardem dostanou první dostupný.",
+    name: "Název dashboardu",
+    template: "Výchozí podoba",
+    blank: "Prázdná plocha",
+    overview: "Automatický přehled místností",
+    restoreOverview: "Obnovit automatický přehled",
+    assignedTo: (name) => `Dashboard pro ${name}`,
+    showMore: (count) => `Zobrazit dalších ${count} zařízení`,
   },
 
   editor: {

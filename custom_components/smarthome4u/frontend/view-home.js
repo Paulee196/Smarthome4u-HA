@@ -15,7 +15,7 @@ import { vykreslitPlochu } from "./blocks.js";
 import { h, button, toast } from "./ui.js";
 
 export async function renderHome(root, ctx) {
-  const preset = ctx.model.preset || "tuya";
+  const preset = ctx.model.preset || "overview";
 
   root.append(prepinacPloch(ctx, preset));
 
@@ -23,7 +23,7 @@ export async function renderHome(root, ctx) {
     root.append(listaUprav(ctx, preset));
   }
 
-  if (preset === "pudorys") {
+  if (ctx.model.dashboardTemplate === "pudorys" && preset === "pudorys") {
     await renderFloorplan(root, ctx);
     return;
   }
@@ -33,15 +33,15 @@ export async function renderHome(root, ctx) {
 
 function prepinacPloch(ctx, active) {
   return h("nav", { class: "dashboard-switch", "aria-label": t.settings.dashboard },
-    ["tuya", "home", "pudorys", "prehled"].map((preset) =>
+    (ctx.model.dashboards || []).map((dashboard) =>
       h("button", {
-        class: "dashboard-switch__item" + (active === preset ? " dashboard-switch__item--active" : ""),
+        class: "dashboard-switch__item" + (active === dashboard.id ? " dashboard-switch__item--active" : ""),
         type: "button",
-        text: t.presets[preset].name,
-        "aria-current": active === preset ? "page" : null,
+        text: dashboard.name,
+        "aria-current": active === dashboard.id ? "page" : null,
         onclick: async () => {
-          if (active === preset) return;
-          await api.setPreset(preset);
+          if (active === dashboard.id) return;
+          await api.setPreset(dashboard.id);
           if (ctx.editing) ctx.stopEditing();
           await ctx.refresh();
         },
