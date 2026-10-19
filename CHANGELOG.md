@@ -2,6 +2,26 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.18.0]
+
+### Přidáno
+
+- Editor dashboardů má pracovní plochu a panel nastavení vybraného bloku.
+  Formulář se skládá podle typu bloku z metadat stávajícího registru.
+- Bloky lze tažením úchytu roztáhnout po sloupcích a změnit jejich výšku;
+  sousední bloky se v mřížce samy přeskládají. Blok lze zkopírovat.
+- Zpět a Znovu vrátí až 20 změn každého dashboardu. Historie je uložená
+  v osobním úložišti Home Assistanta a zahrnuje také značky půdorysu.
+- Otevřený dashboard se po úpravě na jiné obrazovce stejného účtu obnoví
+  přes existující připojení Home Assistanta.
+
+### Opraveno
+
+- Migrace uloženého plánku při startu zachovává měřítko, zobrazení,
+  zvýraznění a nastavené akce značek.
+- Přetahování nevytváří při opakovaném vykreslení trvalé posluchače pohybu
+  ukazatele na okně.
+
 ## [0.17.1]
 
 ### Změněno

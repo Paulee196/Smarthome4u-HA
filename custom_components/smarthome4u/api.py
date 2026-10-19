@@ -29,7 +29,7 @@ from homeassistant.helpers.translation import async_get_translations
 from homeassistant.loader import async_get_config_flows, async_get_integrations
 
 from . import builder, capability, config_files, floorplan_files, flows, refs, storage, system, templates
-from .const import API_BASE, DOMAIN, LANGUAGE, USER_DIR, USER_URL, VERSION
+from .const import API_BASE, DASHBOARD_EVENT, DOMAIN, LANGUAGE, USER_DIR, USER_URL, VERSION
 from .home import Home
 
 _LOGGER = logging.getLogger(__name__)
@@ -1420,10 +1420,10 @@ class FloorplanView(Sh4uView):
                     "y": round(y, 2),
                     **floorplan_style(self.hass, marker, room=True),
                 })
-        if ocistene is not None:
-            await settings.set_floorplan_points(ocistene)
-        if clean is not None:
-            await settings.set_floorplan_rooms(clean)
+        await settings.set_floorplan_markers(ocistene, clean)
+        self.hass.bus.async_fire(DASHBOARD_EVENT, {
+            "user_id": request["hass_user"].id, "preset": storage.PRESET_PUDORYS,
+        })
 
         return web.json_response({"ok": True})
 
@@ -1528,6 +1528,9 @@ class FloorplanImageView(Sh4uView):
 
         await self.hass.async_add_executor_job(zapsat)
         await settings.set_floorplan_image(nazev)
+        self.hass.bus.async_fire(DASHBOARD_EVENT, {
+            "user_id": None, "preset": storage.PRESET_PUDORYS,
+        })
 
         def uklidit() -> None:
             stare = list(slozka.glob("pudorys-*"))
@@ -1771,7 +1774,44 @@ class DashboardView(Sh4uView):
             ocistene.append(novy)
 
         await settings.set_board(preset, sloupce, ocistene)
+        self.hass.bus.async_fire(DASHBOARD_EVENT, {
+            "user_id": request["hass_user"].id, "preset": preset,
+        })
         return web.json_response({"ok": True})
+
+
+class DashboardHistoryView(Sh4uView):
+    """Undo/redo of presentation only, isolated by HA account and preset."""
+
+    url = f"{API_BASE}/dashboard/history"
+    name = "api:smarthome4u:dashboard:history"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        settings = self.presentation(request)
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+        preset = request.query.get("preset")
+        if preset not in storage.PRESETY:
+            raise ApiError("Neznámá podoba plochy.")
+        return web.json_response(settings.board_history(preset))
+
+    @handler
+    async def post(self, request: web.Request) -> web.Response:
+        settings = self.presentation(request)
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+        payload = await self.body(request)
+        preset = payload.get("preset")
+        direction = payload.get("direction")
+        if preset not in storage.PRESETY or direction not in ("undo", "redo"):
+            raise ApiError("Neplatný požadavek.")
+        if not await settings.restore_board(preset, direction):
+            raise ApiError("Není co vrátit.")
+        self.hass.bus.async_fire(DASHBOARD_EVENT, {
+            "user_id": request["hass_user"].id, "preset": preset,
+        })
+        return web.json_response(settings.board_history(preset))
 
 
 class FavoritesView(Sh4uView):
@@ -1910,6 +1950,7 @@ VIEWS = (
     FavoriteView,
     FavoritesView,
     DashboardView,
+    DashboardHistoryView,
 )
 
 

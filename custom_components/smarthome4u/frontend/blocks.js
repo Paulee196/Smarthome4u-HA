@@ -10,7 +10,7 @@
  */
 
 import { api } from "./api.js";
-import { editBlockAppearance } from "./appearance.js";
+import { COLORS, ICONS } from "./appearance.js";
 import { t } from "./i18n.js";
 import { card } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
@@ -22,11 +22,18 @@ import {
   closeDialog,
   dialog,
   emptyState,
+  field,
+  selectInput,
+  textInput,
   toast,
 } from "./ui.js";
 
 /* Sloupce plochy. Víc než čtyři se nevejdou ani na velkou obrazovku. */
 export const MAX_SLOUPCU = 4;
+const EDIT_COMMON = ["title", "icon", "color", "height", "cols"];
+let selectedBlock = null;
+let saveQueue = Promise.resolve();
+let saveRevision = 0;
 
 /* ------------------------------------------------------------------ */
 /* Definice bloků                                                      */
@@ -36,23 +43,25 @@ export const MAX_SLOUPCU = 4;
    ploše po něm nezůstane prázdné místo - kromě režimu úprav, kde musí
    být vidět, aby se s ním dalo hnout. */
 export const BLOKY = {
-  headline: { glyf: "home", render: (ctx, blok) => nadpisPlochy(ctx, blok) },
-  clock: { glyf: "home", render: (ctx) => hodiny(ctx) },
-  status: { glyf: "lighting", render: (ctx) => stavDomu(ctx) },
-  metric: { glyf: "lighting", render: (ctx, blok) => metrika(ctx, blok) },
-  alerts: { glyf: "security", render: (ctx, blok, ulozit) => upozorneni(ctx, blok, ulozit) },
-  open: { glyf: "window", render: (ctx, blok, ulozit) => otevrene(ctx, blok, ulozit) },
-  playing: { glyf: "media", render: (ctx) => prehravac(ctx) },
-  lights: { glyf: "lighting", render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
-  scenes: { glyf: "scenes", render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
-  rooms: { glyf: "rooms", render: (ctx) => mistnosti(ctx) },
-  actions: { glyf: "home", render: (ctx) => rychleAkce(ctx) },
+  headline: { glyf: "home", fields: [...EDIT_COMMON, "subtitle"], render: (ctx, blok) => nadpisPlochy(ctx, blok) },
+  clock: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => hodiny(ctx) },
+  status: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx) => stavDomu(ctx) },
+  metric: { glyf: "lighting", fields: [...EDIT_COMMON, "metric"], render: (ctx, blok) => metrika(ctx, blok) },
+  alerts: { glyf: "security", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => upozorneni(ctx, blok, ulozit) },
+  open: { glyf: "window", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => otevrene(ctx, blok, ulozit) },
+  playing: { glyf: "media", fields: EDIT_COMMON, render: (ctx) => prehravac(ctx) },
+  lights: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
+  scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
+  rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
+  actions: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => rychleAkce(ctx) },
   entities: {
     glyf: "devices",
+    fields: EDIT_COMMON,
     render: (ctx, blok, ulozit) => zarizeni(ctx, blok, ulozit),
   },
   room: {
     glyf: "rooms",
+    fields: EDIT_COMMON,
     render: (ctx, blok, ulozit) => zarizeni(ctx, blok, ulozit),
   },
 };
@@ -191,12 +200,32 @@ export function vykreslitPlochu(root, ctx) {
     root.append(listaSloupcu(sloupce, (n) => ulozit({ columns: n })));
   }
 
+  const workspace = ctx.editing ? h("div", { class: "dashboard-editor" }) : root;
+  if (ctx.editing) root.append(workspace);
   const plocha = h("div", { class: "plocha plocha--" + preset });
   plocha.style.setProperty("--sloupce", String(sloupce));
-  root.append(plocha);
+  workspace.append(plocha);
+  const panel = ctx.editing ? h("aside", {
+    class: "dashboard-editor__panel", "aria-label": t.editor.properties,
+  }) : null;
+  if (ctx.editing && (!selectedBlock || selectedBlock.preset !== preset
+    || !bloky.some((block) => block.id === selectedBlock.id))) {
+    selectedBlock = { preset, id: bloky[0]?.id || null };
+  }
+  const selectBlock = (id) => {
+    selectedBlock = { preset, id };
+    for (const child of plocha.children) {
+      child.classList.toggle("blok--vybrany", Boolean(id)
+        && child.getAttribute(ATRIBUT_KLICE) === id);
+    }
+    panel?.replaceChildren(renderBlockPanel(ctx, bloky, sloupce,
+      bloky.find((block) => block.id === id), (next) => ulozit({ blocks: next })));
+  };
 
   for (const blok of bloky) {
-    const prvek = jedenBlok(ctx, blok, bloky, sloupce, (b) => ulozit({ blocks: b }));
+    const prvek = jedenBlok(ctx, blok, bloky, sloupce,
+      (b) => ulozit({ blocks: b }), () => selectBlock(blok.id),
+      selectedBlock?.preset === preset && selectedBlock.id === blok.id);
     if (prvek) plocha.append(prvek);
   }
 
@@ -206,6 +235,8 @@ export function vykreslitPlochu(root, ctx) {
       const podleId = new Map(bloky.map((b) => [b.id, b]));
       ulozit({ blocks: poradi.map((id) => podleId.get(id)).filter(Boolean) });
     });
+    workspace.append(panel);
+    selectBlock(selectedBlock?.id || null);
   } else if (!plocha.children.length) {
     plocha.append(emptyState(t.editor.emptyBoard));
   }
@@ -235,7 +266,7 @@ function listaSloupcu(sloupce, onZmena) {
   ]);
 }
 
-function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
+function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, selected) {
   const definice = BLOKY[blok.type];
   if (!definice) return null;
 
@@ -271,7 +302,12 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
     return obsah;
   }
 
-  const obal = h("div", { class: "blok plocha__blok" }, [
+  const obal = h("div", {
+    class: "blok plocha__blok" + (selected ? " blok--vybrany" : ""),
+    onclick: (event) => {
+      if (!event.target.closest("button, input, select, textarea")) onSelect();
+    },
+  }, [
     h("div", { class: "blok__lista" }, [
       h("button", {
         class: "dnd__uchyt", type: "button", "data-dnd-handle": "",
@@ -283,7 +319,7 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
         type: "button",
         text: blok.title || t.blocks[blok.type],
         title: t.editor.blockAppearance,
-        onclick: () => editBlockAppearance(blok, nahradit, NABIDKA),
+        onclick: onSelect,
       }),
       h("button", {
         class: "blok__akce",
@@ -300,6 +336,12 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
         "aria-label": t.editor.removeBlock,
         onclick: () => ulozit(bloky.filter((b) => b.id !== blok.id)),
       }),
+      h("button", {
+        class: "blok__akce blok__resize", type: "button", text: "↘",
+        "aria-label": `${t.editor.size}: ${blok.title || t.blocks[blok.type]}`,
+        title: t.editor.snapHint,
+        onpointerdown: (event) => resizeBlock(event, blok, sloupce, obal, nahradit),
+      }),
     ]),
     obsah || emptyState(t.editor.blockEmpty),
   ]);
@@ -307,6 +349,131 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit) {
   obal.style.setProperty("--sirka", String(sirka));
   obal.setAttribute(ATRIBUT_KLICE, blok.id);
   return obal;
+}
+
+function renderBlockPanel(ctx, blocks, columns, block, save) {
+  const panel = h("div", { class: "dashboard-editor__fields" });
+  panel.append(h("h2", { text: t.editor.properties }));
+  if (!block) {
+    panel.append(emptyState(t.editor.chooseBlock));
+    return panel;
+  }
+  panel.append(h("p", { class: "muted", text: t.blocksHint[block.type] || "" }));
+  let draft = { ...block };
+  const update = (patch) => {
+    draft = { ...draft, ...patch };
+    save(blocks.map((item) => item.id === block.id ? draft : item));
+  };
+  const select = (choices, current, key, label) => {
+    const input = selectInput(choices, current);
+    input.addEventListener("change", () => update({ [key]: input.value }));
+    return field(label, input);
+  };
+  const fields = {
+    title: () => {
+      const input = textInput(block.title || "", t.blocks[block.type]);
+      input.maxLength = 60;
+      input.addEventListener("change", () => update({ title: input.value.trim() }));
+      return field(t.editor.label, input);
+    },
+    subtitle: () => {
+      const input = textInput(block.subtitle || "", t.editor.subtitle);
+      input.maxLength = 120;
+      input.addEventListener("change", () => update({ subtitle: input.value.trim() }));
+      return field(t.editor.subtitle, input);
+    },
+    icon: () => select([{ value: "", label: t.editor.automatic },
+      ...ICONS.map((value) => ({ value, label: t.editor.icons[value] }))],
+    block.icon || "", "icon", t.editor.icon),
+    color: () => select(COLORS.map((value) => ({ value, label: t.editor.colors[value] })),
+      block.color || "default", "color", t.editor.color),
+    height: () => select([
+      { value: "compact", label: t.editor.heightCompact },
+      { value: "normal", label: t.editor.heightNormal },
+      { value: "large", label: t.editor.heightLarge },
+    ], block.height || "normal", "height", t.editor.blockHeight),
+    cols: () => {
+      const input = selectInput(Array.from({ length: columns }, (_, index) => ({
+        value: String(index + 1), label: t.editor.width(index + 1, columns),
+      })), String(Math.min(columns, Math.max(1, block.cols || 1))));
+      input.addEventListener("change", () => update({ cols: Number(input.value) }));
+      return field(t.editor.columns, input);
+    },
+    metric: () => select(Object.keys(t.metrics).map((value) => ({
+      value, label: t.metrics[value],
+    })), block.metric || "lightsOn", "metric", t.editor.metricSource),
+  };
+  for (const key of BLOKY[block.type]?.fields || []) panel.append(fields[key]());
+  if (block.type === "entities" || block.type === "room") {
+    panel.append(h("p", { class: "muted", text: t.editor.contentOnCanvas }));
+  }
+  panel.append(h("div", { class: "stack" }, [
+    button(t.editor.duplicate, () => {
+      const copy = { ...structuredClone(block),
+        id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}` };
+      selectedBlock = { preset: ctx.model.preset || "tuya", id: copy.id };
+      const index = blocks.findIndex((item) => item.id === block.id);
+      save([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
+    }, "button--ghost"),
+    button(t.editor.removeBlock, () => save(blocks.filter((item) => item.id !== block.id)),
+      "button--ghost"),
+  ]));
+  return panel;
+}
+
+function resizeBlock(event, block, columns, element, save) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const handle = event.currentTarget;
+  const pointerId = event.pointerId;
+  handle.setPointerCapture?.(pointerId);
+  const initialColumns = Math.min(columns, Math.max(1, block.cols || 1));
+  const heights = ["compact", "normal", "large"];
+  const initialHeight = heights.indexOf(block.height || "normal");
+  const bounds = element.parentElement.getBoundingClientRect();
+  const gap = parseFloat(getComputedStyle(element.parentElement).columnGap) || 0;
+  const unit = (bounds.width + gap) / columns;
+  let nextColumns = initialColumns;
+  let nextHeight = heights[Math.max(0, initialHeight)];
+  const content = element.querySelector(".dashboard-block");
+  function move(next) {
+    if (next.pointerId !== pointerId) return;
+    nextColumns = window.matchMedia("(min-width: 900px)").matches
+      ? Math.min(columns, Math.max(1,
+        initialColumns + Math.round((next.clientX - event.clientX) / unit)))
+      : initialColumns;
+    nextHeight = heights[Math.min(2, Math.max(0,
+      initialHeight + Math.round((next.clientY - event.clientY) / 70)))];
+    element.style.setProperty("--sirka", String(nextColumns));
+    if (content) {
+      content.classList.remove(...heights.map((value) => `dashboard-block--${value}`));
+      content.classList.add(`dashboard-block--${nextHeight}`);
+    }
+  }
+  function end(next) {
+    if (next.pointerId !== pointerId) return;
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", cancel);
+    if (nextColumns !== initialColumns || nextHeight !== (block.height || "normal")) {
+      save({ ...block, cols: nextColumns, height: nextHeight });
+    }
+  }
+  function cancel(next) {
+    if (next.pointerId !== pointerId) return;
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", cancel);
+    element.style.setProperty("--sirka", String(initialColumns));
+    if (content) {
+      content.classList.remove(...heights.map((value) => `dashboard-block--${value}`));
+      content.classList.add(`dashboard-block--${block.height || "normal"}`);
+    }
+  }
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", cancel);
 }
 
 function pridatBlok(ctx, bloky, ulozit) {
@@ -374,17 +541,17 @@ function novyBlok(typ) {
 }
 
 async function ulozitSestavu(ctx, sestava) {
-  try {
-    await api.saveDashboard(
-      ctx.model.preset || "tuya",
-      sestava.columns,
-      sestava.blocks,
-    );
-    toast(t.notice.saved);
-    await ctx.refresh();
-  } catch (error) {
-    toast(error.message, true);
-  }
+  const revision = ++saveRevision;
+  const preset = ctx.model.preset || "tuya";
+  const task = saveQueue.catch(() => {}).then(async () => {
+    await api.saveDashboard(preset, sestava.columns, sestava.blocks);
+    if (revision === saveRevision) {
+      toast(t.notice.saved);
+      await ctx.refresh();
+    }
+  }).catch((error) => toast(error.message, true));
+  saveQueue = task;
+  await task;
 }
 
 /* ------------------------------------------------------------------ */

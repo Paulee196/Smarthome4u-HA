@@ -27,7 +27,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.smarthome4u import storage
-from custom_components.smarthome4u.const import DOMAIN, PANEL_URL, STATIC_URL
+from custom_components.smarthome4u.const import DASHBOARD_EVENT, DOMAIN, PANEL_URL, STATIC_URL
 
 
 @pytest.fixture
@@ -390,6 +390,20 @@ async def test_pudorys(
     assert {"scene.vecer", "input_boolean.rezim"} <= {
         item["id"] for item in plan["entities"]
     }
+    response = await client.post(
+        "/api/smarthome4u/dashboard/history",
+        json={"preset": "pudorys", "direction": "undo"},
+    )
+    assert response.status == 200
+    previous = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert previous["points"][0]["scale"] == 100
+    response = await client.post(
+        "/api/smarthome4u/dashboard/history",
+        json={"preset": "pudorys", "direction": "redo"},
+    )
+    assert response.status == 200
+    restored = await (await client.get("/api/smarthome4u/floorplan")).json()
+    assert restored["points"][0]["scale"] == 150
 
     response = await client.post(
         "/api/smarthome4u/floorplan",
@@ -702,6 +716,8 @@ async def test_plocha_po_blocich(
 
     odpoved = await client.post("/api/smarthome4u/preset", json={"preset": "prehled"})
     assert odpoved.status == 200
+    layout_events = []
+    hass.bus.async_listen(DASHBOARD_EVENT, lambda event: layout_events.append(event.data))
 
     sestava = [
         {"id": "b1", "type": "status", "cols": 3, "icon": "home", "color": "mint"},
@@ -724,6 +740,8 @@ async def test_plocha_po_blocich(
         json={"preset": "prehled", "columns": 3, "blocks": sestava},
     )
     assert odpoved.status == 200, await odpoved.text()
+    await hass.async_block_till_done()
+    assert layout_events[-1]["preset"] == "prehled"
 
     model = await (await client.get("/api/smarthome4u/model")).json()
     sestava = model["board"]
@@ -741,10 +759,29 @@ async def test_plocha_po_blocich(
     }
     assert sestava["blocks"][1]["title"] == "Moje"
 
+    # Historie je součástí vlastního Store a umí obnovit i výchozí sestavu.
+    history = await (await client.get(
+        "/api/smarthome4u/dashboard/history?preset=prehled"
+    )).json()
+    assert history == {"undo": True, "redo": False}
+    response = await client.post(
+        "/api/smarthome4u/dashboard/history",
+        json={"preset": "prehled", "direction": "undo"},
+    )
+    assert response.status == 200
+    assert (await (await client.get("/api/smarthome4u/model")).json())["board"] is None
+    response = await client.post(
+        "/api/smarthome4u/dashboard/history",
+        json={"preset": "prehled", "direction": "redo"},
+    )
+    assert response.status == 200
+    assert (await (await client.get("/api/smarthome4u/model")).json())["board"] == sestava
+
     # Nová instance čte tentýž soubor - tohle je ten restart.
     nove = storage.Settings(hass)
     await nove.load()
     assert len(nove.board("prehled")["blocks"]) == 2
+    assert nove.board_history("prehled")["undo"]
     # Ostatní podoby plochy se tím nezměnily.
     assert nove.board("panel") is None
 
@@ -848,7 +885,11 @@ async def test_pudorys_prezije_prejmenovani_entity(
     client = await hass_client()
     odpoved = await client.post(
         "/api/smarthome4u/floorplan",
-        json={"points": [{"entityId": entry_record.entity_id, "x": 10, "y": 20}]},
+        json={"points": [{
+            "entityId": entry_record.entity_id, "x": 10, "y": 20,
+            "display": "icon", "scale": 140,
+            "actions": {"hold": {"mode": "details", "entityRef": entry_record.entity_id}},
+        }]},
     )
     assert odpoved.status == 200, await odpoved.text()
 
@@ -866,6 +907,13 @@ async def test_pudorys_prezije_prejmenovani_entity(
         "y": 20,
     }
     assert point["feedbackRef"] == entry_record.id
+    assert point["display"] == "icon"
+    assert point["scale"] == 140
+    assert point["actions"]["hold"]["entityRef"] == entry_record.id
+    restored = storage.Settings(hass)
+    await restored.load()
+    assert restored.floorplan["points"][0]["scale"] == 140
+    assert restored.floorplan["points"][0]["actions"]["hold"]["entityRef"] == entry_record.id
 
 
 async def test_svetlo_je_jen_svetlo(

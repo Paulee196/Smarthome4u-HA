@@ -74,6 +74,8 @@ VYCHOZI: dict[str, Any] = {
     # Plocha po blocích, zvlášť pro každou podobu dashboardu.
     # Prázdné znamená "použij výchozí sestavu", ne "prázdná plocha".
     "dashboard": {},
+    # Poslední úpravy každé podoby plochy; jen layout, nikdy stav zařízení.
+    "dashboardHistory": {},
 }
 
 
@@ -167,19 +169,26 @@ class Settings:
                 if not isinstance(point, dict):
                     continue
                 ref = point.get("entityRef") or point.get("entityId")
-                fixed.append(
-                    {
-                        **{
-                            key: point[key]
-                            for key in ("label", "icon", "color", "size")
-                            if key in point
-                        },
-                        "entityRef": norm(ref),
-                        "x": point.get("x"),
-                        "y": point.get("y"),
-                    }
-                )
+                updated = dict(point)
+                updated.pop("entityId", None)
+                updated["entityRef"] = norm(ref)
+                if updated.get("feedbackRef"):
+                    updated["feedbackRef"] = norm(updated["feedbackRef"])
+                actions = updated.get("actions")
+                for action in actions.values() if isinstance(actions, dict) else []:
+                    if isinstance(action, dict) and action.get("entityRef"):
+                        action["entityRef"] = norm(action["entityRef"])
+                fixed.append(updated)
             floorplan["points"] = fixed
+        for marker in floorplan.get("rooms", []):
+            if not isinstance(marker, dict):
+                continue
+            if marker.get("feedbackRef"):
+                marker["feedbackRef"] = norm(marker["feedbackRef"])
+            actions = marker.get("actions")
+            for action in actions.values() if isinstance(actions, dict) else []:
+                if isinstance(action, dict) and action.get("entityRef"):
+                    action["entityRef"] = norm(action["entityRef"])
 
         dashboard = data.setdefault("dashboard", {})
         if isinstance(dashboard, dict):
@@ -325,11 +334,53 @@ class Settings:
 
     async def set_board(self, preset: str, sloupce: int, bloky: list[dict]) -> None:
         """Celá sestava najednou - kvůli přeskládání i mazání."""
-        self.data.setdefault("dashboard", {})[preset] = {
-            "columns": sloupce,
-            "blocks": bloky,
-        }
+        boards = self.data.setdefault("dashboard", {})
+        current = {"columns": sloupce, "blocks": bloky}
+        if boards.get(preset) == current:
+            return
+        self._remember_board(preset)
+        boards[preset] = current
         await self.save()
+
+    def _board_snapshot(self, preset: str) -> dict:
+        result = {"board": deepcopy(self.data.get("dashboard", {}).get(preset))}
+        if preset == PRESET_PUDORYS:
+            result["points"] = deepcopy(self.floorplan["points"])
+            result["rooms"] = deepcopy(self.floorplan["rooms"])
+        return result
+
+    def _remember_board(self, preset: str) -> None:
+        history = self.data.setdefault("dashboardHistory", {}).setdefault(
+            preset, {"undo": [], "redo": []}
+        )
+        history["undo"] = [*history.get("undo", []), self._board_snapshot(preset)][-20:]
+        history["redo"] = []
+
+    def board_history(self, preset: str) -> dict[str, bool]:
+        history = self.data.get("dashboardHistory", {}).get(preset, {})
+        return {"undo": bool(history.get("undo")), "redo": bool(history.get("redo"))}
+
+    async def restore_board(self, preset: str, direction: str) -> bool:
+        """Restore a previously validated layout from this user's own Store."""
+        if direction not in ("undo", "redo"):
+            return False
+        history = self.data.get("dashboardHistory", {}).get(preset, {})
+        source = history.get(direction, [])
+        if not source:
+            return False
+        boards = self.data.setdefault("dashboard", {})
+        target = "redo" if direction == "undo" else "undo"
+        history[target] = [*history.get(target, []), self._board_snapshot(preset)][-20:]
+        previous = source.pop()
+        if previous["board"] is None:
+            boards.pop(preset, None)
+        else:
+            boards[preset] = previous["board"]
+        if preset == PRESET_PUDORYS:
+            self.floorplan["points"] = previous["points"]
+            self.floorplan["rooms"] = previous["rooms"]
+        await self.save()
+        return True
 
     # ------------------------------------------------------------------
     # Rozvržení dashboardu
@@ -418,6 +469,21 @@ class Settings:
         self.floorplan["rooms"] = body
         await self.save()
 
+    async def set_floorplan_markers(
+        self, points: list[dict] | None, rooms: list[dict] | None,
+    ) -> None:
+        """Save validated markers together and keep one reversible revision."""
+        if (points is None or self.floorplan["points"] == points) and (
+            rooms is None or self.floorplan["rooms"] == rooms
+        ):
+            return
+        self._remember_board(PRESET_PUDORYS)
+        if points is not None:
+            self.floorplan["points"] = points
+        if rooms is not None:
+            self.floorplan["rooms"] = rooms
+        await self.save()
+
     # ------------------------------------------------------------------
     # Oblíbené
     # ------------------------------------------------------------------
@@ -459,6 +525,8 @@ class UserPresentation(Settings):
                 "kiosk", "landing", "bigControls",
             )
         }
+        if self._new:
+            self.data["dashboardHistory"] = {}
 
     @property
     def preset(self) -> str:

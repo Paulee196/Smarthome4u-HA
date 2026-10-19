@@ -108,6 +108,9 @@ export function povolitPretahovani(kontejner, onZmena) {
   }
 
   function uklidit() {
+    window.removeEventListener("pointermove", naPohyb);
+    window.removeEventListener("pointerup", naPusteni);
+    window.removeEventListener("pointercancel", uklidit);
     if (tazeny) {
       tazeny.classList.remove("dnd--taheny");
       tazeny.removeAttribute("style");
@@ -144,6 +147,7 @@ export function povolitPretahovani(kontejner, onZmena) {
   }
 
   function naStisk(udalost) {
+    if (tazeny) return;
     if (udalost.button !== undefined && udalost.button !== 0) return;
 
     // Klepnutí na tlačítko uvnitř dlaždice není tažení.
@@ -168,6 +172,9 @@ export function povolitPretahovani(kontejner, onZmena) {
     }
 
     zvednout(prvek, udalost);
+    window.addEventListener("pointermove", naPohyb, { passive: false });
+    window.addEventListener("pointerup", naPusteni);
+    window.addEventListener("pointercancel", uklidit);
   }
 
   function naPohyb(udalost) {
@@ -181,15 +188,9 @@ export function povolitPretahovani(kontejner, onZmena) {
   }
 
   kontejner.addEventListener("pointerdown", naStisk);
-  window.addEventListener("pointermove", naPohyb, { passive: false });
-  window.addEventListener("pointerup", naPusteni);
-  window.addEventListener("pointercancel", uklidit);
 
   return () => {
     uklidit();
     kontejner.removeEventListener("pointerdown", naStisk);
-    window.removeEventListener("pointermove", naPohyb);
-    window.removeEventListener("pointerup", naPusteni);
-    window.removeEventListener("pointercancel", uklidit);
   };
 }

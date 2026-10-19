@@ -40,6 +40,14 @@ Vše v `home.py`.
 Model se nikde necachuje. Při každém požadavku se čte živý stav, takže nemůže
 vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.
 
+Historie úprav ploch (od 0.18.0) používá stejný veřejný
+`homeassistant.helpers.storage.Store` jako ostatní osobní rozvržení. Ukládá
+jen prezentaci, nejvýše 20 kroků na podobu plochy a účet; nepřidává další
+HA WebSocket, službu ani zdroj stavu zařízení. Po uložení vyvolá
+`hass.bus.async_fire` událost `smarthome4u_dashboard_changed` (veřejné API).
+Panel ji přijímá přes stávající HA frontend `connection.subscribeEvents`
+a mimo režim úprav obnoví právě otevřenou plochu stejného účtu.
+
 ---
 
 ## Zápisy

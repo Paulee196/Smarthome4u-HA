@@ -399,6 +399,13 @@ export const t = {
   flow: {
     next: "Pokračovat",
     done: "Hotovo",
+    undo: "Zpět",
+    redo: "Znovu",
+    duplicate: "Zkopírovat blok",
+    properties: "Nastavení bloku",
+    chooseBlock: "Vyberte blok na ploše a upravte ho zde.",
+    snapHint: "Bloky se přichytávají ke sloupcům a ostatní se automaticky posunou.",
+    contentOnCanvas: "Zařízení v tomto bloku upravíte přímo na pracovní ploše.",
     working: "Pracuji na tom…",
     addedTitle: "Přidáno",
     addedHint: "Zařízení najdete v sekci Zařízení. Můžete jim přiřadit místnost.",
@@ -714,8 +721,8 @@ export const t = {
   editor: {
     title: "Úprava plochy",
     hint:
-      "Chytněte blok za ⠿ a přetáhněte. Klepnutím na název ho přejmenujete, " +
-      "tlačítkem se šířkou roztáhnete, křížkem odeberete.",
+      "Blok přetáhněte za ⠿, velikost změňte za ↘. Klepnutím na název " +
+      "otevřete jeho nastavení vedle plochy. Změny se ukládají automaticky.",
     edit: "Upravit plochu",
     addBlock: "Přidat blok",
     removeBlock: "Odebrat blok",

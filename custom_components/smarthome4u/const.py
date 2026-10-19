@@ -1,7 +1,8 @@
 """Konstanty integrace Smarthome4u."""
 
 DOMAIN = "smarthome4u"
-VERSION = "0.17.1"
+VERSION = "0.18.0"
+DASHBOARD_EVENT = "smarthome4u_dashboard_changed"
 
 # Adresa panelu v postranní liště i v URL.
 PANEL_URL = "smarthome4u"

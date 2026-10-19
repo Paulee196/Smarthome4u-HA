@@ -24,6 +24,7 @@ class Smarthome4uPanel extends HTMLElement {
     this._pending = new Set();
     this._timer = null;
     this._unsubscribe = null;
+    this._unsubscribeLayout = null;
     this._kioskRequest = 0;
   }
 
@@ -72,6 +73,12 @@ class Smarthome4uPanel extends HTMLElement {
         .then((off) => typeof off === "function" && off())
         .catch(() => {});
       this._unsubscribe = null;
+    }
+    if (this._unsubscribeLayout) {
+      Promise.resolve(this._unsubscribeLayout)
+        .then((off) => typeof off === "function" && off())
+        .catch(() => {});
+      this._unsubscribeLayout = null;
     }
     clearTimeout(this._timer);
     clearInterval(this._clockTimer);
@@ -286,6 +293,11 @@ class Smarthome4uPanel extends HTMLElement {
         console.warn("[Smarthome4u] Změna stavu:", error);
       }
     }, "state_changed");
+    this._unsubscribeLayout = connection.subscribeEvents((event) => {
+      window.dispatchEvent(new CustomEvent("sh4u-layout-changed", {
+        detail: event?.data || {},
+      }));
+    }, "smarthome4u_dashboard_changed");
   }
 
   async _flush() {

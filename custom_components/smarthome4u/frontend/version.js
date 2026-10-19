@@ -4,4 +4,4 @@
  * aby šlo na první pohled poznat, jestli aktualizace doplňku opravdu proběhla.
  */
 
-export const APP_VERSION = "0.17.1";
+export const APP_VERSION = "0.18.0";

@@ -12,7 +12,7 @@ import { t } from "./i18n.js";
 import { api } from "./api.js";
 import { renderFloorplan } from "./view-floorplan.js";
 import { vykreslitPlochu } from "./blocks.js";
-import { h, button } from "./ui.js";
+import { h, button, toast } from "./ui.js";
 
 export async function renderHome(root, ctx) {
   const preset = ctx.model.preset || "tuya";
@@ -20,7 +20,7 @@ export async function renderHome(root, ctx) {
   root.append(prepinacPloch(ctx, preset));
 
   if (ctx.editing) {
-    root.append(listaUprav(ctx));
+    root.append(listaUprav(ctx, preset));
   }
 
   if (preset === "pudorys") {
@@ -53,12 +53,35 @@ function prepinacPloch(ctx, active) {
 /* Režim úprav                                                         */
 /* ------------------------------------------------------------------ */
 
-function listaUprav(ctx) {
+function listaUprav(ctx, preset) {
+  const undo = button(t.editor.undo, () => restore("undo"), "button--ghost");
+  const redo = button(t.editor.redo, () => restore("redo"), "button--ghost");
+  undo.disabled = true;
+  redo.disabled = true;
+  api.dashboardHistory(preset).then((state) => {
+    undo.disabled = !state.undo;
+    redo.disabled = !state.redo;
+  }).catch(() => {});
+  async function restore(direction) {
+    undo.disabled = true;
+    redo.disabled = true;
+    try {
+      await api.restoreDashboard(preset, direction);
+      await ctx.refresh();
+    } catch (error) {
+      toast(error.message, true);
+      const state = await api.dashboardHistory(preset).catch(() => ({}));
+      undo.disabled = !state.undo;
+      redo.disabled = !state.redo;
+    }
+  }
   return h("section", { class: "editbar" }, [
     h("div", { class: "editbar__text" }, [
       h("span", { class: "editbar__title", text: t.editor.title }),
       h("span", { class: "editbar__hint", text: t.editor.hint }),
     ]),
-    button(t.editor.done, () => ctx.stopEditing()),
+    h("div", { class: "row editbar__actions" }, [
+      undo, redo, button(t.editor.done, () => ctx.stopEditing()),
+    ]),
   ]);
 }

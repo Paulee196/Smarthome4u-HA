@@ -97,7 +97,7 @@ const ctx = {
   },
   stopEditing() {
     state.editing = false;
-    bezpecne(draw());
+    bezpecne(loadModel());
   },
 };
 
@@ -129,6 +129,12 @@ export function mount(root) {
 
   window.addEventListener("location-changed", onRouteChange);
   window.addEventListener("popstate", onRouteChange);
+  window.addEventListener("sh4u-layout-changed", (event) => {
+    if (state.editing || state.route !== "home" || !state.model) return;
+    if (event.detail?.preset !== state.model.preset) return;
+    if (event.detail?.user_id && event.detail.user_id !== state.model.user?.id) return;
+    bezpecne(loadModel());
+  });
 
   loadModel();
 }

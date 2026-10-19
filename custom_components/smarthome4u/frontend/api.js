@@ -162,6 +162,9 @@ export const api = {
   saveFavorites: (entities) => request("POST", "favorites", { entities }),
   saveDashboard: (preset, columns, blocks) =>
     request("POST", "dashboard", { preset, columns, blocks }),
+  dashboardHistory: (preset) => request("GET", `dashboard/history?preset=${enc(preset)}`),
+  restoreDashboard: (preset, direction) =>
+    request("POST", "dashboard/history", { preset, direction }),
 
   templates: () => request("GET", "templates"),
   createAutomation: (body) => request("POST", "automations", body),

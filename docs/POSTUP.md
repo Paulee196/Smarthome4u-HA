@@ -3,8 +3,22 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 14. 10. 2026
-**Aktuální verze v kódu:** 0.17.1
+**Poslední aktualizace:** 19. 10. 2026
+**Aktuální verze v kódu:** 0.18.0
+
+## Inspirace Panalume a editor dashboardů 0.18.0
+
+- [x] Aktuální zdrojové kódy a licence Panalume prověřeny; porovnání a
+  hranice integrace jsou v `docs/PANALUME_REVIEW.md`. Bez kopírování kódu.
+- [x] Ke stávajícím mřížkovým dashboardům přibyl konfigurační panel,
+  metadata formulářů v registru bloků, tažení velikosti po sloupcích
+  a kopírování bloků. Mobil zůstává v jednom sloupci.
+- [x] Vlastní HA Store drží omezenou historii Zpět/Znovu pro každou podobu
+  plochy a účet. Rozmístění značek plánku se ukládá atomicky jako jedna změna.
+- [x] Uložená plocha se přes HA událost obnoví na dalších obrazovkách
+  téhož účtu, pokud právě nejsou v editoru.
+- [x] Migrace při startu už neodstraňuje nové vlastnosti značek plánku.
+- [ ] Vizuálně a dotykově ověřit editor v živém HA na telefonu i tabletu.
 
 ## Detail místnosti až po gestu 0.17.1
 
