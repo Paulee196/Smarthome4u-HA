@@ -82,6 +82,7 @@ VYCHOZI: dict[str, Any] = {
     "dashboards": None,
     "dashboardAssignments": {},
     "dashboardStartMigrated": False,
+    "floorplanTemplateMigrated": False,
 }
 
 
@@ -104,9 +105,10 @@ class Settings:
             self.data = {**deepcopy(VYCHOZI), **ulozene}
         self._migrate_dashboards(is_upgrade=isinstance(ulozene, dict))
         self._migrate_dashboard_start()
+        self._migrate_floorplan_template()
         self._migrate_entity_ids()
         if migrate_catalog or not isinstance(ulozene, dict) or not ulozene.get(
-            "dashboardStartMigrated"):
+            "dashboardStartMigrated") or not ulozene.get("floorplanTemplateMigrated"):
             await self.save()
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
@@ -208,6 +210,39 @@ class Settings:
         self.data["preset"] = "overview"
         self.data["dashboardStartMigrated"] = True
 
+    def _migrate_floorplan_template(self) -> None:
+        """Remove the old standalone floorplan without losing its shared content."""
+        if self.data.get("floorplanTemplateMigrated"):
+            return
+        self.data["dashboards"] = [item for item in self.dashboards
+                                   if item.get("id") != PRESET_PUDORYS]
+        if not self.dashboards:
+            self.dashboards.append(self._overview())
+        fallback = ("overview" if "overview" in self.dashboard_ids()
+                    else self.dashboards[0]["id"])
+        if self.data.get("preset") == PRESET_PUDORYS:
+            self.data["preset"] = fallback
+        for profile in self.data.get("profiles", {}).values():
+            if isinstance(profile, dict) and profile.get("preset") == PRESET_PUDORYS:
+                profile["preset"] = fallback
+        for user_id, assigned in self.data.get("dashboardAssignments", {}).items():
+            if assigned == PRESET_PUDORYS:
+                self.data["dashboardAssignments"][user_id] = fallback
+        # An imported personal layout remains a personal dashboard. Give it a
+        # floorplan block so its old template does not depend on the removed tab.
+        boards = self.data.setdefault("dashboard", {})
+        for item in self.dashboards:
+            if item.get("id", "").startswith("old-") and item.get("template") == PRESET_PUDORYS:
+                item["template"] = "blank"
+                board = self.board(item["id"])
+                blocks = list(board["blocks"]) if board else []
+                if not any(block.get("type") == "floorplan" for block in blocks
+                           if isinstance(block, dict)):
+                    blocks.insert(0, {"id": "floorplan", "type": "floorplan", "cols": 2})
+                boards[item["id"]] = {"columns": board["columns"] if board else 2,
+                                       "blocks": blocks}
+        self.data["floorplanTemplateMigrated"] = True
+
     @staticmethod
     def _overview() -> dict[str, str]:
         return {"id": "overview", "name": "Přehled domácnosti", "template": "overview"}
@@ -230,6 +265,8 @@ class Settings:
                 if item["id"] == default or item.get("ownerId") == user_id]
 
     def can_edit_dashboard(self, user_id: str, role: str, ident: str) -> bool:
+        if ident == PRESET_PUDORYS and role == "admin":
+            return True  # Shared floorplan details are stored under this internal key.
         return any(item["id"] == ident and (role == "admin"
                    or item.get("ownerId") == user_id) for item in self.dashboards)
 

@@ -117,7 +117,7 @@ function popisStavu(stav) {
 const enc = encodeURIComponent;
 
 export const api = {
-  model: () => request("GET", "model"),
+  model: (initial = false) => request("GET", initial ? "model?initial=1" : "model"),
   section: (kind) => request("GET", `sections/${enc(kind)}`),
   entitiesBatch: (ids) => request("POST", "entities/batch", { ids }),
 

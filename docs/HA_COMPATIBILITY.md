@@ -43,6 +43,9 @@ vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.
 Historie úprav ploch používá veřejný `homeassistant.helpers.storage.Store`.
 Od 0.19.0 je historie vedena podle ID dashboardu; od 0.19.1 může být
 dashboard sdílený nebo vlastněný jedním účtem.
+Od 0.19.2 zůstává starý půdorys v interním úložišti jako zdroj šablony,
+ale není samostatnou položkou katalogu. Při otevření aplikace se přehled
+vybere z existujících dashboardů účtu.
 Ukládá jen prezentaci, nejvýše 20 kroků na plochu; nepřidává další
 HA WebSocket, službu ani zdroj stavu zařízení. Po uložení vyvolá
 `hass.bus.async_fire` událost `smarthome4u_dashboard_changed` (veřejné API).

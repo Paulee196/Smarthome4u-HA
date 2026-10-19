@@ -4,7 +4,17 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.19.1
+**Aktuální verze v kódu:** 0.19.2
+
+## Výchozí přehled a půdorys jako šablona 0.19.2
+
+- [x] Převod staré instalace odstraní samostatnou záložku Půdorys bez
+  smazání obrázku, značek, detailů místností a historie jejich úprav.
+- [x] Při otevření aplikace se vybere přehled domácnosti, pokud stále
+  existuje a je účtu dostupný. Smazání přehledu tuto volbu vypne;
+  obnovovací tlačítko v Nastavení jej může vrátit.
+- [x] Šablona půdorysu i blok plánku jsou dostupné při tvorbě vlastní plochy.
+- [ ] Ověřit vzhled a dotykové ovládání na živé instalaci po vydání.
 
 ## Úvodní přehled a vlastní plochy 0.19.1
 

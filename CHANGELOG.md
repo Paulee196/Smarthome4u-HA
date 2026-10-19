@@ -2,6 +2,18 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.2]
+
+### Opraveno
+
+- Starý půdorys se po aktualizaci nezobrazuje jako samostatný dashboard.
+  Obrázek, značky a detaily místností zůstávají uložené pro vložení plánku
+  do libovolné vlastní plochy.
+- Přehled domácnosti se otevírá při každém novém spuštění aplikace, dokud
+  jej uživatel nesmaže. Přepnutí plochy během práce zůstává zachované.
+- Šablonu půdorysu a blok plánku lze vložit i do vlastní plochy uživatele;
+  společný obsah plánku nadále upravuje správce.
+
 ## [0.19.1]
 
 ### Opraveno

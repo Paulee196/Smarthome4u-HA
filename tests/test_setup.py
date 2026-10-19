@@ -258,6 +258,12 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert model["preset"] == ident
     assert model["board"] == {"columns": 2, "blocks": []}
+    initial = await (await client.get("/api/smarthome4u/model?initial=1")).json()
+    assert initial["preset"] == "overview"
+    current = await (await client.get("/api/smarthome4u/model")).json()
+    assert current["preset"] == "overview"
+    switched = await client.post("/api/smarthome4u/preset", json={"preset": ident})
+    assert switched.status == 200
 
     renamed = await client.post("/api/smarthome4u/dashboards", json={
         "action": "rename", "id": ident, "name": "Ovládání",
@@ -270,6 +276,8 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     model = await (await client.get("/api/smarthome4u/model")).json()
     assert [item["name"] for item in model["dashboards"]] == ["Ovládání"]
     assert model["preset"] == ident
+    initial = await (await client.get("/api/smarthome4u/model?initial=1")).json()
+    assert initial["preset"] == ident
 
     restored = await client.post("/api/smarthome4u/dashboards", json={
         "action": "restoreOverview",
@@ -339,6 +347,34 @@ async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -
     old.data["preset"] = "pudorys"
     old._migrate_dashboard_start()
     assert old.preset == "pudorys"
+
+
+async def test_pudorys_se_prevede_na_sablonu_bez_ztraty_dat(
+    hass: HomeAssistant,
+) -> None:
+    """Starý půdorys zmizí ze záložek, ale obraz a značky zůstanou."""
+    settings = storage.Settings(hass)
+    settings._migrate_dashboards(is_upgrade=True)
+    settings._migrate_dashboard_start()
+    settings.data["preset"] = "pudorys"
+    settings.data["profiles"]["ucet-a"] = {"preset": "pudorys"}
+    settings.data["dashboardAssignments"]["ucet-a"] = "pudorys"
+    settings.data["floorplan"] = {"image": "/local/plan.png", "points": [
+        {"id": "svetlo", "x": 30, "y": 40}], "rooms": []}
+    settings.data["dashboard"]["pudorys"] = {"columns": 2, "blocks": [
+        {"id": "plan-room", "type": "room", "roomId": "obyvak"}]}
+    settings._migrate_floorplan_template()
+
+    assert "pudorys" not in settings.dashboard_ids()
+    assert settings.preset == "overview"
+    assert settings.data["profiles"]["ucet-a"]["preset"] == "overview"
+    assert settings.data["dashboardAssignments"]["ucet-a"] == "overview"
+    assert settings.data["floorplan"]["points"][0]["id"] == "svetlo"
+    assert settings.board("pudorys")["blocks"][0]["id"] == "plan-room"
+    assert settings.can_edit_dashboard("ucet-a", "admin", "pudorys")
+    assert not settings.can_edit_dashboard("ucet-a", "user", "pudorys")
+    settings._migrate_floorplan_template()
+    assert "pudorys" not in settings.dashboard_ids()
 
 
 async def test_prerazeni_entity(

@@ -512,7 +512,6 @@ function nabidnoutBloky(ctx, bloky, ulozit) {
   const seznam = h("div", { class: "stack" });
 
   for (const typ of NABIDKA) {
-    if (typ === "floorplan" && !ctx.muzeUpravitPlanek) continue;
     if (JEDNOU.has(typ) && pouzite.has(typ)) continue;
 
     seznam.append(

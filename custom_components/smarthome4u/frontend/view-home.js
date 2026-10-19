@@ -10,7 +10,6 @@
 
 import { t } from "./i18n.js";
 import { api } from "./api.js";
-import { renderFloorplan } from "./view-floorplan.js";
 import { vykreslitPlochu } from "./blocks.js";
 import { h, button, toast } from "./ui.js";
 
@@ -23,11 +22,6 @@ export async function renderHome(root, ctx) {
 
   if (ctx.editing) {
     root.append(listaUprav(ctx, preset));
-  }
-
-  if (ctx.model.dashboardTemplate === "pudorys" && preset === "pudorys") {
-    await renderFloorplan(root, ctx);
-    return;
   }
 
   vykreslitPlochu(root, ctx);

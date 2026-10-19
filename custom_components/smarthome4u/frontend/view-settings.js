@@ -299,7 +299,7 @@ function sekceDashboard(ctx, nastaveni) {
       const template = selectInput([
         { value: "blank", label: t.dashboardManager.blank },
         { value: "overview", label: t.dashboardManager.overview },
-        ...["tuya", "home", ...(jeSpravce ? ["pudorys"] : []), "prehled"].map((id) => ({
+        ...["tuya", "home", "pudorys", "prehled"].map((id) => ({
           value: id, label: t.presets[id].name,
         })),
       ], "blank");

@@ -47,6 +47,7 @@ const rezimKlic = () => `${REZIM_KLIC}.${state.model?.user?.id || "anonymous"}`;
 const state = { model: null, route: "home", editing: false, rezim: "user" };
 let el = null;
 let structureRefresh = null;
+let initialModelLoad = true;
 
 const ctx = {
   get model() {
@@ -288,7 +289,8 @@ function paintNav() {
 
 async function loadModel() {
   try {
-    state.model = await api.model();
+    state.model = await api.model(initialModelLoad);
+    initialModelLoad = false;
 
     // Režim se řídí přihlášeným účtem. Správce domácnosti nastavuje,
     // takže začíná v technickém režimu. Kdo není správce, technický

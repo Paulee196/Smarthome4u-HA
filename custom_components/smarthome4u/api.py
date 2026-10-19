@@ -222,6 +222,11 @@ class ModelView(Sh4uView):
         home = Home(self.hass, presentation)
         visible = settings.dashboards_for(user.id, self.role(request)) if settings else []
         selected = presentation.preset if presentation else "overview"
+        if request.query.get("initial") == "1" and any(
+                item["id"] == "overview" for item in visible):
+            if selected != "overview" and presentation is not None:
+                await presentation.set_preset("overview")
+            selected = "overview"
         if visible and selected not in {item["id"] for item in visible}:
             selected = visible[0]["id"]
         return web.json_response(
