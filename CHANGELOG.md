@@ -2,6 +2,21 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.1]
+
+### Opraveno
+
+- Po aktualizaci se jako úvodní plocha jednorázově otevře automatický přehled
+  Home Assistanta; původní půdorys zůstane dostupný jako samostatná plocha
+  a šablona pro nové dashboardy.
+- Nový dashboard lze založit z Domů i z Nastavení také v základním režimu.
+  Každý účet smí upravit své vlastní plochy; přiřazení ploch ostatním účtům
+  dál spravuje hlavní správce.
+- Tlačítko první značky na plánku otevře přímo výběr značky a polohy.
+- Změna zařazení světla už znovu nekreslí Nastavení a neposouvá stránku.
+- Automatický přehled má upravitelné dlaždice v místnostech. Jejich pořadí,
+  velikost a vzhled se ukládají, nové entity z HA se dál samy doplňují.
+
 ## [0.19.0]
 
 ### Změněno

@@ -29,6 +29,9 @@ import {
 let selectedRoomId = null;
 
 export async function renderFloorplan(root, ctx, { embedded = false } = {}) {
+  // Úpravy značek patří správci společného plánku. Majitel osobní plochy
+  // může blok přemístit, ale značky všech účtů tím měnit nesmí.
+  ctx = { ...ctx, editing: Boolean(ctx.editing && ctx.muzeUpravitPlanek) };
   let plan;
   try {
     plan = await api.floorplan();
@@ -37,7 +40,7 @@ export async function renderFloorplan(root, ctx, { embedded = false } = {}) {
     return;
   }
 
-  const jeTechnik = ctx.muzeUpravitPlochu && ctx.jeTechnik;
+  const jeTechnik = ctx.muzeUpravitPlanek;
   const rooms = floorplanRooms(ctx, plan);
 
   if (jeTechnik || ctx.editing) {
@@ -266,7 +269,7 @@ function platno(ctx, plan, rooms, selectRoom) {
     observer.observe(stage);
   } else window.addEventListener("resize", fit, { once: true });
 
-  if (ctx.editing) {
+  if (ctx.editing && ctx.muzeUpravitPlanek) {
     stage.append(h("p", { class: "floorplan-stage__hint", text: t.floorplan.editHint }));
     vrstva.classList.add("plan__vrstva--edit");
     vrstva.addEventListener("click", (event) => {
@@ -278,8 +281,9 @@ function platno(ctx, plan, rooms, selectRoom) {
       };
       vybratUmisteni(ctx, plan, coords);
     });
-  } else if (ctx.jeTechnik && !plan.points.length && !(plan.rooms || []).length) {
-    stage.append(button(t.floorplan.addFirst, () => ctx.startEditing()));
+  } else if (ctx.muzeUpravitPlanek && !plan.points.length && !(plan.rooms || []).length) {
+    stage.append(button(t.floorplan.addFirst,
+      () => vybratUmisteni(ctx, plan, { x: 50, y: 50 })));
   }
 
   for (const bod of plan.points) {

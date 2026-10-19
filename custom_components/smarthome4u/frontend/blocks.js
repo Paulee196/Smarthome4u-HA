@@ -53,8 +53,10 @@ export const BLOKY = {
   lights: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
   scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
-  auto_rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => automatickeMistnosti(ctx) },
-  floorplan: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => vlozenyPlanek(ctx) },
+  auto_rooms: { glyf: "rooms", fields: EDIT_COMMON,
+    render: (ctx, blok, ulozit) => automatickeMistnosti(ctx, blok, ulozit) },
+  floorplan: { glyf: "home", fields: EDIT_COMMON,
+    render: (ctx, blok) => vlozenyPlanek(ctx, blok) },
   actions: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => rychleAkce(ctx) },
   entities: {
     glyf: "devices",
@@ -105,7 +107,13 @@ const JEDNOU = new Set(["clock", "status", "rooms", "auto_rooms", "floorplan", "
 export function vychozi(preset, model) {
   if (preset === "overview") return {
     columns: 2,
-    blocks: [{ id: "auto-rooms", type: "auto_rooms", cols: 2 }],
+    blocks: [
+      { id: "overview-headline", type: "headline", cols: 2,
+        title: t.dashboardIntro.overview.title,
+        subtitle: t.dashboardIntro.overview.description },
+      { id: "overview-status", type: "status", cols: 2 },
+      { id: "auto-rooms", type: "auto_rooms", cols: 2 },
+    ],
   };
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
   const druhy = new Set(["light", "switch", "cover", "climate", "lock", "camera", "fan", "media_player"]);
@@ -504,6 +512,7 @@ function nabidnoutBloky(ctx, bloky, ulozit) {
   const seznam = h("div", { class: "stack" });
 
   for (const typ of NABIDKA) {
+    if (typ === "floorplan" && !ctx.muzeUpravitPlanek) continue;
     if (JEDNOU.has(typ) && pouzite.has(typ)) continue;
 
     seznam.append(
@@ -814,16 +823,40 @@ function mistnosti(ctx) {
   );
 }
 
-function automatickeMistnosti(ctx) {
+function automatickeMistnosti(ctx, blok, ulozit) {
   const rooms = ctx.model.rooms || [];
-  if (!rooms.length) return emptyState(t.rooms.empty);
-  return h("div", { class: "auto-rooms" }, rooms.map((room) => {
+  if (!rooms.length) return ramec(blok.title || t.blocks.auto_rooms,
+    "rooms", emptyState(t.rooms.empty));
+  const layouts = blok.roomLayouts || {};
+  return ramec(blok.title || t.blocks.auto_rooms, "rooms",
+    h("div", { class: "auto-rooms" }, rooms.map((room) => {
+    const key = String(room.id || "unassigned");
     const entities = room.entities || [];
-    const cards = h("div", { class: "cards" }, entities.slice(0, 8).map((entity) => card(entity)));
-    const more = entities.length > 8 ? button(t.dashboardManager.showMore(entities.length - 8), () => {
-      cards.replaceChildren(...entities.map((entity) => card(entity)));
-      more.remove();
-    }, "button--ghost") : null;
+    const refs = entities.map((entity) => ctx.entityRef(entity));
+    const saved = layouts[key] || {};
+    const ordered = (saved.entities || []).filter((ref) => refs.includes(ref));
+    const excluded = new Set(saved.excluded || []);
+    const visible = [...ordered, ...refs.filter((ref) =>
+      !ordered.includes(ref) && !excluded.has(ref))];
+    const tileBlock = { id: `auto-${key}`, type: "entities", entities: visible,
+      sizes: saved.sizes || {}, tileStyles: saved.tileStyles || {} };
+    const roomCtx = { ...ctx, model: { ...ctx.model, scenes: [] },
+      allEntities: () => entities };
+    const saveRoom = (next) => ulozit({ ...blok, roomLayouts: {
+      ...layouts, [key]: {
+        entities: next.entities || [],
+        excluded: refs.filter((ref) => !(next.entities || []).includes(ref)),
+        sizes: next.sizes || {}, tileStyles: next.tileStyles || {},
+      },
+    } });
+    const shown = ctx.editing ? tileBlock : { ...tileBlock, entities: visible.slice(0, 8) };
+    const cards = h("div", { class: "auto-rooms__tiles" },
+      mrizkaZarizeni(roomCtx, shown, saveRoom));
+    const more = !ctx.editing && visible.length > 8
+      ? button(t.dashboardManager.showMore(visible.length - 8), () => {
+        cards.replaceChildren(mrizkaZarizeni(roomCtx, tileBlock, saveRoom));
+        more.remove();
+      }, "button--ghost") : null;
     return h("section", { class: "panel auto-rooms__room" }, [
       h("div", { class: "panel__head" }, [
         h("span", { class: "panel__glyph" }, icon("rooms")),
@@ -833,15 +866,15 @@ function automatickeMistnosti(ctx) {
       cards,
       more,
     ]);
-  }));
+    })));
 }
 
-function vlozenyPlanek(ctx) {
+function vlozenyPlanek(ctx, blok) {
   const root = h("div", { class: "embedded-floorplan" });
   import("./view-floorplan.js").then(({ renderFloorplan }) =>
     renderFloorplan(root, ctx, { embedded: true })).catch((error) =>
       root.replaceChildren(emptyState(error.message)));
-  return root;
+  return ramec(blok.title || t.blocks.floorplan, "home", root);
 }
 
 function rychleAkce(ctx) {

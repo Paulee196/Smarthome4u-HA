@@ -239,6 +239,8 @@ class ModelView(Sh4uView):
                 "dashboards": visible,
                 "dashboardTemplate": next((item["template"] for item in visible
                                            if item["id"] == selected), "overview"),
+                "canEditDashboard": settings.can_edit_dashboard(
+                    user.id, self.role(request), selected) if settings else False,
                 "bigControls": presentation.big_controls if presentation else False,
                 # Sestava plochy. None znamená "použij výchozí sestavu".
                 "board": settings.board(selected) if settings else None,
@@ -1064,19 +1066,19 @@ class SettingsView(Sh4uView):
     name = "api:smarthome4u:settings"
 
     @handler
-    @technician
     async def get(self, request: web.Request) -> web.Response:
         settings = self.settings
         presentation = self.presentation(request)
         if settings is None:
             raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
 
-        users = {}
-        for user in await self.hass.auth.async_get_users():
-            if not user.system_generated and user.is_active:
-                users[user.id] = user.name
         visible = settings.dashboards_for(request["hass_user"].id, self.role(request))
         is_owner = self.role(request) == "admin"
+        users = {}
+        if is_owner:
+            for user in await self.hass.auth.async_get_users():
+                if not user.system_generated and user.is_active:
+                    users[user.id] = user.name
 
         return web.json_response(
             {
@@ -1089,7 +1091,7 @@ class SettingsView(Sh4uView):
                 ),
                 "unavailable": list(storage.PRIPRAVUJE_SE),
                 "adminUserId": settings.admin_user_id,
-                "roles": settings.data.get("roles", {}),
+                "roles": settings.data.get("roles", {}) if is_owner else {},
                 "kiosk": presentation.kiosk,
                 "landing": presentation.landing,
                 "bigControls": presentation.big_controls,
@@ -1098,8 +1100,8 @@ class SettingsView(Sh4uView):
                 ),
                 "users": [{"id": uid, "name": name} for uid, name in users.items()],
                 "kinds": list(capability.PRERADITELNE),
-                "overrides": settings.overrides,
-                "lights": self.home.light_candidates(),
+                "overrides": settings.overrides if is_owner else {},
+                "lights": self.home.light_candidates() if is_owner else [],
             }
         )
 
@@ -1178,30 +1180,39 @@ class PresetView(Sh4uView):
 
 
 class DashboardCatalogView(Sh4uView):
-    """The owner manages shared dashboards and assigns one to each account."""
+    """Accounts manage their own dashboards; the owner assigns shared ones."""
 
     url = f"{API_BASE}/dashboards"
     name = "api:smarthome4u:dashboards"
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
         payload = await self.body(request)
         action = payload.get("action")
         settings = self.settings
+        if settings is None:
+            raise ApiError("Nastavení není k dispozici.", 503, "not_ready")
+        user_id = request["hass_user"].id
+        role = self.role(request)
         if action == "create":
             name = self.name_of(payload)
             template = payload.get("template", "blank")
             if template not in ("blank", "overview", *storage.PRESETY):
                 raise ApiError("Neznámá šablona.")
-            ident = await settings.create_dashboard(name, template)
-            await settings.set_preset(ident)
+            ident = await settings.create_dashboard(
+                name, template, None if role == "admin" else user_id)
+            await self.presentation(request).set_preset(ident)
         elif action == "restoreOverview":
+            self.require_admin(request)
             ident = await settings.restore_overview()
         elif action in ("rename", "delete", "assign"):
             ident = payload.get("id")
             if ident not in settings.dashboard_ids():
                 raise ApiError("Dashboard už neexistuje.", 404, "unknown_dashboard")
+            if action == "assign":
+                self.require_admin(request)
+            elif not settings.can_edit_dashboard(user_id, role, ident):
+                raise ApiError("Tento dashboard nemůžete upravit.", 403, "forbidden")
             if action == "rename":
                 await settings.rename_dashboard(ident, self.name_of(payload))
             elif action == "delete":
@@ -1746,7 +1757,6 @@ class DashboardView(Sh4uView):
     name = "api:smarthome4u:dashboard"
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -1759,6 +1769,10 @@ class DashboardView(Sh4uView):
 
         if preset not in settings.dashboard_ids() and preset != storage.PRESET_PUDORYS:
             raise ApiError("Neznámá podoba plochy.")
+        if not settings.can_edit_dashboard(request["hass_user"].id,
+                                            self.role(request), preset):
+            if preset != storage.PRESET_PUDORYS or self.role(request) != "admin":
+                raise ApiError("Tento dashboard nemůžete upravit.", 403, "forbidden")
         if not isinstance(bloky, list) or len(bloky) > MAX_BLOKU:
             raise ApiError("Neplatná sestava plochy.")
         if not isinstance(sloupce, int) or not 1 <= sloupce <= MAX_SLOUPCU:
@@ -1830,6 +1844,37 @@ class DashboardView(Sh4uView):
                     and (clean := tile_style(raw))
                 }
 
+            if typ == "auto_rooms" and isinstance(blok.get("roomLayouts"), dict):
+                room_layouts = {}
+                for room_id, raw in list(blok["roomLayouts"].items())[:60]:
+                    if not isinstance(room_id, str) or len(room_id) > 80 \
+                            or not isinstance(raw, dict):
+                        continue
+                    layout = {}
+                    for key in ("entities", "excluded"):
+                        items = raw.get(key)
+                        if isinstance(items, list):
+                            layout[key] = [ref for item in items[:MAX_V_BLOKU]
+                                           if isinstance(item, str)
+                                           and (ref := refs.normalize_ref(self.hass, item))]
+                    sizes = raw.get("sizes")
+                    if isinstance(sizes, dict):
+                        layout["sizes"] = {
+                            ref: size for item, size in list(sizes.items())[:MAX_V_BLOKU]
+                            if isinstance(item, str) and size in VELIKOSTI_DLAZDIC
+                            and (ref := refs.normalize_ref(self.hass, item))
+                        }
+                    styles = raw.get("tileStyles")
+                    if isinstance(styles, dict):
+                        layout["tileStyles"] = {
+                            ref: clean for item, value in list(styles.items())[:MAX_V_BLOKU]
+                            if isinstance(item, str)
+                            and (ref := refs.normalize_ref(self.hass, item))
+                            and (clean := tile_style(value))
+                        }
+                    room_layouts[room_id] = layout
+                novy["roomLayouts"] = room_layouts
+
             ocistene.append(novy)
 
         await settings.set_board(preset, sloupce, ocistene)
@@ -1846,7 +1891,6 @@ class DashboardHistoryView(Sh4uView):
     name = "api:smarthome4u:dashboard:history"
 
     @handler
-    @admin
     async def get(self, request: web.Request) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -1854,10 +1898,13 @@ class DashboardHistoryView(Sh4uView):
         preset = request.query.get("preset")
         if preset not in settings.dashboard_ids() and preset != storage.PRESET_PUDORYS:
             raise ApiError("Neznámá podoba plochy.")
+        if not settings.can_edit_dashboard(request["hass_user"].id,
+                                            self.role(request), preset):
+            if preset != storage.PRESET_PUDORYS or self.role(request) != "admin":
+                raise ApiError("Tento dashboard nemůžete upravit.", 403, "forbidden")
         return web.json_response(settings.board_history(preset))
 
     @handler
-    @admin
     async def post(self, request: web.Request) -> web.Response:
         settings = self.settings
         if settings is None:
@@ -1868,6 +1915,10 @@ class DashboardHistoryView(Sh4uView):
         if (preset not in settings.dashboard_ids() and preset != storage.PRESET_PUDORYS
                 or direction not in ("undo", "redo")):
             raise ApiError("Neplatný požadavek.")
+        if not settings.can_edit_dashboard(request["hass_user"].id,
+                                            self.role(request), preset):
+            if preset != storage.PRESET_PUDORYS or self.role(request) != "admin":
+                raise ApiError("Tento dashboard nemůžete upravit.", 403, "forbidden")
         if not await settings.restore_board(preset, direction):
             raise ApiError("Není co vrátit.")
         self.hass.bus.async_fire(DASHBOARD_EVENT, {

@@ -34,14 +34,15 @@ Vše v `home.py`.
 | `hass.config_entries.async_entries` | Připojené integrace | veřejné |
 | `er.async_entries_for_device` | Entity jednoho zařízení | veřejné |
 | `device.primary_config_entry` | Vlastník zařízení (HA 2026.8+) | veřejné |
-| `request["hass_user"].id` | Přiřazení sdílené plochy účtu a kontrola role (HA 2026.8+) | veřejné |
+| `request["hass_user"].id` | Vlastnictví a přiřazení plochy účtu, kontrola role (HA 2026.8+) | veřejné |
 | `hass.auth.async_get_user` | Ověření účtu při přidělení technické role (HA 2026.8+) | veřejné |
 
 Model se nikde necachuje. Při každém požadavku se čte živý stav, takže nemůže
 vzniknout rozpor mezi tím, co vidíme my, a tím, co má Home Assistant.
 
 Historie úprav ploch používá veřejný `homeassistant.helpers.storage.Store`.
-Od 0.19.0 jsou sestavy sdílené a historie je vedena podle ID dashboardu.
+Od 0.19.0 je historie vedena podle ID dashboardu; od 0.19.1 může být
+dashboard sdílený nebo vlastněný jedním účtem.
 Ukládá jen prezentaci, nejvýše 20 kroků na plochu; nepřidává další
 HA WebSocket, službu ani zdroj stavu zařízení. Po uložení vyvolá
 `hass.bus.async_fire` událost `smarthome4u_dashboard_changed` (veřejné API).

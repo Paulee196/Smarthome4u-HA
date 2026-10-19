@@ -280,6 +280,33 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     assert model["board"] == {"columns": 2, "blocks": []}
 
 
+async def test_upravy_automatickych_mistnosti_se_ulozi(
+    hass: HomeAssistant, frontend_je_pripraveny, hass_client
+) -> None:
+    """Pořadí, vynechání a vzhled dlaždic mají stabilní reference."""
+    assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("light.test", "off", {"supported_color_modes": ["onoff"]})
+    entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    client = await hass_client()
+    board = [{"id": "auto-rooms", "type": "auto_rooms", "cols": 2,
+              "roomLayouts": {"room-a": {
+                  "entities": ["light.test"], "excluded": [],
+                  "sizes": {"light.test": "xl"},
+                  "tileStyles": {"light.test": {"label": "Strop", "color": "blue"}},
+              }}}]
+    response = await client.post("/api/smarthome4u/dashboard", json={
+        "preset": "overview", "columns": 2, "blocks": board,
+    })
+    assert response.status == 200, await response.text()
+    model = await (await client.get("/api/smarthome4u/model")).json()
+    layout = model["board"]["blocks"][0]["roomLayouts"]["room-a"]
+    assert layout["entities"] == ["entity:light.test"]
+    assert layout["sizes"] == {"entity:light.test": "xl"}
+
+
 async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -> None:
     """Přiřazení je podle účtu; upgrade zachová ručně upravené plochy."""
     settings = storage.Settings(hass)
@@ -303,6 +330,15 @@ async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -
     assert old.board("home")["blocks"][0]["id"] == "old"
     imported = old.dashboards_for("ucet-x", "user")[0]["id"]
     assert old.board(imported)["blocks"][0]["id"] == "mine"
+
+    # Jednorázový převod otevře automatický přehled místo naposledy
+    # zvoleného půdorysu. Pozdější ruční volbu už nepřepisuje.
+    old.data["preset"] = "pudorys"
+    old._migrate_dashboard_start()
+    assert old.preset == "overview"
+    old.data["preset"] = "pudorys"
+    old._migrate_dashboard_start()
+    assert old.preset == "pudorys"
 
 
 async def test_prerazeni_entity(

@@ -46,11 +46,6 @@ export async function renderSettings(root, ctx) {
   // Vzhled si volí každý sám, i kdo není správce.
   root.append(sekceMotiv());
 
-  if (!muzeNastavovat) {
-    root.append(emptyState(t.settings.onlyAdmin));
-    return;
-  }
-
   let nastaveni;
   try {
     nastaveni = await api.settings();
@@ -59,9 +54,10 @@ export async function renderSettings(root, ctx) {
     return;
   }
 
+  root.append(sekceDashboard(ctx, nastaveni));
+  if (!muzeNastavovat) return;
   root.append(sekceVzhled(ctx, nastaveni));
   if (!ctx.jeTechnik) return;
-  root.append(sekceDashboard(ctx, nastaveni));
   root.append(sekceSvetla(ctx, nastaveni));
   if (jeSpravce) {
     root.append(sekceSpravce(ctx, nastaveni));
@@ -224,11 +220,12 @@ function radekSvetla(ctx, polozka) {
       await api.classify(polozka.id, { kind });
       polozka.kind = kind;
       popis.textContent = popisek(polozka);
+      const entity = ctx.allEntities().find((item) => item.id === polozka.id);
+      if (entity?.capability) entity.capability.kind = kind;
       toast(t.notice.saved);
-      await ctx.refresh();
     } catch (error) {
       // Zpátky, ať přepínač neukazuje něco, co se neuložilo.
-      prepinac.checked = jeSvetlo;
+      prepinac.checked = polozka.kind === "light";
       toast(error.message, true);
     }
   });
@@ -261,14 +258,15 @@ function popisek(polozka) {
 function sekceDashboard(ctx, nastaveni) {
   const mrizka = h("div", { class: "grid-buttons" });
   const jeSpravce = ctx.model?.user?.role === "admin";
-  const dashboards = jeSpravce ? (nastaveni.dashboards || []) : (ctx.model.dashboards || []);
+  const dashboards = nastaveni.dashboards || [];
   async function change(body) {
     try {
       await api.dashboardCatalog(body);
       closeDialog();
       toast(t.notice.saved);
       await ctx.refresh();
-      ctx.navigate("settings");
+      if (body.action === "create") ctx.startEditing();
+      else ctx.navigate("settings");
     } catch (error) { toast(error.message, true); }
   }
   for (const dashboard of dashboards) {
@@ -281,7 +279,7 @@ function sekceDashboard(ctx, nastaveni) {
       } catch (error) { toast(error.message, true); }
     }, vybrany ? "button" : "button--ghost");
     const actions = [choose];
-    if (jeSpravce) {
+    if (jeSpravce || dashboard.ownerId === ctx.model?.user?.id) {
       actions.push(button(t.action.rename, () => {
         const name = textInput(dashboard.name);
         dialog(t.dashboardManager.rename, field(t.dashboardManager.name, name),
@@ -296,13 +294,12 @@ function sekceDashboard(ctx, nastaveni) {
   }
 
   const extra = [];
-  if (jeSpravce) {
-    extra.push(button(t.dashboardManager.create, () => {
+  extra.push(button(t.dashboardManager.create, () => {
       const name = textInput("", t.dashboardManager.name);
       const template = selectInput([
         { value: "blank", label: t.dashboardManager.blank },
         { value: "overview", label: t.dashboardManager.overview },
-        ...["tuya", "home", "pudorys", "prehled"].map((id) => ({
+        ...["tuya", "home", ...(jeSpravce ? ["pudorys"] : []), "prehled"].map((id) => ({
           value: id, label: t.presets[id].name,
         })),
       ], "blank");
@@ -310,7 +307,8 @@ function sekceDashboard(ctx, nastaveni) {
         field(t.dashboardManager.name, name), field(t.dashboardManager.template, template),
       ]), button(t.action.create, () => change({ action: "create",
         name: name.value.trim(), template: template.value })));
-    }));
+  }));
+  if (jeSpravce) {
     if (!dashboards.some((item) => item.id === "overview")) {
       extra.push(button(t.dashboardManager.restoreOverview,
         () => change({ action: "restoreOverview" }), "button--ghost"));
@@ -332,7 +330,8 @@ function sekceDashboard(ctx, nastaveni) {
     mrizka,
     ...extra,
     h("div", { class: "row" }, [
-      jeSpravce && button(t.settings.editDashboard, () => ctx.startEditing(), "button--ghost"),
+      ctx.muzeUpravitPlochu && button(t.settings.editDashboard,
+        () => ctx.startEditing(), "button--ghost"),
       nastaveni.hasLayout &&
         button(
           t.settings.resetLayout,

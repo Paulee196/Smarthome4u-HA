@@ -161,3 +161,42 @@ async def test_user_cannot_edit_shared_board_or_devices(hass: HomeAssistant) -> 
         Request("installer", {"role": "technician"}), "member"
     )
     assert response.status == 403
+
+
+async def test_user_can_create_and_edit_own_dashboard(hass: HomeAssistant) -> None:
+    class Request(dict):
+        def __init__(self, user_id: str, payload: dict):
+            super().__init__(hass_user=SimpleNamespace(id=user_id, is_admin=False))
+            self.payload = payload
+
+        async def json(self):
+            return self.payload
+
+    settings = Settings(hass)
+    await settings.load()
+    await settings.claim_admin("owner")
+    await settings.set_role("member", "user")
+    hass.data.setdefault(DOMAIN, {})["settings"] = settings
+
+    response = await api.DashboardCatalogView(hass).post(Request("member", {
+        "action": "create", "name": "Můj panel", "template": "blank",
+    }))
+    assert response.status == 200
+    ident = json.loads(response.body)["id"]
+    assert settings.dashboards_for("member", "user")[-1]["id"] == ident
+    assert settings.presentation("member", "user").preset == ident
+    settings_view = await api.SettingsView(hass).get(Request("member", {}))
+    assert settings_view.status == 200
+    assert [item["id"] for item in json.loads(settings_view.body)["dashboards"]] == [
+        "overview", ident]
+
+    edited = await api.DashboardView(hass).post(Request("member", {
+        "preset": ident, "columns": 2,
+        "blocks": [{"id": "clock", "type": "clock"}],
+    }))
+    assert edited.status == 200
+    assert settings.board(ident)["blocks"][0]["type"] == "clock"
+    denied = await api.DashboardView(hass).post(Request("other", {
+        "preset": ident, "blocks": [],
+    }))
+    assert denied.status == 403

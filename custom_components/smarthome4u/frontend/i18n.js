@@ -725,7 +725,7 @@ export const t = {
   },
 
   dashboardManager: {
-    hint: "Vytvořte plochy podle potřeby. Správce určuje, kterou plochu uvidí každý další účet.",
+    hint: "Vytvořte si vlastní plochu ze šablony a upravte ji přetažením. Správce může plochy přiřadit dalším účtům.",
     create: "Nový dashboard",
     rename: "Přejmenovat dashboard",
     delete: "Smazat dashboard",

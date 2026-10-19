@@ -81,6 +81,7 @@ VYCHOZI: dict[str, Any] = {
     # Sdílený seznam ploch. Chybějící klíč ve staré instalaci spouští převod.
     "dashboards": None,
     "dashboardAssignments": {},
+    "dashboardStartMigrated": False,
 }
 
 
@@ -102,8 +103,10 @@ class Settings:
             # Doplní klíče, které v uloženém souboru ještě nebyly.
             self.data = {**deepcopy(VYCHOZI), **ulozene}
         self._migrate_dashboards(is_upgrade=isinstance(ulozene, dict))
+        self._migrate_dashboard_start()
         self._migrate_entity_ids()
-        if migrate_catalog:
+        if migrate_catalog or not isinstance(ulozene, dict) or not ulozene.get(
+            "dashboardStartMigrated"):
             await self.save()
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
@@ -195,6 +198,16 @@ class Settings:
             assignments[user_id] = imported.get(selected, selected if selected in PRESETY
                                                 else self.data["dashboards"][0]["id"])
 
+    def _migrate_dashboard_start(self) -> None:
+        """Show the HA-derived overview first, once, without discarding old boards."""
+        if self.data.get("dashboardStartMigrated"):
+            return
+        dashboards = self.dashboards
+        if not any(item["id"] == "overview" for item in dashboards):
+            dashboards.insert(0, self._overview())
+        self.data["preset"] = "overview"
+        self.data["dashboardStartMigrated"] = True
+
     @staticmethod
     def _overview() -> dict[str, str]:
         return {"id": "overview", "name": "Přehled domácnosti", "template": "overview"}
@@ -212,20 +225,32 @@ class Settings:
         if role == "admin":
             return self.dashboards
         assigned = self.data.get("dashboardAssignments", {}).get(user_id)
-        if assigned and assigned in self.dashboard_ids():
-            return [item for item in self.dashboards if item["id"] == assigned]
-        return self.dashboards[:1]
+        default = assigned if assigned in self.dashboard_ids() else self.dashboards[0]["id"]
+        return [item for item in self.dashboards
+                if item["id"] == default or item.get("ownerId") == user_id]
 
-    async def create_dashboard(self, name: str, template: str) -> str:
+    def can_edit_dashboard(self, user_id: str, role: str, ident: str) -> bool:
+        return any(item["id"] == ident and (role == "admin"
+                   or item.get("ownerId") == user_id) for item in self.dashboards)
+
+    async def create_dashboard(self, name: str, template: str,
+                               owner_id: str | None = None) -> str:
         ident = "d-" + uuid.uuid4().hex[:12]
-        self.dashboards.append({"id": ident, "name": name, "template": template})
+        entry = {"id": ident, "name": name, "template": template}
+        if owner_id:
+            entry["ownerId"] = owner_id
+        self.dashboards.append(entry)
         if template in ("overview", "pudorys", "blank"):
-            block = ({"id": "auto-rooms", "type": "auto_rooms", "cols": 2}
-                     if template == "overview" else
-                     {"id": "floorplan", "type": "floorplan", "cols": 2}
-                     if template == "pudorys" else None)
+            blocks = ([
+                {"id": "overview-headline", "type": "headline", "cols": 2,
+                 "title": "Přehled domácnosti"},
+                {"id": "overview-status", "type": "status", "cols": 2},
+                {"id": "auto-rooms", "type": "auto_rooms", "cols": 2},
+            ] if template == "overview" else
+                [{"id": "floorplan", "type": "floorplan", "cols": 2}]
+                if template == "pudorys" else [])
             self.data.setdefault("dashboard", {})[ident] = {
-                "columns": 2, "blocks": [block] if block else [],
+                "columns": 2, "blocks": blocks,
             }
         await self.save()
         return ident
@@ -237,10 +262,11 @@ class Settings:
     async def delete_dashboard(self, ident: str) -> None:
         if len(self.dashboards) < 2:
             raise ValueError("last_dashboard")
+        was_selected = self.preset == ident
         self.data["dashboards"] = [item for item in self.dashboards if item["id"] != ident]
         self.data.setdefault("dashboard", {}).pop(ident, None)
         self.data.setdefault("dashboardHistory", {}).pop(ident, None)
-        if self.preset == ident:
+        if was_selected:
             self.data["preset"] = self.dashboards[0]["id"]
         for uid, assigned in list(self.data.get("dashboardAssignments", {}).items()):
             if assigned == ident:
@@ -344,6 +370,21 @@ class Settings:
                         block["tileStyles"] = {
                             norm(key): value for key, value in tile_styles.items()
                         }
+                    room_layouts = block.get("roomLayouts")
+                    if isinstance(room_layouts, dict):
+                        for room_layout in room_layouts.values():
+                            if not isinstance(room_layout, dict):
+                                continue
+                            for key in ("entities", "excluded"):
+                                items = room_layout.get(key)
+                                if isinstance(items, list):
+                                    room_layout[key] = [norm(item) for item in items]
+                            for key in ("sizes", "tileStyles"):
+                                values = room_layout.get(key)
+                                if isinstance(values, dict):
+                                    room_layout[key] = {
+                                        norm(ref): value for ref, value in values.items()
+                                    }
 
     # ------------------------------------------------------------------
     # Správce
@@ -662,6 +703,13 @@ class UserPresentation(Settings):
         hodnota = self.data.get("preset", self.parent.preset)
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
         return hodnota if hodnota in self.parent.dashboard_ids() else self.parent.preset
+
+    @property
+    def dashboards(self) -> list[dict[str, str]]:
+        return self.parent.dashboards
+
+    def dashboard_ids(self) -> set[str]:
+        return self.parent.dashboard_ids()
 
     @property
     def kiosk(self) -> bool:

@@ -16,6 +16,7 @@ Smarthome4u vypnete, domácnost běží dál.
 
 | Verze | Stav | Obsah |
 |---|---|---|
+| v0.19.1 | **vydáno** | Úvodní přehled po upgradu, úpravy automatických místností a vlastní plochy uživatelů |
 | v0.19.0 | **vydáno** | Vlastní sdílené dashboardy, přiřazení účtům a automatický přehled místností |
 | v0.1 - v0.3 | hotovo | Základ, pět sekcí, ovládání, správa místností, scény, automatizace, vlastní průvodce integracemi |
 | v0.11.0 | **vydáno** | Integrace, osobní plocha, ovládání a správa domácnosti |
@@ -36,6 +37,7 @@ Aktuální postup: [docs/POSTUP.md](docs/POSTUP.md)
 
 - **Domů** - libovolný počet vlastních ploch s šablonami; po instalaci
   automatický přehled místností. Správce může přidělit plochu každému účtu.
+  Každý účet si může vytvořit a upravit i vlastní dashboard.
   U vybraných dlaždic lze změnit text, ikonu, barvu, entitu a velikost;
   bloky mají vlastní vzhled a rozměry.
 - **Místnosti** - ovládání po místnostech, správa místností a pater

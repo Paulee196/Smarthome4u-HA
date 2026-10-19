@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.19.0
+**Aktuální verze v kódu:** 0.19.1
+
+## Úvodní přehled a vlastní plochy 0.19.1
+
+- [x] Upgrade jednorázově nastaví automatický přehled jako úvodní plochu,
+  přičemž původní sestavy včetně půdorysu zůstávají dostupné.
+- [x] Tvorba dashboardu je viditelná i v základním režimu. Uživatel může
+  upravit svoji plochu; správce spravuje všechny a jejich přiřazení.
+- [x] Dlaždice automatických místností lze přetahovat a upravit jejich
+  velikost a vzhled. Nové entity se doplňují i po uložení úprav.
+- [x] První značka na plánku otevře výběr přímo; změna světla v Nastavení
+  zachová pozici stránky.
+- [ ] Dotykově ověřit na živé instalaci po vydání.
 
 ## Vlastní dashboardy 0.19.0
 

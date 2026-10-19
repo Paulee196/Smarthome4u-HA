@@ -81,6 +81,9 @@ const ctx = {
     return state.rezim === "technician";
   },
   get muzeUpravitPlochu() {
+    return Boolean(state.model?.canEditDashboard);
+  },
+  get muzeUpravitPlanek() {
     return state.model?.user?.role === "admin";
   },
   prepnoutRezim() {
@@ -95,7 +98,7 @@ const ctx = {
     bezpecne(draw());
   },
   startEditing() {
-    if (state.rezim !== "technician" || state.model?.user?.role !== "admin") return;
+    if (!state.model?.canEditDashboard) return;
     state.editing = true;
     navigate("home");
   },
@@ -214,8 +217,7 @@ function paintUpravit() {
   const koren = el.settings.getRootNode?.();
   let tlacitko = koren?.getElementById?.("uprava-button");
 
-  const jdeUpravit = state.route === "home" && state.rezim === "technician"
-    && state.model?.user?.role === "admin";
+  const jdeUpravit = state.route === "home" && Boolean(state.model?.canEditDashboard);
 
   if (!jdeUpravit) {
     tlacitko?.remove();
