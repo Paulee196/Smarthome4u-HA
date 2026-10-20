@@ -4,7 +4,14 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.7
+**Aktuální verze v kódu:** 0.19.8
+
+## Viditelné přidávání prvků dashboardu 0.19.8
+
+- [x] Tlačítko Přidat prvek je v liště úprav a na plátně.
+- [x] Otevírá nabídku v pravém panelu i při aktivní jiné záložce.
+- [x] Typy prvků mají v nabídce ikony a popisy.
+- [ ] Ověřit umístění tlačítek v živé instalaci HA na telefonu a tabletu.
 
 ## Popisky historie dashboardu 0.19.7
 

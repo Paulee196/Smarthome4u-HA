@@ -2,6 +2,14 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.8]
+
+### Opraveno
+
+- Při úpravě dashboardu je přidání prvku dostupné přímo z lišty i z plátna.
+  Obě tlačítka otevřou nabídku v pravém panelu bez ohledu na jeho aktuální záložku.
+- Nabídka prvků ukazuje ikonu a krátký popis, aby bylo jasné, co se na plochu přidá.
+
 ## [0.19.7]
 
 ### Opraveno

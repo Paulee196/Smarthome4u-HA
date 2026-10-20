@@ -331,6 +331,12 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
     panel?.replaceChildren(renderStudioPanel(ctx, blocks, columns, id, roomId,
       editorTab, save, elements, positions, select));
   };
+  const openAdd = () => {
+    select(null, null, "add");
+    if (window.matchMedia("(max-width: 1100px)").matches) {
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   for (const block of blocks) {
     const element = jedenBlok(ctx, block, blocks, columns, save,
@@ -387,6 +393,9 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
     .map((place) => place.y + place.h + 160))}px`;
 
   if (ctx.editing) {
+    root.addEventListener("sh4u-add-block", openAdd);
+    stage.append(button(`+ ${t.editor.addBlock}`,
+      openAdd, "dashboard-stage__add"));
     workspace.append(panel);
     const current = selectedBlock?.preset === preset && elements.has(selectedBlock.id)
       ? selectedBlock : { id: blocks[0]?.id || null, roomId: null };
@@ -482,7 +491,7 @@ function resizeFreeCard(event, id, edge, element, stage, positions, select, save
 
 function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements, positions, select) {
   const root = h("div", { class: "dashboard-studio" });
-  const tabs = [["add", t.editor.addBlock], ["card", t.editor.properties],
+  const tabs = [["add", t.editor.addTab], ["card", t.editor.properties],
     ["layout", t.editor.layoutTab], ["views", t.editor.viewsTab],
     ["theme", t.settings.theme]];
   root.append(h("nav", { class: "dashboard-studio__tabs" }, tabs.map(([key, label]) =>
@@ -527,16 +536,21 @@ function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements
     }
   } else if (tab === "add") {
     const used = new Set(blocks.map((block) => block.type));
+    content.append(h("p", { class: "muted", text: t.editor.addBlockHint }));
     for (const type of NABIDKA) {
       if (JEDNOU.has(type) && used.has(type)) continue;
-      content.append(button(t.blocks[type], () => {
-        const block = novyBlok(type);
-        const bottom = Math.max(0, ...[...positions.values()].map((p) => p.y + p.h));
-        positions.set(block.id, { x: 0, y: bottom + 20, w: 400, h: 220 });
-        selectedBlock = { preset: ctx.model.preset, id: block.id };
-        editorTab = "card";
-        save([...blocks, block]);
-      }, "button--ghost dashboard-studio__add"));
+      content.append(h("button", { class: "dashboard-studio__type", type: "button",
+        onclick: () => {
+          const block = novyBlok(type);
+          const bottom = Math.max(0, ...[...positions.values()].map((p) => p.y + p.h));
+          positions.set(block.id, { x: 0, y: bottom + 20, w: 400, h: 220 });
+          selectedBlock = { preset: ctx.model.preset, id: block.id };
+          editorTab = "card";
+          save([...blocks, block]);
+        } }, [icon(BLOKY[type].glyf), h("span", { class: "dashboard-studio__type-copy" }, [
+        h("strong", { text: t.blocks[type] }),
+        h("small", { text: t.blocksHint[type] || "" }),
+      ])]));
     }
   } else if (tab === "layout") {
     content.append(h("div", { class: "segmented" }, [
