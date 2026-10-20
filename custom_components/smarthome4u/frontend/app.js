@@ -9,7 +9,6 @@ import { t } from "./i18n.js";
 import { icon } from "./icons.js";
 import { applyStates, clearWatchers, nastavitOblibene } from "./controls.js";
 import { closeDialog, h } from "./ui.js";
-import { APP_VERSION } from "./version.js";
 import { renderHome } from "./view-home.js";
 import { renderRooms } from "./view-rooms.js";
 import { renderActivities } from "./view-activities.js";
@@ -47,6 +46,8 @@ const state = { model: null, route: "home", editing: false, rezim: "user" };
 let el = null;
 let structureRefresh = null;
 let initialModelLoad = true;
+let cachedForecast = null;
+let forecastRequest = null;
 
 const ctx = {
   get model() {
@@ -118,13 +119,16 @@ export function mount(root) {
     view: root.getElementById("view"),
     title: root.getElementById("view-title"),
     nav: root.getElementById("nav"),
-    version: root.getElementById("app-version"),
+    picker: root.getElementById("dashboard-picker"),
+    weather: root.getElementById("header-weather"),
     edit: root.getElementById("uprava-button"),
   };
 
   // Kdyby některý prvek chyběl, nesmí to shodit celý start. Radši ať
   // chybí jeden popisek než aby zůstala prázdná obrazovka.
-  if (el.version) el.version.textContent = APP_VERSION;
+  if (el.picker) el.picker.addEventListener("change", () => {
+    bezpecne(selectDashboard(el.picker.value));
+  });
   if (el.edit) {
     el.edit.addEventListener("click", () => state.editing
       ? ctx.stopEditing() : ctx.startEditing());
@@ -231,6 +235,19 @@ function navigate(route) {
   bezpecne(draw());
 }
 
+async function selectDashboard(id) {
+  if (!state.model?.dashboards?.some((board) => board.id === id)) return;
+  try {
+    if (id !== state.model.preset) await api.setPreset(id);
+    state.editing = false;
+    state.route = "home";
+    window.history.replaceState(null, "", `${window.location.pathname}#/home`);
+    await loadModel();
+  } catch (error) {
+    showNotice(error.message || t.notice.offline, true);
+  }
+}
+
 function paintNav() {
   if (!el.nav) return;
   el.nav.replaceChildren();
@@ -254,6 +271,27 @@ function paintNav() {
         [icon(key), h("span", { class: "nav__label", text: route.label })],
       ),
     );
+    if (key === "home") {
+      const dashboards = state.model?.dashboards || [];
+      if (dashboards.length) {
+        el.nav.append(h("div", { class: "nav__dashboard-list" }, dashboards.map((board) =>
+          h("button", {
+            class: "nav__dashboard" + (state.route === "home" &&
+              state.model?.preset === board.id ? " nav__dashboard--active" : ""),
+            type: "button", text: board.name,
+            "aria-current": state.route === "home" && state.model?.preset === board.id
+              ? "page" : null,
+            onclick: () => bezpecne(selectDashboard(board.id)),
+          }))));
+      }
+    }
+  }
+  if (el.picker) {
+    const dashboards = state.model?.dashboards || [];
+    el.picker.replaceChildren(...dashboards.map((board) =>
+      h("option", { value: board.id, text: board.name })));
+    el.picker.value = state.model?.preset || "";
+    el.picker.hidden = state.route !== "home" || dashboards.length < 2;
   }
 }
 
@@ -332,7 +370,11 @@ async function draw() {
   }
 
   el.view.replaceChildren();
-  if (el.title) el.title.textContent = route.label;
+  if (el.title) el.title.textContent = state.route === "home"
+    ? state.model?.dashboards?.find((board) => board.id === state.model.preset)?.name
+      || route.label : route.label;
+  paintWeather();
+  updateForecast();
   paintNav();
 
   if (!state.model) return;
@@ -357,6 +399,46 @@ async function draw() {
       ]),
     );
   }
+}
+
+function paintWeather() {
+  if (!el.weather) return;
+  const weather = state.model?.weather;
+  el.weather.hidden = !weather;
+  if (!weather) return;
+  const condition = t.weather.conditions[weather.condition] || weather.condition;
+  const current = [condition, weather.temperature == null ? ""
+    : `${weather.temperature} ${weather.unit || "°C"}`].filter(Boolean).join(" · ");
+  const nextCondition = t.weather.conditions[weather.nextCondition] || weather.nextCondition;
+  const next = weather.nextTemperature == null ? nextCondition :
+    [nextCondition, `${weather.nextTemperature} ${weather.unit || "°C"}`]
+      .filter(Boolean).join(" · ");
+  el.weather.replaceChildren(
+    h("strong", { text: weather.location || t.weather.title }),
+    h("span", { text: current }),
+    ...(next ? [h("small", { text: `${t.weather.forecast}: ${next}` })] : []),
+  );
+}
+
+function updateForecast() {
+  const entityId = state.model?.weather?.entityId;
+  if (!entityId) return;
+  if (cachedForecast?.id === entityId && cachedForecast.expires > Date.now()) {
+    state.model.weather = { ...state.model.weather, ...cachedForecast.data };
+    paintWeather();
+    return;
+  }
+  if (forecastRequest) return;
+  forecastRequest = api.weather().then((weather) => {
+    if (!weather?.entityId) return;
+    const data = { nextCondition: weather.nextCondition,
+      nextTemperature: weather.nextTemperature };
+    cachedForecast = { id: weather.entityId, data, expires: Date.now() + 30 * 60 * 1000 };
+    if (state.model?.weather?.entityId === weather.entityId) {
+      state.model.weather = { ...state.model.weather, ...data };
+      paintWeather();
+    }
+  }).catch(() => {}).finally(() => { forecastRequest = null; });
 }
 
 /* ------------------------------------------------------------------ */

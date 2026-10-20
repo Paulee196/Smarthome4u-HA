@@ -205,6 +205,15 @@ class Sh4uView(HomeAssistantView):
 # ----------------------------------------------------------------------
 
 
+class WeatherView(Sh4uView):
+    url = f"{API_BASE}/weather"
+    name = "api:smarthome4u:weather"
+
+    @handler
+    async def get(self, request: web.Request) -> web.Response:
+        return web.json_response(await Home(self.hass).weather_forecast() or {})
+
+
 class ModelView(Sh4uView):
     url = f"{API_BASE}/model"
     name = "api:smarthome4u:model"
@@ -251,6 +260,7 @@ class ModelView(Sh4uView):
                 "board": settings.board(selected) if settings else None,
                 "favorites": home.favorites(),
                 "summary": home.summary(),
+                "weather": home.weather_summary(),
                 "roomSummaries": home.room_summaries(),
                 "rooms": home.rooms(),
                 "scenes": home.by_kind("scene")[:8],
@@ -2050,6 +2060,7 @@ class FavoriteView(Sh4uView):
 
 VIEWS = (
     ModelView,
+    WeatherView,
     SectionView,
     EntityBatchView,
     StructureView,

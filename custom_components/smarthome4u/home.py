@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.core import HomeAssistant, State
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -458,6 +459,52 @@ class Home:
             ),
             "areaCount": len(areas.areas),
         }
+
+    def weather_summary(self) -> dict | None:
+        """Weather from the local HA weather entity, without a second provider."""
+        states = [state for state in self.hass.states.async_all("weather")
+                  if state.state not in ("unknown", "unavailable")]
+        current = next((state for state in states if state.entity_id in
+                        ("weather.forecast_home", "weather.home")), None)
+        current = current or next(iter(states), None)
+        if current is None:
+            return None
+        attrs = current.attributes
+        forecast = attrs.get("forecast")
+        upcoming = next((item for item in forecast if isinstance(item, dict)), None) \
+            if isinstance(forecast, list) else None
+        return {
+            "entityId": current.entity_id,
+            "location": self.hass.config.location_name or attrs.get("friendly_name", ""),
+            "condition": current.state,
+            "temperature": attrs.get("temperature"),
+            "unit": attrs.get("temperature_unit", "°C"),
+            "nextCondition": upcoming.get("condition") if upcoming else None,
+            "nextTemperature": upcoming.get("temperature") if upcoming else None,
+        }
+
+    async def weather_forecast(self) -> dict | None:
+        """Fetch HA's daily forecast independently of the main home model."""
+        current = self.weather_summary()
+        if current is None or not self.hass.services.has_service(
+                "weather", "get_forecasts"):
+            return current
+        try:
+            response = await self.hass.services.async_call(
+                "weather", "get_forecasts", {"type": "daily"},
+                target={"entity_id": current["entityId"]},
+                blocking=True, return_response=True,
+            )
+        except HomeAssistantError:
+            return current
+        data = response.get(current["entityId"], {}) if isinstance(response, dict) else {}
+        forecast = data.get("forecast") if isinstance(data, dict) else None
+        upcoming = next((item for item in forecast if isinstance(item, dict)), None) \
+            if isinstance(forecast, list) else None
+        if upcoming:
+            current["nextCondition"] = upcoming.get("condition")
+            current["nextTemperature"] = upcoming.get("temperature")
+        return current
 
     def light_candidates(self) -> list[dict]:
         """Vše, co Home Assistant hlásí v doméně light.

@@ -29,6 +29,8 @@ Vše v `home.py`.
 | `helpers.entity_registry.async_get` | Registr entit, persistentní ID | veřejné |
 | `helpers.floor_registry.async_get` | Patra | veřejné |
 | `hass.states.async_all` / `get` | Aktuální stavy | veřejné |
+| `hass.states.async_all("weather")`, `hass.config.location_name` | Místní počasí v hlavičce (od 0.19.6); když entita nebo atribut předpovědi chybí, zobrazí se jen dostupné údaje | veřejné; ověřeno na CI s HA 2026.8+ |
+| `hass.services.async_call("weather", "get_forecasts", return_response=True)` | Denní předpověď načtená samostatně, aby nezdržovala hlavní model (od 0.19.6); při chybě zůstane aktuální počasí | veřejné; dokumentovaná akce HA |
 | `hass.states.async_all` / `get` + `capability.resolve_action` | Nabídka a ověření cílů značek plánku, včetně scén, skriptů a pomocníků (od 0.17.0); chybějící cíl se ignoruje | veřejné |
 | `hass.states.async_all` + registr entit | Samostatný živý seznam pomocníků (od 0.15.2) | veřejné |
 | `hass.config_entries.async_entries` | Připojené integrace | veřejné |

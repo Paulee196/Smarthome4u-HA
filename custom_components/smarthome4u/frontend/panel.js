@@ -113,15 +113,18 @@ class Smarthome4uPanel extends HTMLElement {
       <div class="main">
         <header class="header">
           <div class="header__left">
-            <span class="header__brand">Smarthome<span>4u</span>
-              <em id="app-version"></em></span>
             <h1 class="header__title" id="view-title">Domů</h1>
           </div>
-          <div class="header__clock">
-            <time id="header-time"></time>
-            <time id="header-date"></time>
+          <div class="header__center">
+            <div class="header__clock">
+              <time id="header-time"></time>
+              <time id="header-date"></time>
+            </div>
+            <div class="header__weather" id="header-weather" hidden></div>
           </div>
           <div class="header__right">
+            <select class="header__dashboards" id="dashboard-picker"
+              aria-label="Dashboard" hidden></select>
             <button class="button button--ghost header__edit" type="button"
               id="uprava-button" hidden></button>
           </div>

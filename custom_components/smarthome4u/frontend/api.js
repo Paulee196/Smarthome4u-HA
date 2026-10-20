@@ -118,6 +118,7 @@ const enc = encodeURIComponent;
 
 export const api = {
   model: (initial = false) => request("GET", initial ? "model?initial=1" : "model"),
+  weather: () => request("GET", "weather"),
   section: (kind) => request("GET", `sections/${enc(kind)}`),
   entitiesBatch: (ids) => request("POST", "entities/batch", { ids }),
 

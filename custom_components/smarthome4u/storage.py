@@ -83,6 +83,7 @@ VYCHOZI: dict[str, Any] = {
     "dashboardAssignments": {},
     "dashboardStartMigrated": False,
     "floorplanTemplateMigrated": False,
+    "dashboardCatalogCleaned": False,
 }
 
 
@@ -106,9 +107,12 @@ class Settings:
         self._migrate_dashboards(is_upgrade=isinstance(ulozene, dict))
         self._migrate_dashboard_start()
         self._migrate_floorplan_template()
+        self._clean_legacy_dashboard_catalog()
         self._migrate_entity_ids()
-        if migrate_catalog or not isinstance(ulozene, dict) or not ulozene.get(
-            "dashboardStartMigrated") or not ulozene.get("floorplanTemplateMigrated"):
+        if (migrate_catalog or not isinstance(ulozene, dict)
+                or not ulozene.get("dashboardStartMigrated")
+                or not ulozene.get("floorplanTemplateMigrated")
+                or not ulozene.get("dashboardCatalogCleaned")):
             await self.save()
         _LOGGER.debug("Nastavení načteno, správce: %s", self.data["adminUserId"])
 
@@ -243,6 +247,50 @@ class Settings:
                                        "blocks": blocks}
         self.data["floorplanTemplateMigrated"] = True
 
+    def _clean_legacy_dashboard_catalog(self) -> None:
+        """Hide untouched built-in alternatives, keep edited layouts as user boards."""
+        if self.data.get("dashboardCatalogCleaned"):
+            return
+        legacy_names = {
+            PRESET_TUYA: "Chytrá domácnost", PRESET_HOME: "Domov",
+            PRESET_PREHLED: "Přehled HA", PRESET_PUDORYS: "Půdorys",
+        }
+        layouts = self.data.setdefault("dashboard", {})
+        histories = self.data.setdefault("dashboardHistory", {})
+        remap = {}
+        kept = []
+        for entry in self.dashboards:
+            ident = entry["id"]
+            if ident not in legacy_names:
+                kept.append(entry)
+                continue
+            if ident in layouts or entry.get("name") != legacy_names[ident]:
+                new_id = "d-legacy-" + ident
+                remap[ident] = new_id
+                kept.append({**entry, "id": new_id})
+                if ident in layouts:
+                    layouts[new_id] = layouts.pop(ident)
+                if ident in histories:
+                    histories[new_id] = histories.pop(ident)
+            else:
+                remap[ident] = None
+        self.data["dashboards"] = kept
+        fallback = "overview" if any(item["id"] == "overview" for item in kept) else (
+            kept[0]["id"] if kept else "")
+        selected = self.data.get("preset")
+        if selected in remap:
+            self.data["preset"] = remap[selected] or fallback
+        for profile in self.data.get("profiles", {}).values():
+            if isinstance(profile, dict) and profile.get("preset") in remap:
+                profile["preset"] = remap[profile["preset"]] or fallback
+        for user_id, assigned in list(self.data.get("dashboardAssignments", {}).items()):
+            if assigned in remap:
+                if remap[assigned]:
+                    self.data["dashboardAssignments"][user_id] = remap[assigned]
+                else:
+                    self.data["dashboardAssignments"].pop(user_id)
+        self.data["dashboardCatalogCleaned"] = True
+
     @staticmethod
     def _overview() -> dict[str, str]:
         return {"id": "overview", "name": "Přehled domácnosti", "template": "overview"}
@@ -263,7 +311,8 @@ class Settings:
         if role == "technician":
             return [item for item in self.dashboards if not item.get("ownerId")
                     or item.get("ownerId") == user_id or item["id"] == assigned]
-        default = assigned if assigned in self.dashboard_ids() else self.dashboards[0]["id"]
+        default = assigned if assigned in self.dashboard_ids() else (
+            self.dashboards[0]["id"] if self.dashboards else "")
         return [item for item in self.dashboards
                 if item["id"] == default or item.get("ownerId") == user_id]
 
@@ -302,14 +351,12 @@ class Settings:
         await self.save()
 
     async def delete_dashboard(self, ident: str) -> None:
-        if len(self.dashboards) < 2:
-            raise ValueError("last_dashboard")
         was_selected = self.preset == ident
         self.data["dashboards"] = [item for item in self.dashboards if item["id"] != ident]
         self.data.setdefault("dashboard", {}).pop(ident, None)
         self.data.setdefault("dashboardHistory", {}).pop(ident, None)
         if was_selected:
-            self.data["preset"] = self.dashboards[0]["id"]
+            self.data["preset"] = self.dashboards[0]["id"] if self.dashboards else ""
         for uid, assigned in list(self.data.get("dashboardAssignments", {}).items()):
             if assigned == ident:
                 self.data["dashboardAssignments"].pop(uid)
@@ -484,7 +531,8 @@ class Settings:
     def preset(self) -> str:
         hodnota = self.data.get("preset")
         hodnota = PRESETY_ZRUSENE.get(hodnota, hodnota)
-        return hodnota if hodnota in self.dashboard_ids() else self.dashboards[0]["id"]
+        return hodnota if hodnota in self.dashboard_ids() else (
+            self.dashboards[0]["id"] if self.dashboards else "")
 
     async def set_preset(self, preset: str) -> None:
         if preset not in self.dashboard_ids():

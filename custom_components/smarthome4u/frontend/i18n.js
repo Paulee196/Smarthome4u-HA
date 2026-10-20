@@ -30,6 +30,18 @@ export const t = {
     settings: "Nastavení",
   },
 
+  weather: {
+    title: "Počasí",
+    forecast: "Předpověď",
+    conditions: {
+      "clear-night": "Jasná noc", cloudy: "Zataženo", fog: "Mlha",
+      hail: "Kroupy", lightning: "Bouřka", "lightning-rainy": "Bouřky s deštěm",
+      partlycloudy: "Polojasno", pouring: "Silný déšť", rainy: "Déšť",
+      snowy: "Sněžení", "snowy-rainy": "Déšť se sněhem", sunny: "Slunečno",
+      windy: "Větrno", "windy-variant": "Větrno", exceptional: "Výstraha",
+    },
+  },
+
   mode: {
     toTechnician: "Režim technika",
     toUser: "Režim uživatele",
@@ -731,11 +743,20 @@ export const t = {
     create: "Nový dashboard",
     rename: "Přejmenovat dashboard",
     delete: "Smazat dashboard",
-    deleteHint: "Dashboard a jeho rozvržení se smažou. Účty s tímto dashboardem dostanou první dostupný.",
+    deleteHint: "Dashboard a jeho rozvržení se smažou. Účty s touto plochou přejdou na první dostupnou. Pokud žádná nezůstane, vytvoříte novou v Nastavení.",
+    noDashboards: "Zatím nemáte žádný dashboard.",
+    noDashboardsHint: "Novou plochu vytvoříte v Nastavení. Automatický přehled tam můžete kdykoliv obnovit.",
     name: "Název dashboardu",
     template: "Výchozí podoba",
     blank: "Prázdná plocha",
     overview: "Automatický přehled místností",
+    templateHint: "Začněte prázdnou plochou nebo si vyberte základ. Každý blok pak můžete přesunout, zvětšit a nastavit v pravém panelu.",
+    examples: [
+      "Energie: přidejte samostatné karty senzorů spotřeby z Home Assistanta.",
+      "Kamery: přidejte kartu kamery a zvolte její velikost podle počtu náhledů.",
+      "Vysavač: přidejte kartu jeho entity a nastavte dostupné ovládání.",
+      "Půdorys: při tvorbě vyberte šablonu Půdorys a potom umístěte značky na plánek.",
+    ],
     restoreOverview: "Obnovit automatický přehled",
     assignedTo: (name) => `Dashboard pro ${name}`,
     showMore: (count) => `Zobrazit dalších ${count} zařízení`,

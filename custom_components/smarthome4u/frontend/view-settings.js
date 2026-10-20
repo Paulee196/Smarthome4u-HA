@@ -34,6 +34,7 @@ export async function renderSettings(root, ctx) {
       class: "muted",
       text: jeSpravce ? t.settings.youAreAdmin : jeTechnik ? t.settings.youAreTechnician : t.settings.youAreUser,
     }),
+    h("p", { class: "muted", text: `${t.settings.appVersion} ${ctx.model?.version || ""}` }),
     muzeNastavovat &&
       prepinac(
         t.settings.technician,
@@ -286,7 +287,7 @@ function sekceDashboard(ctx, nastaveni) {
           button(t.action.save, () => change({ action: "rename", id: dashboard.id,
             name: name.value.trim() })));
       }, "button--ghost"));
-      if (dashboards.length > 1) actions.push(button(t.action.delete, () => confirmDialog(
+      actions.push(button(t.action.delete, () => confirmDialog(
         t.dashboardManager.delete, t.dashboardManager.deleteHint,
         () => change({ action: "delete", id: dashboard.id })), "button--ghost"));
     }
@@ -305,6 +306,7 @@ function sekceDashboard(ctx, nastaveni) {
       ], "blank");
       dialog(t.dashboardManager.create, h("div", { class: "stack" }, [
         field(t.dashboardManager.name, name), field(t.dashboardManager.template, template),
+        h("p", { class: "muted", text: t.dashboardManager.templateHint }),
       ]), button(t.action.create, () => change({ action: "create",
         name: name.value.trim(), template: template.value })));
   }));
@@ -313,7 +315,7 @@ function sekceDashboard(ctx, nastaveni) {
       extra.push(button(t.dashboardManager.restoreOverview,
         () => change({ action: "restoreOverview" }), "button--ghost"));
     }
-    for (const user of nastaveni.users || []) {
+    for (const user of dashboards.length ? nastaveni.users || [] : []) {
       if (user.id === nastaveni.adminUserId) continue;
       const assigned = nastaveni.dashboardAssignments?.[user.id] || dashboards[0]?.id;
       const picker = selectInput(dashboards.map((item) => ({
@@ -329,6 +331,8 @@ function sekceDashboard(ctx, nastaveni) {
     h("p", { class: "muted", text: t.dashboardManager.hint }),
     mrizka,
     ...extra,
+    h("div", { class: "stack" }, t.dashboardManager.examples.map((example) =>
+      h("p", { class: "muted", text: example }))),
     h("div", { class: "row" }, [
       ctx.muzeUpravitPlochu && button(t.settings.editDashboard,
         () => ctx.startEditing(), "button--ghost"),

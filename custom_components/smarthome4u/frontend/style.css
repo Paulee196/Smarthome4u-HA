@@ -186,6 +186,7 @@ body {
   outline: var(--sh-focus-width) solid var(--sh-accent);
   outline-offset: calc(-1 * var(--sh-focus-offset));
 }
+.nav__dashboard-list { display: none; }
 
 /* ------------------------------------------------------------------ */
 /* Hlavička                                                            */
@@ -247,13 +248,22 @@ body {
 }
 .header__edit { min-width: var(--sh-touch-target); min-height: var(--sh-touch-target); padding: var(--sh-gap-sm); }
 .header__edit[hidden] { display: none; }
-.header__clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin-inline: auto; min-height: var(--sh-touch-target); white-space: nowrap; }
-.header__clock time:first-child { color: var(--sh-text); font-size: var(--sh-size-xl); font-weight: var(--sh-weight-bold); line-height: var(--sh-leading-tight); }
+.header__dashboards { max-width: 45vw; min-height: var(--sh-touch-target); padding: var(--sh-gap-sm); border: var(--sh-hairline) solid var(--sh-border); border-radius: var(--sh-radius-sm); background: var(--sh-surface); color: var(--sh-text); font: inherit; }
+.header__dashboards[hidden] { display: none; }
+.header__center { display: flex; align-items: center; justify-content: center; gap: var(--sh-gap-xl); margin-inline: auto; min-width: 0; }
+.header__clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: var(--sh-touch-target); white-space: nowrap; }
+.header__clock time:first-child { color: var(--sh-text); font-size: var(--sh-size-2xl); font-weight: var(--sh-weight-bold); line-height: var(--sh-leading-tight); }
 .header__clock time:last-child { color: var(--sh-text-muted); font-size: var(--sh-size-sm); }
+.header__weather { display: flex; flex-direction: column; gap: 2px; padding-left: var(--sh-gap-lg); border-left: var(--sh-hairline) solid var(--sh-border); color: var(--sh-text-muted); font-size: var(--sh-size-sm); }
+.header__weather[hidden] { display: none; }
+.header__weather strong { color: var(--sh-text); font-weight: var(--sh-weight-bold); }
+.header__weather small { font-size: var(--sh-size-xs); }
 
 @media (max-width: 680px) {
-  .header__clock { order: 3; width: 100%; align-items: flex-start; margin-inline: 0; }
-  .header__clock time:first-child { font-size: var(--sh-size-lg); }
+  .header__center { order: 3; width: 100%; justify-content: flex-start; margin-inline: 0; }
+  .header__clock { align-items: flex-start; }
+  .header__clock time:first-child { font-size: var(--sh-size-xl); }
+  .header__weather { min-width: 0; }
 }
 
 /* Stav spojení. Tečka je jen doplněk, stav nese slovo vedle ní. */
@@ -1474,6 +1484,7 @@ textarea.input {
 /* ------------------------------------------------------------------ */
 
 @media (min-width: 900px) {
+  .header__dashboards { display: none; }
   .shell {
     flex-direction: row;
   }
@@ -1519,6 +1530,10 @@ textarea.input {
   }
 
   .nav__item:last-child { margin-top: auto; }
+
+  .nav__dashboard-list { display: grid; gap: var(--sh-gap-2xs); padding: var(--sh-gap-xs) 0 var(--sh-gap-md) var(--sh-gap-xl); }
+  .nav__dashboard { width: 100%; min-height: var(--sh-touch-target); padding: var(--sh-gap-xs) var(--sh-gap-sm); border: 0; border-radius: var(--sh-radius-sm); background: none; color: var(--sh-text-muted); font: inherit; font-size: var(--sh-size-sm); text-align: left; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .nav__dashboard--active { background: var(--sh-accent-quiet); color: var(--sh-accent); }
 
   /* V postranním pruhu vede proužek svisle u levé hrany. */
   .nav__item--active::before {

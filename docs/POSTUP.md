@@ -4,7 +4,17 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.5
+**Aktuální verze v kódu:** 0.19.6
+
+## Dashboardy v navigaci a volitelný Přehled 0.19.6
+
+- [x] Plochy se přepínají v levé navigaci, na telefonu výběrem v hlavičce.
+- [x] Tvorba, přejmenování a smazání libovolné plochy zůstává v Nastavení.
+- [x] Jednorázové odstranění nepoužitých výchozích variant; upravené
+  sestavy se zachovají jako vlastní plochy.
+- [x] Lze smazat i poslední dashboard a kdykoliv obnovit Přehled.
+- [x] Hodiny a datum jsou větší; počasí se čte z HA weather entity.
+- [ ] Ověřit responzivitu a skutečný vzhled po instalaci v HA.
 
 ## Zjednodušení navigace 0.19.5
 

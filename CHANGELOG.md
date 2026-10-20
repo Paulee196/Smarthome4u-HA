@@ -2,6 +2,22 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.6]
+
+### Upraveno
+
+- Přepínač dashboardů a tlačítko pro vytvoření nového zmizely z plochy.
+  Dashboardy jsou v levém panelu; na telefonu je jejich výběr v hlavičce.
+- Nový dashboard se vytváří v Nastavení. Nabídka doplňuje příklady pro
+  energii, kamery, vysavač a půdorys.
+- Staré nepoužité předpřipravené plochy se jednorázově odstraní ze seznamu.
+  Ručně upravené sestavy se zachovají jako vlastní plochy.
+- Každou plochu včetně posledního Přehledu lze přejmenovat nebo smazat.
+  Pokud nezůstane žádná, aplikace nabídne vytvoření nové v Nastavení.
+- Z hlavičky zmizela značka a verze, hodiny jsou větší. Je-li v HA dostupná
+  entita počasí, zobrazí se vedle nich místní počasí a případně její
+  uložená předpověď. Verze zůstává v Nastavení / Systém.
+
 ## [0.19.5]
 
 ### Upraveno

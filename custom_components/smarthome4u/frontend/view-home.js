@@ -16,34 +16,20 @@ import { h, button, toast } from "./ui.js";
 export async function renderHome(root, ctx) {
   const preset = ctx.model.preset || "overview";
 
-  root.append(prepinacPloch(ctx, preset));
-  root.append(h("div", { class: "row row--end" }, [
-    button(t.dashboardManager.create, () => ctx.navigate("settings"), "button--ghost"),
-  ]));
+  if (!(ctx.model.dashboards || []).length) {
+    root.append(h("section", { class: "panel stack" }, [
+      h("h2", { text: t.dashboardManager.noDashboards }),
+      h("p", { class: "muted", text: t.dashboardManager.noDashboardsHint }),
+      button(t.dashboardManager.create, () => ctx.navigate("settings")),
+    ]));
+    return;
+  }
 
   if (ctx.editing) {
     root.append(listaUprav(ctx, preset));
   }
 
   vykreslitPlochu(root, ctx);
-}
-
-function prepinacPloch(ctx, active) {
-  return h("nav", { class: "dashboard-switch", "aria-label": t.settings.dashboard },
-    (ctx.model.dashboards || []).map((dashboard) =>
-      h("button", {
-        class: "dashboard-switch__item" + (active === dashboard.id ? " dashboard-switch__item--active" : ""),
-        type: "button",
-        text: dashboard.name,
-        "aria-current": active === dashboard.id ? "page" : null,
-        onclick: async () => {
-          if (active === dashboard.id) return;
-          await api.setPreset(dashboard.id);
-          if (ctx.editing) ctx.stopEditing();
-          await ctx.refresh();
-        },
-      }),
-    ));
 }
 
 /* ------------------------------------------------------------------ */

@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, SupportsResponse
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
@@ -129,6 +129,15 @@ async def test_api_odpovida(
 ) -> None:
     """Interní API vrací model domácnosti."""
     assert await async_setup_component(hass, "http", {})
+    hass.states.async_set("weather.domov", "sunny", {
+        "temperature": 21, "temperature_unit": "°C",
+    })
+    async def forecast(_call):
+        return {"weather.domov": {"forecast": [
+            {"condition": "rainy", "temperature": 18},
+        ]}}
+    hass.services.async_register("weather", "get_forecasts", forecast,
+                                 supports_response=SupportsResponse.ONLY)
 
     entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
     entry.add_to_hass(hass)
@@ -142,6 +151,9 @@ async def test_api_odpovida(
     data = await response.json()
     assert "rooms" in data
     assert "summary" in data
+    assert data["weather"]["temperature"] == 21
+    weather = await (await client.get("/api/smarthome4u/weather")).json()
+    assert weather["nextCondition"] == "rainy"
     assert data["user"]["id"]
 
 
@@ -287,6 +299,25 @@ async def test_vlastni_dashboardy_a_obnova_prehledu(
     assert [item["id"] for item in model["dashboards"]] == ["overview", ident]
     assert model["board"] == {"columns": 4, "blocks": []}
 
+    # Poslední plochu lze také smazat; uživatel si pak zvolí novou v Nastavení.
+    assert (await client.post("/api/smarthome4u/dashboards", json={
+        "action": "delete", "id": ident,
+    })).status == 200
+    assert (await client.post("/api/smarthome4u/dashboards", json={
+        "action": "delete", "id": "overview",
+    })).status == 200
+    empty = await (await client.get("/api/smarthome4u/model")).json()
+    assert empty["dashboards"] == []
+    assert empty["preset"] == ""
+    restarted = storage.Settings(hass)
+    await restarted.load()
+    assert restarted.dashboards == []
+    assert (await client.post("/api/smarthome4u/dashboards", json={
+        "action": "restoreOverview",
+    })).status == 200
+    restored_again = await (await client.get("/api/smarthome4u/model")).json()
+    assert [item["id"] for item in restored_again["dashboards"]] == ["overview"]
+
 
 async def test_upravy_automatickych_mistnosti_se_ulozi(
     hass: HomeAssistant, frontend_je_pripraveny, hass_client
@@ -356,6 +387,23 @@ async def test_prirazeni_plochy_a_prevzeti_starych_sestav(hass: HomeAssistant) -
     old.data["preset"] = "pudorys"
     old._migrate_dashboard_start()
     assert old.preset == "pudorys"
+
+
+async def test_stare_neupravene_plochy_zmizi_a_upravene_zustanou(
+    hass: HomeAssistant,
+) -> None:
+    settings = storage.Settings(hass)
+    settings.data["dashboard"]["home"] = {
+        "columns": 1, "blocks": [{"id": "old", "type": "clock"}],
+    }
+    settings._migrate_dashboards(is_upgrade=True)
+    settings._migrate_dashboard_start()
+    settings._migrate_floorplan_template()
+    settings._clean_legacy_dashboard_catalog()
+    assert "tuya" not in settings.dashboard_ids()
+    assert "prehled" not in settings.dashboard_ids()
+    assert "d-legacy-home" in settings.dashboard_ids()
+    assert settings.board("d-legacy-home")["blocks"][0]["id"] == "old"
 
 
 async def test_pudorys_se_prevede_na_sablonu_bez_ztraty_dat(
