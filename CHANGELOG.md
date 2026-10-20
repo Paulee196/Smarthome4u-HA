@@ -2,6 +2,15 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.7]
+
+### Opraveno
+
+- Tlačítka historie úprav dashboardu mají viditelné popisky „Zpět“ a
+  „Znovu“. Jsou deaktivovaná, když pro daný směr není uložená změna.
+- Nápověda editoru popisuje aktuální přesouvání karet a úchyty na jejich
+  okraji.
+
 ## [0.19.6]
 
 ### Upraveno

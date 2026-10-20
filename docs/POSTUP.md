@@ -4,7 +4,13 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.6
+**Aktuální verze v kódu:** 0.19.7
+
+## Popisky historie dashboardu 0.19.7
+
+- [x] Prázdná tlačítka v liště editoru opravena doplněním překladů
+  Zpět/Znovu a titulku pro myš.
+- [x] Nápověda v liště odpovídá volnému plátnu a změně velikosti úchyty.
 
 ## Dashboardy v navigaci a volitelný Přehled 0.19.6
 

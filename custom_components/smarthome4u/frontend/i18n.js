@@ -765,9 +765,11 @@ export const t = {
   editor: {
     title: "Úprava plochy",
     hint:
-      "Blok přetáhněte za ⠿, velikost změňte za roh ↘. Klepnutím na blok " +
-      "otevřete jeho nastavení vpravo. Změny se ukládají automaticky.",
+      "Kartu přetáhněte po ploše a její velikost změňte pomocí bodů na okraji. " +
+      "Klepnutím otevřete nastavení vpravo. Změny se ukládají automaticky.",
     edit: "Upravit plochu",
+    undo: "Zpět",
+    redo: "Znovu",
     addBlock: "Přidat blok",
     removeBlock: "Odebrat blok",
     blockEmpty: "Tenhle blok teď nemá co ukázat. Až bude, objeví se sám.",

@@ -39,6 +39,8 @@ export async function renderHome(root, ctx) {
 function listaUprav(ctx, preset) {
   const undo = button(t.editor.undo, () => restore("undo"), "button--ghost");
   const redo = button(t.editor.redo, () => restore("redo"), "button--ghost");
+  undo.title = t.editor.undo;
+  redo.title = t.editor.redo;
   undo.disabled = true;
   redo.disabled = true;
   api.dashboardHistory(preset).then((state) => {
