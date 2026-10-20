@@ -122,8 +122,8 @@ class Smarthome4uPanel extends HTMLElement {
             <time id="header-date"></time>
           </div>
           <div class="header__right">
-            <button class="button button--ghost" type="button"
-              id="settings-button">Nastavení</button>
+            <button class="button button--ghost header__edit" type="button"
+              id="uprava-button" hidden></button>
           </div>
         </header>
         <p class="notice" id="notice" hidden></p>

@@ -18,8 +18,6 @@ export async function renderHome(root, ctx) {
 
   root.append(prepinacPloch(ctx, preset));
   root.append(h("div", { class: "row row--end" }, [
-    ctx.muzeUpravitPlochu && button(ctx.editing ? t.editor.done : t.editor.edit,
-      () => ctx.editing ? ctx.stopEditing() : ctx.startEditing(), "button--ghost"),
     button(t.dashboardManager.create, () => ctx.navigate("settings"), "button--ghost"),
   ]));
 

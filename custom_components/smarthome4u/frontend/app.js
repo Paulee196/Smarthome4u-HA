@@ -12,8 +12,7 @@ import { closeDialog, h } from "./ui.js";
 import { APP_VERSION } from "./version.js";
 import { renderHome } from "./view-home.js";
 import { renderRooms } from "./view-rooms.js";
-import { renderScenes } from "./view-scenes.js";
-import { renderAutomations } from "./view-automations.js";
+import { renderActivities } from "./view-activities.js";
 import { renderDevices, resetDevicesTab } from "./view-devices.js";
 import { renderSettings } from "./view-settings.js";
 
@@ -22,11 +21,12 @@ import { renderSettings } from "./view-settings.js";
 const ROUTES = {
   home: { label: t.nav.home, render: renderHome },
   rooms: { label: t.nav.rooms, render: renderRooms },
-  scenes: { label: t.nav.scenes, render: renderScenes },
+  scenes: { label: t.nav.scenes, render: renderActivities },
   automations: {
-    label: t.nav.automations,
-    render: renderAutomations,
+    label: t.nav.scenes,
+    render: (root, ctx) => renderActivities(root, ctx, "automations"),
     technik: true,
+    hidden: true,
   },
   devices: { label: t.nav.devices, render: renderDevices, technik: true },
   // Nastavení vidí každý - kvůli volbě vzhledu. Co smí měnit jen
@@ -34,7 +34,6 @@ const ROUTES = {
   settings: {
     label: t.nav.settings,
     render: renderSettings,
-    hidden: true,
   },
 };
 
@@ -120,15 +119,15 @@ export function mount(root) {
     title: root.getElementById("view-title"),
     nav: root.getElementById("nav"),
     version: root.getElementById("app-version"),
-    settings: root.getElementById("settings-button"),
+    edit: root.getElementById("uprava-button"),
   };
 
   // Kdyby některý prvek chyběl, nesmí to shodit celý start. Radši ať
   // chybí jeden popisek než aby zůstala prázdná obrazovka.
   if (el.version) el.version.textContent = APP_VERSION;
-  if (el.settings) {
-    el.settings.textContent = t.nav.settings;
-    el.settings.addEventListener("click", () => navigate("settings"));
+  if (el.edit) {
+    el.edit.addEventListener("click", () => state.editing
+      ? ctx.stopEditing() : ctx.startEditing());
   }
 
   state.route = readRoute();
@@ -203,41 +202,16 @@ function bezpecne(slib) {
   });
 }
 
-/* Přepínač technického režimu bydlí v Nastavení / Účet. V hlavičce
-   dělal jen zmatek - vedle Nastavení další tlačítko, které nikdo
-   nepotřeboval každý den. Nastavení vidí každý, kvůli volbě vzhledu. */
-function paintRezim() {
-  if (!el.settings) return;
-  el.settings.hidden = false;
-}
-
 /** Úprava plochy. Patří do hlavičky, ne zahrabaná v nastavení. */
 function paintUpravit() {
-  if (!el.settings) return;
-
-  const koren = el.settings.getRootNode?.();
-  let tlacitko = koren?.getElementById?.("uprava-button");
-
-  const jdeUpravit = state.route === "home" && Boolean(state.model?.canEditDashboard);
-
-  if (!jdeUpravit) {
-    tlacitko?.remove();
-    return;
-  }
-
-  if (!tlacitko) {
-    tlacitko = h("button", {
-      class: "button",
-      type: "button",
-      id: "uprava-button",
-      onclick: () => (state.editing ? ctx.stopEditing() : ctx.startEditing()),
-    });
-    const prvni = koren?.getElementById?.("rezim-button") || el.settings;
-    prvni.parentElement?.insertBefore(tlacitko, prvni);
-  }
-
-  tlacitko.textContent = state.editing ? t.editor.done : t.editor.edit;
-  tlacitko.className = state.editing ? "button" : "button button--ghost";
+  if (!el.edit) return;
+  el.edit.hidden = state.route !== "home" || !state.model?.canEditDashboard;
+  const label = state.editing ? t.editor.done : t.editor.edit;
+  el.edit.replaceChildren(icon(state.editing ? "check" : "edit"));
+  el.edit.title = label;
+  el.edit.setAttribute("aria-label", label);
+  el.edit.className = state.editing ? "button header__edit" :
+    "button button--ghost header__edit";
 }
 
 function navigate(route) {
@@ -260,14 +234,14 @@ function navigate(route) {
 function paintNav() {
   if (!el.nav) return;
   el.nav.replaceChildren();
-  paintRezim();
   paintUpravit();
 
   for (const [key, route] of Object.entries(ROUTES)) {
-    if (route.hidden) continue;
     if (route.technik && state.rezim !== "technician") continue;
+    if (route.hidden) continue;
 
-    const active = key === state.route;
+    const active = key === state.route ||
+      (key === "scenes" && state.route === "automations");
     el.nav.append(
       h(
         "button",

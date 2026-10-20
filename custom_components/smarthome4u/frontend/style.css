@@ -245,6 +245,8 @@ body {
   gap: var(--sh-gap-sm);
   flex-wrap: wrap;
 }
+.header__edit { min-width: var(--sh-touch-target); min-height: var(--sh-touch-target); padding: var(--sh-gap-sm); }
+.header__edit[hidden] { display: none; }
 .header__clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin-inline: auto; min-height: var(--sh-touch-target); white-space: nowrap; }
 .header__clock time:first-child { color: var(--sh-text); font-size: var(--sh-size-xl); font-weight: var(--sh-weight-bold); line-height: var(--sh-leading-tight); }
 .header__clock time:last-child { color: var(--sh-text-muted); font-size: var(--sh-size-sm); }
@@ -1515,6 +1517,8 @@ textarea.input {
     padding: 0 var(--sh-gap-md);
     font-size: var(--sh-size-sm);
   }
+
+  .nav__item:last-child { margin-top: auto; }
 
   /* V postranním pruhu vede proužek svisle u levé hrany. */
   .nav__item--active::before {

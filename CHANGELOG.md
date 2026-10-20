@@ -2,6 +2,18 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.5]
+
+### Upraveno
+
+- Úprava dashboardu má jediné tlačítko s tužkou v pravém horním rohu;
+  při úpravách se mění na potvrzení dokončení.
+- Nastavení je poslední položkou navigace, na počítači na spodním konci
+  postranního panelu.
+- Scény, skripty a automatizace jsou pod jednou položkou navigace.
+  V technickém režimu se přepínají dvěma záložkami; původní odkaz na
+  automatizace zůstává funkční.
+
 ## [0.19.4]
 
 ### Přidáno

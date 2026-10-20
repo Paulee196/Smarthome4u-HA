@@ -15,6 +15,8 @@ const PATHS = {
   automations: "M13 2.5 4.5 14H11l-1 7.5L19.5 10H13z",
   devices: "M9 2.5v4M15 2.5v4M5.5 6.5h13v7.5a6.5 6.5 0 0 1-13 0zM12 20.5v3",
   settings: "M4 7h6M14 7h6M4 17h2M10 17h10M12 4.5v5M8 14.5v5",
+  edit: "M4 20h4l11-11-4-4L4 16zM13.5 6.5l4 4",
+  check: "M4 12.5l5 5L20 6.5",
 
   /* Kategorie funkcí */
   lighting: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.8 10.6c.5.5.8 1.2.8 1.9V17h6v-1.5c0-.7.3-1.4.8-1.9A6 6 0 0 0 12 3z",

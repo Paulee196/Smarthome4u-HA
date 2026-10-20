@@ -3,8 +3,17 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.19.4
+**Poslední aktualizace:** 20. 10. 2026
+**Aktuální verze v kódu:** 0.19.5
+
+## Zjednodušení navigace 0.19.5
+
+- [x] Jediné ovládání úprav plochy v hlavičce s ikonou tužky.
+- [x] Nastavení přesunuto na konec bočního panelu a mobilní navigace.
+- [x] Scény a automatizace spojeny pod jednu položku se záložkami;
+  tvorba scén, skriptů i automatizací využívá původní HA API.
+- [x] Starý odkaz `#/automations` zůstává funkční.
+- [ ] Ověřit vzhled a dotykové ovládání v živé instalaci HA.
 
 ## Volné plátno podle principů Panalume 0.19.4
 

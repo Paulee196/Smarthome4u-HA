@@ -24,7 +24,7 @@ export const t = {
   nav: {
     home: "Domů",
     rooms: "Místnosti",
-    scenes: "Scény",
+    scenes: "Scény a automatizace",
     automations: "Automatizace",
     devices: "Zařízení",
     settings: "Nastavení",
