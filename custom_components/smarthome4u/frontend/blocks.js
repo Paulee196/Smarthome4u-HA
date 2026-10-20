@@ -55,7 +55,8 @@ export const BLOKY = {
   metric: { glyf: "lighting", fields: [...EDIT_COMMON, "metric"], render: (ctx, blok) => metrika(ctx, blok) },
   alerts: { glyf: "security", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => upozorneni(ctx, blok, ulozit) },
   open: { glyf: "window", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => otevrene(ctx, blok, ulozit) },
-  playing: { glyf: "media", fields: EDIT_COMMON, render: (ctx) => prehravac(ctx) },
+  playing: { glyf: "media", fields: [...EDIT_COMMON, "mediaRef"],
+    render: (ctx, blok) => prehravac(ctx, blok) },
   lights: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
   scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
@@ -546,7 +547,8 @@ function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements
         onclick: () => {
           const block = novyBlok(type);
           const bottom = Math.max(0, ...[...positions.values()].map((p) => p.y + p.h));
-          positions.set(block.id, { x: 0, y: bottom + 20, w: 400, h: 220 });
+          positions.set(block.id, { x: 0, y: bottom + 20, w: 400,
+            h: type === "playing" ? 380 : 220 });
           selectedBlock = { preset: ctx.model.preset, id: block.id };
           editorTab = "card";
           save([...blocks, block]);
@@ -815,9 +817,20 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId,
           label: `${entity.name} · ${entity.id}` }))];
       return select(choices, block.entityRef || "", "entityRef", t.editor.entitySource);
     },
+    mediaRef: () => {
+      const players = ctx.allEntities().filter((entity) =>
+        entity.capability?.kind === "media_player");
+      const choices = [{ value: "", label: t.editor.mediaAutomatic },
+        ...players.map((entity) => ({ value: ctx.entityRef(entity),
+          label: `${entity.name} · ${entity.id}` }))];
+      if (block.mediaRef && !choices.some((item) => item.value === block.mediaRef)) {
+        choices.push({ value: block.mediaRef, label: t.panel.playerMissing });
+      }
+      return select(choices, block.mediaRef || "", "mediaRef", t.editor.mediaSource);
+    },
   };
   const keys = BLOKY[block.type]?.fields || [];
-  const sections = { content: ["title", "subtitle", "metric", "entityRef"],
+  const sections = { content: ["title", "subtitle", "metric", "entityRef", "mediaRef"],
     style: ["icon", "color"], size: ["height", "cols"] };
   for (const key of keys) {
     if (section === "all" || (sections[section] || []).includes(key)) {
@@ -831,6 +844,11 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId,
         { value: "details", label: t.editor.actionDetails },
         { value: "none", label: t.editor.actionNone },
       ], block.tapAction || "default", "tapAction", t.editor.singleTap));
+    } else if (block.type === "playing") {
+      panel.append(select([
+        { value: "details", label: t.editor.actionDetails },
+        { value: "play_pause", label: t.editor.actionPlayPause },
+      ], block.tapAction || "details", "tapAction", t.editor.singleTap));
     } else panel.append(h("p", { class: "muted", text: t.editor.actionEntityHint }));
   }
   if (section === "content" || section === "all") {
@@ -1185,27 +1203,28 @@ function otevrene(ctx, blok, ulozit) {
   );
 }
 
-function prehravac(ctx) {
-  const hrajici = ctx.model.nowPlaying || [];
-  if (!hrajici.length) return null;
-
-  return ramec(
-    t.panel.nowPlaying,
-    "media",
-    h(
-      "div",
-      { class: "stack" },
-      hrajici.map((entity) =>
-        h("div", { class: "hraje" }, [
-          h("span", { class: "hraje__jmeno", text: entity.name }),
-          h("span", {
-            class: "hraje__skladba",
-            text: (entity.attributes && entity.attributes.media_title) || "",
-          }),
-        ]),
-      ),
-    ),
-  );
+function prehravac(ctx, blok) {
+  const players = ctx.allEntities().filter((entity) =>
+    entity.capability?.kind === "media_player");
+  const selected = blok.mediaRef ? ctx.entityByRef(blok.mediaRef) : null;
+  const active = players.filter((entity) =>
+    entity.state === "playing" || entity.state === "paused");
+  const shown = blok.mediaRef
+    ? selected?.capability?.kind === "media_player" ? [selected] : []
+    : active.length ? active : players;
+  const hint = blok.mediaRef && !shown.length ? t.panel.playerMissing
+    : !players.length ? t.panel.noPlayers
+    : !active.length && !blok.mediaRef ? t.panel.nonePlaying : "";
+  const onClick = blok.tapAction === "play_pause" ? (entity) => {
+    if (!entity.capability?.canPlay) { openControls(entity); return; }
+    api.action(entity.id, "play_pause").catch((error) => toast(error.message, true));
+  } : undefined;
+  return ramec(blok.title || t.panel.nowPlaying, "media",
+    h("div", { class: "stack" }, [
+      hint && h("p", { class: "muted", text: hint }),
+      shown.length > 0 && h("div", { class: "cards" },
+        shown.map((entity) => card(entity, { size: "xl", editing: ctx.editing, onClick }))),
+    ]));
 }
 
 function rozsvicenaSvetla(ctx) {

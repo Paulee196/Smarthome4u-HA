@@ -557,8 +557,8 @@ class Home:
     def now_playing(self) -> list[dict]:
         """Co právě hraje.
 
-        Karta s přehrávačem se na panelu ukáže jen tehdy, když opravdu něco
-        hraje. Jinak jen zabírá místo.
+        Přehled aktivních přehrávačů v modelu. Karta dashboardu si může
+        nabídnout i neaktivní přehrávače, aby je šlo spustit.
         """
         return [
             view

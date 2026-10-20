@@ -574,6 +574,9 @@ button.card__hit:active {
   color: var(--sh-text-muted);
   font-variant-numeric: tabular-nums;
 }
+.card__media-title { color: var(--sh-text-muted); font-size: var(--sh-size-xs);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.card__media-title[hidden] { display: none; }
 
 .card--on .card__state {
   color: var(--sh-on-text);
@@ -2532,6 +2535,9 @@ textarea.input {
 .card--xl .card__icon .icon { width: 40px; height: 40px; }
 .card--xl .card__name { font-size: var(--sh-size-lg); }
 .card--xl .card__ovladani { padding: var(--sh-gap-md); }
+.dashboard-block--type-playing .card--xl { min-height: 0; }
+.dashboard-block--type-playing .card--xl .card__hit { min-height: 100px; }
+.dashboard-block--type-playing .card--xl .card__ovladani { padding: var(--sh-gap-sm); }
 
 .card__nahled {
   width: 100%;

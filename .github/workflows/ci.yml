@@ -9,6 +9,22 @@ on:
 # Bez toho je z venku vidět jen návratový kód a chyba se nedá dohledat.
 
 jobs:
+  frontend:
+    name: Frontend a popisky
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntaxe JavaScriptu
+        run: |
+          for file in custom_components/smarthome4u/frontend/*.js; do
+            node --check "$file"
+          done
+      - name: Dostupnost popisků
+        run: node scripts/check_frontend_i18n.mjs
+
   hassfest:
     name: Manifest integrace
     runs-on: ubuntu-latest

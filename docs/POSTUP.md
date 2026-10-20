@@ -4,7 +4,18 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.9
+**Aktuální verze v kódu:** 0.19.10
+
+## Ovládání přehrávače a texty editoru 0.19.10
+
+- [x] Audit všech přímých odkazů na překlady ve frontendových komponentách;
+  pět chybějících popisků editoru přesunuto do správné skupiny.
+- [x] Karta Právě hraje používá společné ovládání media_player z HA,
+  ukazuje název skladby a umožňuje výběr přehrávače i akce při klepnutí.
+- [x] Stabilní reference vybraného přehrávače se ukládá a migruje s ostatními
+  odkazy na entity; test API ověřuje její uložení.
+- [x] CI nově kontroluje syntaxi JS a přímé odkazy na překlady.
+- [ ] Ověřit vzhled karty a její ovládání v živé instalaci HA.
 
 ## Viditelnost prázdných bloků 0.19.9
 

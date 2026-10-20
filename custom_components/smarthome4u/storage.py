@@ -444,6 +444,9 @@ class Settings:
                 for block in blocks:
                     if not isinstance(block, dict):
                         continue
+                    for key in ("entityRef", "mediaRef"):
+                        if isinstance(block.get(key), str):
+                            block[key] = norm(block[key])
                     entity_refs = block.get("entities")
                     if isinstance(entity_refs, list):
                         block["entities"] = [

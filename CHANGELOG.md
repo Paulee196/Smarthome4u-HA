@@ -2,6 +2,19 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.10]
+
+### Opraveno
+
+- Karta „Právě hraje“ obsahuje ovladatelné přehrávače. Při nečinnosti
+  nabídne dostupné přehrávače a při přehrávání upřednostní aktivní.
+- V nastavení karty lze vybrat konkrétní přehrávač a nastavit, zda klepnutí
+  otevře detail nebo spustí či pozastaví přehrávání. Název skladby se
+  aktualizuje spolu se stavem Home Assistanta.
+- Prázdné popisky v editoru vzniklé přesunutými překlady jsou obnovené:
+  záložka Karta, kopírování, výběr bloku a nápověda.
+- CI kontroluje syntaxi JavaScriptu a existenci používaných překladů.
+
 ## [0.19.9]
 
 ### Opraveno

@@ -1838,7 +1838,14 @@ class DashboardView(Sh4uView):
                 ref = refs.normalize_ref(self.hass, blok["entityRef"])
                 if ref:
                     novy["entityRef"] = ref
-            if blok.get("tapAction") in ("default", "details", "none"):
+            if typ == "playing" and isinstance(blok.get("mediaRef"), str):
+                ref = refs.normalize_ref(self.hass, blok["mediaRef"])
+                entity_id = refs.entity_id_for_ref(self.hass, ref) if ref else None
+                if entity_id and entity_id.startswith("media_player."):
+                    novy["mediaRef"] = ref
+            if blok.get("tapAction") in ("default", "details", "none") or (
+                typ == "playing" and blok.get("tapAction") == "play_pause"
+            ):
                 novy["tapAction"] = blok["tapAction"]
 
             # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.

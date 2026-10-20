@@ -156,6 +156,8 @@ export function card(entity, volby = {}) {
       : null;
   const name = h("span", { class: "card__name", text: appearance.label || entity.name });
   const state = h("span", { class: "card__state" });
+  const mediaTitle = kind === "media_player"
+    ? h("span", { class: "card__media-title" }) : null;
   const level = h("span", { class: "card__level" });
 
   let current = entity;
@@ -173,7 +175,7 @@ export function card(entity, volby = {}) {
           }
         : null,
     },
-    [nahled || glyph, name, state],
+    [nahled || glyph, name, state, mediaTitle],
   );
 
   const children = [hit, level];
@@ -217,6 +219,10 @@ export function card(entity, volby = {}) {
 
     name.textContent = appearance.label || next.name;
     state.textContent = text;
+    if (mediaTitle) {
+      mediaTitle.textContent = next.attributes?.media_title || "";
+      mediaTitle.hidden = !mediaTitle.textContent;
+    }
     root.className = trida(tone, next.size);
     if (nahled && next.attributes?.entity_picture) {
       nahled.src = next.attributes.entity_picture;

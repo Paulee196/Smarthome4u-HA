@@ -904,6 +904,7 @@ async def test_plocha_po_blocich(
     """Sestava plochy se uloží, vrátí a přežije restart."""
     assert await async_setup_component(hass, "http", {})
     hass.states.async_set("light.a", "off", {"supported_color_modes": ["onoff"]})
+    hass.states.async_set("media_player.radio", "paused", {"supported_features": 16385})
 
     entry = MockConfigEntry(domain=DOMAIN, title="Smarthome4u", unique_id=DOMAIN)
     entry.add_to_hass(hass)
@@ -947,6 +948,8 @@ async def test_plocha_po_blocich(
         {"id": "b3", "type": "entity", "entityRef": "light.a",
          "tapAction": "details",
          "positionDesktop": {"x": 600, "y": 20, "w": 400, "h": 320}},
+        {"id": "b4", "type": "playing", "mediaRef": "media_player.radio",
+         "tapAction": "play_pause"},
     ]
     odpoved = await client.post(
         "/api/smarthome4u/dashboard",
@@ -959,7 +962,7 @@ async def test_plocha_po_blocich(
     model = await (await client.get("/api/smarthome4u/model")).json()
     sestava = model["board"]
     assert sestava["columns"] == 3
-    assert [b["type"] for b in sestava["blocks"]] == ["status", "entities", "entity"]
+    assert [b["type"] for b in sestava["blocks"]] == ["status", "entities", "entity", "playing"]
     assert sestava["blocks"][0]["cols"] == 3
     assert sestava["blocks"][0]["color"] == "mint"
     assert sestava["blocks"][0]["fontSize"] == 28
@@ -984,6 +987,8 @@ async def test_plocha_po_blocich(
     assert sestava["blocks"][2]["positionDesktop"] == {
         "x": 600, "y": 20, "w": 400, "h": 320,
     }
+    assert sestava["blocks"][3]["mediaRef"] == "entity:media_player.radio"
+    assert sestava["blocks"][3]["tapAction"] == "play_pause"
 
     # Historie je součástí vlastního Store a umí obnovit i výchozí sestavu.
     history = await (await client.get(
@@ -1006,7 +1011,7 @@ async def test_plocha_po_blocich(
     # Nová instance čte tentýž soubor - tohle je ten restart.
     nove = storage.Settings(hass)
     await nove.load()
-    assert len(nove.board(board_id)["blocks"]) == 3
+    assert len(nove.board(board_id)["blocks"]) == 4
     assert nove.board_history(board_id)["undo"]
     # Ostatní podoby plochy se tím nezměnily.
     assert nove.board("panel") is None
