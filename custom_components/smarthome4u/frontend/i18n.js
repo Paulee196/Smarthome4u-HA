@@ -632,6 +632,9 @@ export const t = {
   },
 
   favorites: {
+    emptyBlock: "V tomto bloku zatím není žádné zařízení.",
+    emptyBlockHint: "Knihovna je jen nabídka. Zařízení se na ploše ukáže, až ho přidáte kliknutím v knihovně nebo tlačítkem Přidat zařízení.",
+    unavailableInBlock: "Vybraná zařízení teď nejsou v Home Assistantu dostupná.",
     replace: "Vyměnit zařízení",
     tapToReplace: "Klepnutím vyměníte",
     tapToEdit: "klepnutím upravíte",
@@ -779,6 +782,7 @@ export const t = {
     allBlocksUsed: "Všechny bloky už na ploše máte.",
     emptyBoard:
       "Plocha je prázdná. Klepněte na Upravit plochu a přidejte bloky.",
+    noVisibleBlocks: "Na této ploše se teď nic nezobrazuje. Otevřete úpravy a zkontrolujte nastavení prvků.",
     done: "Hotovo",
     hide: "Schovat",
     drag: "Přetáhnout",

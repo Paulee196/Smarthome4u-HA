@@ -2,6 +2,16 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.9]
+
+### Opraveno
+
+- Prázdný blok pro vlastní výběr zařízení už po ukončení úprav nemizí.
+  Na ploše vysvětluje, že do něj zatím nebylo přidáno žádné zařízení.
+- Editor odlišuje knihovnu dostupných zařízení od zařízení skutečně vložených
+  do bloku. Když vybraná zařízení nejsou v HA dostupná, blok to oznámí.
+- Plocha se skrytými dynamickými bloky ukáže vysvětlení místo prázdné obrazovky.
+
 ## [0.19.8]
 
 ### Opraveno

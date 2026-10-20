@@ -287,7 +287,7 @@ export function vykreslitPlochu(root, ctx) {
     workspace.append(panel);
     selectBlock(selectedBlock?.id || null, selectedBlock?.roomId || null);
   } else if (!plocha.children.length) {
-    plocha.append(emptyState(t.editor.emptyBoard));
+    plocha.append(emptyState(t.editor.noVisibleBlocks));
   }
 }
 
@@ -400,7 +400,10 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
     const current = selectedBlock?.preset === preset && elements.has(selectedBlock.id)
       ? selectedBlock : { id: blocks[0]?.id || null, roomId: null };
     select(current.id, current.roomId, blocks.length ? editorTab : "add");
-  } else if (!blocks.length) stage.append(emptyState(t.editor.emptyBoard));
+  } else if (!elements.size) {
+    stage.append(h("div", { class: "dashboard-stage__empty" },
+      emptyState(blocks.length ? t.editor.noVisibleBlocks : t.editor.emptyBoard)));
+  }
 }
 
 function applyFreePosition(element, place) {
@@ -1374,16 +1377,23 @@ function rychleAkce(ctx) {
 
 function zarizeni(ctx, blok, ulozitBlok) {
   const ids = blok.entities || [];
-  if (!ids.length && !ctx.editing) return null;
+  const resolved = ids.some((ref) => ctx.entityByRef(ref));
+  const title = blok.title || t.blocks.entities;
+  const glyph = blok.type === "room" ? "rooms" : "devices";
+  if (!ctx.editing && !resolved) {
+    return ramec(title, glyph, emptyState(ids.length
+      ? t.favorites.unavailableInBlock : t.favorites.emptyBlock));
+  }
 
   const grid = mrizkaZarizeni(ctx, blok, ulozitBlok);
   const catalog = (ctx.model.dashboardTemplate === "tuya" && !ctx.editing)
     ? katalogZarizeni(ctx, blok, grid) : grid;
 
   return ramec(
-    blok.title || t.blocks.entities,
-    blok.type === "room" ? "rooms" : "devices",
+    title,
+    glyph,
     h("div", { class: "stack" }, [
+      ctx.editing && !ids.length && h("p", { class: "muted", text: t.favorites.emptyBlockHint }),
       ctx.editing && h("p", { class: "muted", text: t.favorites.hint }),
       catalog,
     ]),

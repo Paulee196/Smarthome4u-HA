@@ -4,7 +4,14 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.8
+**Aktuální verze v kódu:** 0.19.9
+
+## Viditelnost prázdných bloků 0.19.9
+
+- [x] Blok s vlastním výběrem zařízení zůstává viditelný i bez vybraných entit.
+- [x] Editor říká, že knihovna není obsahem bloku, a navádí k přidání zařízení.
+- [x] Plocha bez právě viditelných dynamických bloků ukazuje vysvětlení.
+- [ ] Ověřit v živém HA, že dashboard „telefon“ po aktualizaci ukáže prázdný blok.
 
 ## Viditelné přidávání prvků dashboardu 0.19.8
 
