@@ -12,10 +12,11 @@
 import { api } from "./api.js";
 import { COLORS, ICONS } from "./appearance.js";
 import { t } from "./i18n.js";
-import { card } from "./controls.js";
+import { card, openControls } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { mrizkaZarizeni } from "./favorites.js";
 import { icon } from "./icons.js";
+import { VOLBY as MOTIVY, nastavitMotiv, zvolenyMotiv } from "./theme.js";
 import {
   h,
   button,
@@ -32,6 +33,9 @@ import {
 export const MAX_SLOUPCU = 4;
 const EDIT_COMMON = ["title", "icon", "color", "height", "cols"];
 let selectedBlock = null;
+let editorTab = "card";
+let editorDevice = "tablet";
+let cardSection = "content";
 let saveQueue = Promise.resolve();
 let saveRevision = 0;
 
@@ -44,6 +48,8 @@ let saveRevision = 0;
    být vidět, aby se s ním dalo hnout. */
 export const BLOKY = {
   headline: { glyf: "home", fields: [...EDIT_COMMON, "subtitle"], render: (ctx, blok) => nadpisPlochy(ctx, blok) },
+  entity: { glyf: "devices", fields: [...EDIT_COMMON, "entityRef"],
+    render: (ctx, blok) => jednaEntita(ctx, blok) },
   clock: { glyf: "home", fields: EDIT_COMMON, render: (ctx) => hodiny(ctx) },
   status: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx) => stavDomu(ctx) },
   metric: { glyf: "lighting", fields: [...EDIT_COMMON, "metric"], render: (ctx, blok) => metrika(ctx, blok) },
@@ -74,6 +80,7 @@ export const BLOKY = {
 /* Co jde přidat. Pořadí je pořadí v nabídce. */
 export const NABIDKA = [
   "headline",
+  "entity",
   "entities",
   "room",
   "auto_rooms",
@@ -215,6 +222,15 @@ export function vykreslitPlochu(root, ctx) {
   const sloupce = Math.min(MAX_SLOUPCU, Math.max(1, sestava.columns || 1));
   const bloky = sestava.blocks;
 
+  const screenKey = window.innerWidth < 700 ? "positionPhone"
+    : window.innerWidth >= 1450 ? "positionDesktop" : "position";
+  const hasFreeLayout = bloky.length && bloky.every((block) =>
+    block[screenKey] || (screenKey === "positionDesktop" && block.position));
+  if (ctx.editing || hasFreeLayout) {
+    vykreslitVolnouPlochu(root, ctx, bloky, sloupce);
+    return;
+  }
+
   const ulozit = (nove) =>
     ulozitSestavu(ctx, { columns: sloupce, ...nove, blocks: nove.blocks || bloky });
 
@@ -273,6 +289,302 @@ export function vykreslitPlochu(root, ctx) {
   } else if (!plocha.children.length) {
     plocha.append(emptyState(t.editor.emptyBoard));
   }
+}
+
+/* Volné plátno ukládá polohu v tisícinách šířky a výšku v pixelech.
+ * Staré pořadí a sloupce se při první úpravě pouze promítnou do plátna;
+ * do Store se zapíšou až při skutečné změně. Telefon používá jednořadé
+ * uspořádání podle pořadí karet. */
+function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
+  const preset = ctx.model.preset || "overview";
+  const device = ctx.editing ? editorDevice : window.innerWidth < 700 ? "phone"
+    : window.innerWidth >= 1450 ? "desktop" : "tablet";
+  const positionKey = device === "phone" ? "positionPhone"
+    : device === "desktop" ? "positionDesktop" : "position";
+  const workspace = ctx.editing ? h("div", { class: "dashboard-editor dashboard-editor--free" }) : root;
+  if (ctx.editing) root.append(workspace);
+  const stage = h("div", { class: `dashboard-stage dashboard-stage--${device}`
+    + (device === "phone" && blocks.every((block) => block.positionPhone)
+      ? " dashboard-stage--phone-custom" : "")
+    + (ctx.editing ? " dashboard-stage--editing" : "") });
+  workspace.append(stage);
+  const positions = new Map();
+  const elements = new Map();
+  const panel = ctx.editing ? h("aside", { class: "dashboard-editor__panel" }) : null;
+  const save = (next) => {
+    for (const block of next) {
+      if (positions.has(block.id)) continue;
+      const bottom = Math.max(0, ...[...positions.values()].map((p) => p.y + p.h));
+      positions.set(block.id, { x: 0, y: bottom + 20,
+        w: block[positionKey]?.w || 400, h: block[positionKey]?.h || 220 });
+    }
+    return ulozitSestavu(ctx, { columns, blocks: next.map((block) => ({
+      ...block, [positionKey]: positions.get(block.id),
+    })) });
+  };
+  const select = (id, roomId = null, tab = "card") => {
+    selectedBlock = { preset, id, roomId };
+    editorTab = tab;
+    for (const [key, element] of elements) {
+      element.classList.toggle("blok--vybrany", key === id);
+    }
+    panel?.replaceChildren(renderStudioPanel(ctx, blocks, columns, id, roomId,
+      editorTab, save, elements, positions, select));
+  };
+
+  for (const block of blocks) {
+    const element = jedenBlok(ctx, block, blocks, columns, save,
+      () => select(block.id), (roomId) => select(block.id, roomId),
+      selectedBlock?.preset === preset && selectedBlock.id === block.id);
+    if (!element) continue;
+    element.classList.add("dashboard-stage__card");
+    if (ctx.editing) {
+      element.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button, input, select, textarea, [data-resize]")) return;
+        moveFreeCard(event, block.id, element, stage, positions, () => select(block.id),
+          () => save(blocks));
+      });
+      for (const edge of ["nw", "n", "ne", "e", "se", "s", "sw", "w"]) {
+        element.append(h("button", { class: `dashboard-stage__handle dashboard-stage__handle--${edge}`,
+          type: "button", "data-resize": edge, "aria-label": `${t.editor.size}: ${block.title || t.blocks[block.type]}`,
+          onpointerdown: (event) => resizeFreeCard(event, block.id, edge, element,
+            stage, positions, () => select(block.id), () => save(blocks)) }));
+      }
+    }
+    elements.set(block.id, element);
+    stage.append(element);
+  }
+
+  // U existujících dashboardů převeď starou mřížku bez zásahu do dat.
+  let rowX = 0, rowY = 0, rowHeight = 0;
+  const savedBottom = Math.max(0, ...blocks.map((block) => {
+    const place = block[positionKey] || (device === "desktop" ? block.position : null);
+    return place ? place.y + place.h + 20 : 0;
+  }));
+  rowY = savedBottom;
+  for (const block of blocks) {
+    const element = elements.get(block.id);
+    if (!element) continue;
+    let place = block[positionKey] || (device === "desktop" ? block.position : null);
+    if (!place) {
+      const w = device === "phone" ? 1000 : Math.min(1000, Math.max(200,
+        Math.round((block.cols || 1) / columns * 1000 / 10) * 10));
+      if (rowX && rowX + w > 1000) {
+        rowX = 0; rowY += rowHeight + 20; rowHeight = 0;
+      }
+      element.style.width = `${w / 10}%`;
+      const content = element.querySelector(".dashboard-block") || element;
+      const h = Math.min(2000, Math.max(140,
+        Math.ceil((content.scrollHeight + (ctx.editing ? 20 : 0)) / 10) * 10));
+      place = { x: rowX, y: rowY, w, h };
+      rowX += w;
+      rowHeight = Math.max(rowHeight, h);
+    }
+    positions.set(block.id, place);
+    applyFreePosition(element, place);
+  }
+  stage.style.minHeight = `${Math.max(500, ...[...positions.values()]
+    .map((place) => place.y + place.h + 160))}px`;
+
+  if (ctx.editing) {
+    workspace.append(panel);
+    const current = selectedBlock?.preset === preset && elements.has(selectedBlock.id)
+      ? selectedBlock : { id: blocks[0]?.id || null, roomId: null };
+    select(current.id, current.roomId, blocks.length ? editorTab : "add");
+  } else if (!blocks.length) stage.append(emptyState(t.editor.emptyBoard));
+}
+
+function applyFreePosition(element, place) {
+  element.style.left = `${place.x / 10}%`;
+  element.style.top = `${place.y}px`;
+  element.style.width = `${place.w / 10}%`;
+  element.style.height = `${place.h}px`;
+}
+
+function freePointer(event, id, element, positions, select, save, move) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  event.stopPropagation();
+  select();
+  const pointerId = event.pointerId;
+  const initial = { ...positions.get(id) };
+  let changed = false;
+  function onMove(next) {
+    if (next.pointerId !== pointerId) return;
+    const place = move(initial, next.clientX - event.clientX, next.clientY - event.clientY);
+    if (!place) return;
+    changed = true;
+    positions.set(id, place);
+    applyFreePosition(element, place);
+  }
+  function end(next) {
+    if (next.pointerId !== pointerId) return;
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", cancel);
+    if (changed) save();
+  }
+  function cancel(next) {
+    if (next.pointerId !== pointerId) return;
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", cancel);
+    positions.set(id, initial);
+    applyFreePosition(element, initial);
+  }
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", cancel);
+}
+
+function moveFreeCard(event, id, element, stage, positions, select, save) {
+  const width = stage.getBoundingClientRect().width || 1;
+  freePointer(event, id, element, positions, select, save, (start, dx, dy) => {
+    let x = Math.round((start.x + dx / width * 1000) / 10) * 10;
+    let y = Math.round((start.y + dy) / 10) * 10;
+    const nearX = Math.max(10, Math.round(12 / width * 1000));
+    const gap = Math.round(20 / width * 1000);
+    for (const [key, other] of positions) {
+      if (key === id) continue;
+      const xTargets = [other.x, other.x + other.w, other.x - start.w,
+        other.x + other.w + gap];
+      const yTargets = [other.y, other.y + other.h, other.y - start.h,
+        other.y + other.h + 20];
+      const snapX = xTargets.find((target) => Math.abs(x - target) <= nearX);
+      const snapY = yTargets.find((target) => Math.abs(y - target) <= 12);
+      if (snapX !== undefined) x = snapX;
+      if (snapY !== undefined) y = snapY;
+    }
+    return { ...start, x: Math.max(0, Math.min(1000 - start.w, x)),
+      y: Math.max(0, Math.min(10000, y)) };
+  });
+}
+
+function resizeFreeCard(event, id, edge, element, stage, positions, select, save) {
+  const width = stage.getBoundingClientRect().width || 1;
+  freePointer(event, id, element, positions, select, save, (start, dx, dy) => {
+    const changeX = Math.round(dx / width * 1000 / 10) * 10;
+    const changeY = Math.round(dy / 10) * 10;
+    let { x, y, w, h } = start;
+    if (edge.includes("e")) w = Math.max(100, Math.min(1000 - x, w + changeX));
+    if (edge.includes("s")) h = Math.max(120, Math.min(2000, h + changeY));
+    if (edge.includes("w")) {
+      x = Math.max(0, Math.min(start.x + start.w - 100, start.x + changeX));
+      w = start.w + start.x - x;
+    }
+    if (edge.includes("n")) {
+      y = Math.max(0, Math.min(start.y + start.h - 120, start.y + changeY));
+      h = start.h + start.y - y;
+    }
+    return { x, y, w, h };
+  });
+}
+
+function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements, positions, select) {
+  const root = h("div", { class: "dashboard-studio" });
+  const tabs = [["add", t.editor.addBlock], ["card", t.editor.properties],
+    ["layout", t.editor.layoutTab], ["views", t.editor.viewsTab],
+    ["theme", t.settings.theme]];
+  root.append(h("nav", { class: "dashboard-studio__tabs" }, tabs.map(([key, label]) =>
+    h("button", { class: key === tab ? "dashboard-studio__tab dashboard-studio__tab--active"
+      : "dashboard-studio__tab", type: "button", text: label,
+      onclick: () => select(id, roomId, key) }))));
+  const content = h("div", { class: "dashboard-studio__content" });
+  root.append(content);
+  if (tab === "card") {
+    content.append(h("nav", { class: "dashboard-studio__sections" }, [
+      ["content", t.editor.contentTab], ["style", t.editor.styleTab],
+      ["actions", t.editor.actionsTab], ["size", t.editor.sizeTab],
+    ].map(([key, label]) => h("button", {
+      class: "dashboard-studio__section" + (cardSection === key ? " dashboard-studio__section--active" : ""),
+      type: "button", text: label, onclick: () => {
+        cardSection = key;
+        select(id, roomId, "card");
+      },
+    }))));
+    const block = blocks.find((item) => item.id === id);
+    content.append(renderBlockPanel(ctx, blocks, columns,
+      block, save, elements.get(id), roomId, cardSection));
+    if (cardSection === "size" && block) {
+      const place = positions.get(id);
+      if (place) for (const [key, label, max] of [
+        ["x", t.editor.positionX, 900], ["y", t.editor.positionY, 10000],
+        ["w", t.editor.positionW, 1000], ["h", t.editor.positionH, 2000],
+      ]) {
+        const input = h("input", { class: "input", type: "number",
+          min: key === "w" ? 100 : key === "h" ? 120 : 0,
+          max, value: place[key] });
+        input.addEventListener("change", () => {
+          const next = { ...positions.get(id), [key]: Number(input.value) };
+          if (next.x < 0 || next.y < 0 || next.w < 100 || next.h < 120
+              || next.x + next.w > 1000 || next.h > 2000) return;
+          positions.set(id, next);
+          applyFreePosition(elements.get(id), next);
+          save(blocks);
+        });
+        content.append(field(label, input));
+      }
+    }
+  } else if (tab === "add") {
+    const used = new Set(blocks.map((block) => block.type));
+    for (const type of NABIDKA) {
+      if (JEDNOU.has(type) && used.has(type)) continue;
+      content.append(button(t.blocks[type], () => {
+        const block = novyBlok(type);
+        const bottom = Math.max(0, ...[...positions.values()].map((p) => p.y + p.h));
+        positions.set(block.id, { x: 0, y: bottom + 20, w: 400, h: 220 });
+        selectedBlock = { preset: ctx.model.preset, id: block.id };
+        editorTab = "card";
+        save([...blocks, block]);
+      }, "button--ghost dashboard-studio__add"));
+    }
+  } else if (tab === "layout") {
+    content.append(h("div", { class: "segmented" }, [
+      ["tablet", t.editor.deviceTablet],
+      ["phone", t.editor.devicePhone],
+      ["desktop", t.editor.deviceDesktop],
+    ].map(([key, label]) => h("button", {
+      class: "segmented__item" + (editorDevice === key ? " segmented__item--active" : ""),
+      type: "button", text: label, "aria-pressed": String(editorDevice === key),
+      onclick: () => { editorDevice = key; ctx.refresh(); },
+    }))));
+    content.append(h("p", { class: "muted", text: t.editor.freeLayoutHint }));
+    content.append(h("p", { class: "muted", text: t.editor.deviceLayoutHint }));
+  } else if (tab === "views") {
+    for (const board of ctx.model.dashboards || []) {
+      content.append(button(board.name, async () => {
+        await api.setPreset(board.id);
+        await ctx.refresh();
+      }, "button--ghost dashboard-studio__add"));
+    }
+    const name = textInput("", t.dashboardManager.name);
+    const template = selectInput([
+      { value: "blank", label: t.dashboardManager.blank },
+      { value: "overview", label: t.dashboardManager.overview },
+      ...["pudorys", "tuya", "home", "prehled"].map((key) => ({
+        value: key, label: t.presets[key].name,
+      })),
+    ], "blank");
+    content.append(field(t.dashboardManager.name, name));
+    content.append(field(t.dashboardManager.template, template));
+    content.append(button(t.dashboardManager.create, async () => {
+      const title = name.value.trim();
+      if (!title) { toast(t.dashboardManager.name, true); return; }
+      await api.dashboardCatalog({ action: "create", name: title, template: template.value });
+      editorTab = "add";
+      await ctx.refresh();
+    }));
+  } else {
+    content.append(h("p", { class: "muted", text: t.settings.themeHint }));
+    for (const theme of MOTIVY) {
+      content.append(button(t.settings.themes[theme], () => {
+        nastavitMotiv(theme);
+        select(id, roomId, "theme");
+      }, theme === zvolenyMotiv() ? "dashboard-studio__add" :
+        "button--ghost dashboard-studio__add"));
+    }
+  }
+  return root;
 }
 
 /* Přepínač počtu sloupců. Na telefonu je vždy jeden, tohle platí od
@@ -392,7 +704,8 @@ function jedenBlok(ctx, blok, bloky, sloupce, ulozit, onSelect, onSelectRoom, se
   return obal;
 }
 
-function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId) {
+function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId,
+                          section = "all") {
   const panel = h("div", { class: "dashboard-editor__fields" });
   panel.append(h("h2", { text: roomId ? t.editor.roomProperties : t.editor.properties }));
   if (!block) {
@@ -478,8 +791,52 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId) {
     metric: () => select(Object.keys(t.metrics).map((value) => ({
       value, label: t.metrics[value],
     })), block.metric || "lightsOn", "metric", t.editor.metricSource),
+    entityRef: () => {
+      const entities = [...ctx.allEntities(), ...(ctx.model.scenes || [])];
+      const choices = [{ value: "", label: t.editor.chooseEntity },
+        ...entities.map((entity) => ({ value: ctx.entityRef(entity),
+          label: `${entity.name} · ${entity.id}` }))];
+      return select(choices, block.entityRef || "", "entityRef", t.editor.entitySource);
+    },
   };
-  for (const key of BLOKY[block.type]?.fields || []) panel.append(fields[key]());
+  const keys = BLOKY[block.type]?.fields || [];
+  const sections = { content: ["title", "subtitle", "metric", "entityRef"],
+    style: ["icon", "color"], size: ["height", "cols"] };
+  for (const key of keys) {
+    if (section === "all" || (sections[section] || []).includes(key)) {
+      panel.append(fields[key]());
+    }
+  }
+  if (section === "actions") {
+    if (block.type === "entity") {
+      panel.append(select([
+        { value: "default", label: t.editor.actionDefault },
+        { value: "details", label: t.editor.actionDetails },
+        { value: "none", label: t.editor.actionNone },
+      ], block.tapAction || "default", "tapAction", t.editor.singleTap));
+    } else panel.append(h("p", { class: "muted", text: t.editor.actionEntityHint }));
+  }
+  if (section === "content" || section === "all") {
+    if (block.type === "entities" || block.type === "room") {
+      panel.append(h("p", { class: "muted", text: t.editor.contentOnCanvas }));
+    }
+  }
+  if (section === "content") {
+    panel.append(h("div", { class: "stack" }, [
+      button(t.editor.duplicate, () => {
+        const copy = { ...structuredClone(block),
+          id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}` };
+        selectedBlock = { preset: ctx.model.preset || "overview", id: copy.id };
+        const index = blocks.findIndex((item) => item.id === block.id);
+        save([...blocks.slice(0, index + 1), copy, ...blocks.slice(index + 1)]);
+      }, "button--ghost"),
+      button(t.editor.removeBlock, () => save(blocks.filter((item) => item.id !== block.id)),
+        "button--ghost"),
+    ]));
+    return panel;
+  }
+  if (section === "actions") return panel;
+  if (section === "style" || section === "all") {
   const size = h("input", { type: "range", min: 12, max: 72, step: 1,
     value: block.fontSize || 20 });
   const sizeValue = h("output", { text: `${block.fontSize || 20} px` });
@@ -492,6 +849,8 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId) {
   size.addEventListener("change", () => update({ fontSize: Number(size.value) }));
   panel.append(h("div", { class: "dashboard-editor__range" },
     [field(t.editor.fontSize, size), sizeValue]));
+  }
+  if (section === "style") return panel;
   const minHeight = h("input", { type: "range", min: 120, max: 900, step: 10,
     value: block.minHeight || 120 });
   const heightValue = h("output", { text: `${block.minHeight || 120} px` });
@@ -503,9 +862,7 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId) {
   minHeight.addEventListener("change", () => update({ minHeight: Number(minHeight.value) }));
   panel.append(h("div", { class: "dashboard-editor__range" },
     [field(t.editor.pixelHeight, minHeight), heightValue]));
-  if (block.type === "entities" || block.type === "room") {
-    panel.append(h("p", { class: "muted", text: t.editor.contentOnCanvas }));
-  }
+  if (section === "size") return panel;
   panel.append(h("div", { class: "stack" }, [
     button(t.editor.duplicate, () => {
       const copy = { ...structuredClone(block),
@@ -630,6 +987,19 @@ function novyBlok(typ) {
     blok.title = t.metrics.lightsOn;
   }
   return blok;
+}
+
+function jednaEntita(ctx, block) {
+  const entity = ctx.entityByRef(block.entityRef);
+  if (!entity) return ctx.editing ? emptyState(t.editor.chooseEntity) : null;
+  const onClick = block.tapAction === "details" ? openControls
+    : block.tapAction === "none" ? () => {} : undefined;
+  const tile = card(entity, { size: "xl", editing: ctx.editing, onClick });
+  if (ctx.editing) for (const control of tile.querySelectorAll("button, input, select")) {
+    control.disabled = true;
+  }
+  return ramec(block.title || entity.name, "devices",
+    h("div", { class: "cards" }, [tile]));
 }
 
 async function ulozitSestavu(ctx, sestava) {

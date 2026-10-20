@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 19. 10. 2026
-**Aktuální verze v kódu:** 0.19.3
+**Aktuální verze v kódu:** 0.19.4
+
+## Volné plátno podle principů Panalume 0.19.4
+
+- [x] Přidáno volné umístění bloků, osm úchytů, mřížka po 10 px a
+  přichycení k sousedním hranám.
+- [x] Samostatné pozice pro telefon, tablet a počítač v existujícím Store.
+- [x] Pravý panel Přidat/Karta/Rozložení/Plochy/Motiv a podsekce vlastností.
+- [x] Samostatný blok jedné entity s výběrem z HA a akcí při klepnutí.
+- [x] Starší dashboardy se otevřou bez migrace při pouhém zobrazení.
+- [ ] Dopracovat posun sousedních karet bez překryvu, historii změn přímo
+  v editoru a další specifické typy karet.
+- [ ] Ověřit editor vizuálně a dotykově v živé instalaci HA.
 
 ## Přímý editor dashboardu 0.19.3
 

@@ -880,7 +880,9 @@ async def test_plocha_po_blocich(
 
     sestava = [
         {"id": "b1", "type": "status", "cols": 3, "icon": "home", "color": "mint",
-         "fontSize": 28, "minHeight": 320},
+         "fontSize": 28, "minHeight": 320,
+         "position": {"x": 100, "y": 20, "w": 400, "h": 320},
+         "positionPhone": {"x": 0, "y": 0, "w": 1000, "h": 300}},
         {
             "id": "b2",
             "type": "entities",
@@ -894,6 +896,9 @@ async def test_plocha_po_blocich(
                 }
             },
         },
+        {"id": "b3", "type": "entity", "entityRef": "light.a",
+         "tapAction": "details",
+         "positionDesktop": {"x": 600, "y": 20, "w": 400, "h": 320}},
     ]
     odpoved = await client.post(
         "/api/smarthome4u/dashboard",
@@ -906,11 +911,17 @@ async def test_plocha_po_blocich(
     model = await (await client.get("/api/smarthome4u/model")).json()
     sestava = model["board"]
     assert sestava["columns"] == 3
-    assert [b["type"] for b in sestava["blocks"]] == ["status", "entities"]
+    assert [b["type"] for b in sestava["blocks"]] == ["status", "entities", "entity"]
     assert sestava["blocks"][0]["cols"] == 3
     assert sestava["blocks"][0]["color"] == "mint"
     assert sestava["blocks"][0]["fontSize"] == 28
     assert sestava["blocks"][0]["minHeight"] == 320
+    assert sestava["blocks"][0]["position"] == {
+        "x": 100, "y": 20, "w": 400, "h": 320,
+    }
+    assert sestava["blocks"][0]["positionPhone"] == {
+        "x": 0, "y": 0, "w": 1000, "h": 300,
+    }
     # Šířka přes víc sloupců, než plocha má, se zahodí.
     assert "cols" not in sestava["blocks"][1]
     # Co v Home Assistantu není, se tiše vynechá - v seznamu i ve velikostech.
@@ -920,6 +931,11 @@ async def test_plocha_po_blocich(
         "entity:light.a": {"label": "Nový název", "icon": "lighting", "color": "blue"}
     }
     assert sestava["blocks"][1]["title"] == "Moje"
+    assert sestava["blocks"][2]["entityRef"] == "entity:light.a"
+    assert sestava["blocks"][2]["tapAction"] == "details"
+    assert sestava["blocks"][2]["positionDesktop"] == {
+        "x": 600, "y": 20, "w": 400, "h": 320,
+    }
 
     # Historie je součástí vlastního Store a umí obnovit i výchozí sestavu.
     history = await (await client.get(
@@ -942,7 +958,7 @@ async def test_plocha_po_blocich(
     # Nová instance čte tentýž soubor - tohle je ten restart.
     nove = storage.Settings(hass)
     await nove.load()
-    assert len(nove.board(board_id)["blocks"]) == 2
+    assert len(nove.board(board_id)["blocks"]) == 3
     assert nove.board_history(board_id)["undo"]
     # Ostatní podoby plochy se tím nezměnily.
     assert nove.board("panel") is None

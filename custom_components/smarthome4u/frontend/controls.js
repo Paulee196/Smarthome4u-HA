@@ -132,7 +132,7 @@ export function card(entity, volby = {}) {
   const kind = entity.capability?.kind;
   const primary = PRIMARY[kind];
   const detail = hasExtraControls(entity);
-  const interactive = Boolean(primary) || detail;
+  const interactive = Boolean(primary) || detail || Boolean(volby.onClick);
   const velikost = VELIKOSTI_DLAZDIC.includes(volby.size) ? volby.size : "m";
   const appearance = volby.appearance || {};
   const editing = Boolean(volby.editing);
@@ -167,6 +167,7 @@ export function card(entity, volby = {}) {
       type: interactive ? "button" : null,
       onclick: interactive
         ? () => {
+            if (volby.onClick) { volby.onClick(current); return; }
             if (primary) send(current, ...primary(current));
             else openControls(current);
           }

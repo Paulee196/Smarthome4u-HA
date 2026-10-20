@@ -1810,12 +1810,26 @@ class DashboardView(Sh4uView):
                 novy["minHeight"] = blok["minHeight"]
             if isinstance(blok.get("fontSize"), int) and 12 <= blok["fontSize"] <= 72:
                 novy["fontSize"] = blok["fontSize"]
+            for position_key in ("position", "positionPhone", "positionDesktop"):
+                place = blok.get(position_key)
+                if isinstance(place, dict) and all(isinstance(place.get(key), int)
+                                                   for key in ("x", "y", "w", "h")):
+                    x, y, width, height = (place[key] for key in ("x", "y", "w", "h"))
+                    if (0 <= x <= 900 and 0 <= y <= 10000 and 100 <= width <= 1000
+                            and 120 <= height <= 2000 and x + width <= 1000):
+                        novy[position_key] = {"x": x, "y": y, "w": width, "h": height}
             if blok.get("metric") in (
                 "lightsOn", "openCount", "unlockedCount", "rooms", "devices"
             ):
                 novy["metric"] = blok["metric"]
             if isinstance(blok.get("roomId"), str):
                 novy["roomId"] = blok["roomId"][:80]
+            if isinstance(blok.get("entityRef"), str):
+                ref = refs.normalize_ref(self.hass, blok["entityRef"])
+                if ref:
+                    novy["entityRef"] = ref
+            if blok.get("tapAction") in ("default", "details", "none"):
+                novy["tapAction"] = blok["tapAction"]
 
             # Šířka bloku ve sloupcích. Víc než má plocha sloupců nejde.
             sirka = blok.get("cols")

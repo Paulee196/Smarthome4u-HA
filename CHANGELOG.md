@@ -2,6 +2,24 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.4]
+
+### Přidáno
+
+- Volné plátno s osmibodovou změnou rozměrů, přichytáváním po 10 px a
+  zarovnáním k sousedním kartám. Rozložení lze upravit samostatně pro
+  telefon, tablet a počítač.
+- Pravý panel editoru s kartami Přidat, Karta, Rozložení, Plochy a Motiv.
+  Vlastnosti vybrané karty jsou rozdělené na obsah, vzhled, akce a velikost.
+- Samostatná karta entity Home Assistanta; lze jí přiřadit jinou entitu,
+  změnit text, ikonu, barvu, rozměry a chování při klepnutí.
+
+### Zachováno
+
+- Původní rozvržení se při prvním otevření promítne na volné plátno bez
+  okamžitého přepsání uloženého dashboardu. Mobilní pohled bez vlastního
+  rozložení používá pořadí karet ve sloupci.
+
 ## [0.19.3]
 
 ### Opraveno
