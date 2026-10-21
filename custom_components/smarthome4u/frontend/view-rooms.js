@@ -69,7 +69,7 @@ function kartaMistnosti(souhrn, ctx) {
       }`,
       type: "button",
       "aria-label": `${souhrn.name || t.rooms.unassigned}, ${t.rooms.openRoom}`,
-      onclick: () => otevritMistnost(souhrn, ctx),
+      onclick: () => openRoomDetail(souhrn, ctx),
     },
     [
       h("span", { class: "card__icon" }, icon("rooms")),
@@ -85,7 +85,7 @@ function kartaMistnosti(souhrn, ctx) {
 }
 
 /** Detail místnosti. Teprve tady jsou jednotlivá zařízení. */
-function otevritMistnost(souhrn, ctx) {
+export function openRoomDetail(souhrn, ctx) {
   const room = (ctx.model.rooms || []).find((r) => r.id === souhrn.id);
   const entity = room?.entities || [];
 

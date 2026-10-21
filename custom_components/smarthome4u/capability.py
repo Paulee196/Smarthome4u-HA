@@ -37,6 +37,11 @@ LOCK_OPEN = 1
 
 MEDIA_PAUSE = 1
 MEDIA_VOLUME_SET = 4
+MEDIA_PREVIOUS = 16
+MEDIA_NEXT = 32
+MEDIA_TURN_ON = 128
+MEDIA_TURN_OFF = 256
+MEDIA_STOP = 4096
 MEDIA_PLAY = 16384
 
 # Barevné režimy, které znamenají stmívatelné světlo.
@@ -144,6 +149,8 @@ def _cover(device_class: str | None, attributes: dict[str, Any]) -> dict[str, An
     return {
         "kind": "cover",
         "controllable": True,
+        "open": bool(features & COVER_OPEN),
+        "close": bool(features & COVER_CLOSE),
         "position": bool(features & COVER_SET_POSITION),
         "stop": bool(features & COVER_STOP),
         "tilt": bool(features & COVER_SET_TILT),
@@ -308,7 +315,13 @@ def _media_player(
     return {
         "kind": "media_player",
         "controllable": True,
-        "canPlay": bool(features & (MEDIA_PLAY | MEDIA_PAUSE)),
+        "canPlay": bool(features & MEDIA_PLAY),
+        "canPause": bool(features & MEDIA_PAUSE),
+        "canStop": bool(features & MEDIA_STOP),
+        "canPrevious": bool(features & MEDIA_PREVIOUS),
+        "canNext": bool(features & MEDIA_NEXT),
+        "canTurnOn": bool(features & MEDIA_TURN_ON),
+        "canTurnOff": bool(features & MEDIA_TURN_OFF),
         "volume": bool(features & MEDIA_VOLUME_SET),
     }
 
@@ -447,6 +460,12 @@ _ACTIONS: dict[str, dict[str, tuple[str, str | None, str | None]]] = {
     },
     "media_player": {
         "play_pause": ("media_play_pause", None, None),
+        "play": ("media_play", None, None),
+        "pause": ("media_pause", None, None),
+        "previous": ("media_previous_track", None, None),
+        "next": ("media_next_track", None, None),
+        "turn_on": ("turn_on", None, None),
+        "turn_off": ("turn_off", None, None),
         "stop": ("media_stop", None, None),
         "volume": ("volume_set", "volume_level", "unit"),
     },

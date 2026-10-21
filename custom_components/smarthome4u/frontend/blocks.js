@@ -17,6 +17,7 @@ import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { moveDashboardEntity, visibleRoomRefs } from "./dashboard-transfer.js";
 import { knihovnaBloku, mrizkaZarizeni } from "./favorites.js";
 import { icon } from "./icons.js";
+import { openRoomDetail } from "./view-rooms.js";
 import { VOLBY as MOTIVY, nastavitMotiv, zvolenyMotiv } from "./theme.js";
 import {
   h,
@@ -1109,7 +1110,8 @@ function novyBlok(typ) {
 
 function jednaEntita(ctx, block) {
   const entity = ctx.entityByRef(block.entityRef);
-  if (!entity) return ctx.editing ? emptyState(t.editor.chooseEntity) : null;
+  if (!entity) return ramec(block.title || t.blocks.entity, "devices",
+    emptyState(block.entityRef ? t.favorites.unavailableInBlock : t.editor.chooseEntity));
   const onClick = block.tapAction === "details" ? openControls
     : block.tapAction === "none" ? () => {} : undefined;
   const tile = card(entity, { size: "xl", editing: ctx.editing, onClick });
@@ -1299,8 +1301,11 @@ function prehravac(ctx, blok) {
     : !players.length ? t.panel.noPlayers
     : !active.length && !blok.mediaRef ? t.panel.nonePlaying : "";
   const onClick = blok.tapAction === "play_pause" ? (entity) => {
-    if (!entity.capability?.canPlay) { openControls(entity); return; }
-    api.action(entity.id, "play_pause").catch((error) => toast(error.message, true));
+    const action = entity.state === "playing" ? "pause" : "play";
+    const supported = entity.state === "playing"
+      ? entity.capability?.canPause : entity.capability?.canPlay;
+    if (!supported) { openControls(entity); return; }
+    api.action(entity.id, action).catch((error) => toast(error.message, true));
   } : undefined;
   return ramec(blok.title || t.panel.nowPlaying, "media",
     h("div", { class: "stack" }, [
@@ -1365,7 +1370,7 @@ function mistnosti(ctx) {
           {
             class: "card card--room" + (souhrn.lightsOn ? " card--on" : ""),
             type: "button",
-            onclick: () => ctx.navigate("rooms"),
+            onclick: () => openRoomDetail(souhrn, ctx),
           },
           [
             h("span", { class: "card__icon" }, icon("rooms")),

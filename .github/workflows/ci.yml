@@ -26,6 +26,10 @@ jobs:
         run: node scripts/check_frontend_i18n.mjs
       - name: Přesun mezi sekcemi
         run: node scripts/check_dashboard_transfer.mjs
+      - name: Testovací DOM
+        run: npm ci --no-audit --no-fund
+      - name: Karty a ovládání
+        run: node scripts/check_card_controls.mjs
 
   hassfest:
     name: Manifest integrace

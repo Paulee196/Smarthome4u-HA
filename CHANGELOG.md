@@ -2,6 +2,25 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.14]
+
+### Opraveno
+
+- Karta místnosti v přehledu otevře přímo zařízení vybrané místnosti.
+- Velké dlaždice světel a spínačů už nevypisují technické `null`.
+- Přehrávač nabízí jen akce podporované zařízením a podle stavu rozlišuje
+  Přehrát a Pozastavit. Doplňuje předchozí/další skladbu a zapnutí televize,
+  když je HA podporuje. Pokud HA nehlásí žádnou akci, karta to vysvětlí.
+- Ovládání nedostupného zařízení je zablokované v dlaždici i v detailu.
+- Ovládání teploty se ukazuje jen u termostatu s cílovou teplotou; opakované
+  stisknutí `+`/`−` mění hodnotu po každém stisku.
+- Karta chybějícího zařízení zůstává vidět s vysvětlením.
+
+### Kontrola
+
+- Automatický test vykreslí běžné typy dlaždic a bloků, ověří texty,
+  ovládání médií, nedostupné zařízení, místnost a teplotu.
+
 ## [0.19.13]
 
 ### Opraveno

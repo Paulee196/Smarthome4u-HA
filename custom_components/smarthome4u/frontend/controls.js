@@ -399,9 +399,9 @@ function buildControls(entity, volby = {}) {
     case "cover":
       parts.push(
         h("div", { class: "row" }, [
-          button(t.control.open, () => send(entity, "open")),
+          c.open && button(t.control.open, () => send(entity, "open")),
           c.stop && button(t.control.stop, () => send(entity, "stop"), "button--ghost"),
-          button(t.control.close, () => send(entity, "close")),
+          c.close && button(t.control.close, () => send(entity, "close")),
         ]),
       );
       if (c.position) {
@@ -429,7 +429,7 @@ function buildControls(entity, volby = {}) {
       break;
 
     case "climate":
-      parts.push(climateRow(entity));
+      if (c.targetTemperature) parts.push(climateRow(entity));
       if (c.hvacModes?.length) {
         const select = selectInput(
           c.hvacModes.map((m) => ({ value: m, label: t.hvac[m] || m })),
@@ -547,11 +547,22 @@ function buildControls(entity, volby = {}) {
     case "media_player":
       parts.push(
         h("div", { class: "row" }, [
-          c.canPlay && button(t.control.playPause, () => send(entity, "play_pause")),
-          button(t.control.stop, () => send(entity, "stop"), "button--ghost"),
+          entity.state === "off"
+            ? c.canTurnOn && button(t.control.turnOn, () => send(entity, "turn_on"))
+            : c.canTurnOff && button(t.control.turnOff, () => send(entity, "turn_off"), "button--ghost"),
+          entity.state !== "off" && c.canPrevious
+            && button(t.control.previous, () => send(entity, "previous"), "button--ghost"),
+          entity.state === "playing"
+            ? c.canPause && button(t.control.pause, () => send(entity, "pause"))
+            : entity.state !== "off" && c.canPlay
+              && button(t.control.play, () => send(entity, "play")),
+          entity.state !== "off" && c.canStop
+            && button(t.control.stop, () => send(entity, "stop"), "button--ghost"),
+          entity.state !== "off" && c.canNext
+            && button(t.control.next, () => send(entity, "next"), "button--ghost"),
         ]),
       );
-      if (c.volume) {
+      if (c.volume && entity.state !== "off") {
         parts.push(
           labelled(
             t.control.volume,
@@ -561,6 +572,12 @@ function buildControls(entity, volby = {}) {
             ),
           ),
         );
+      }
+      if (entity.state === "off" ? !c.canTurnOn
+        : !((entity.state === "playing" ? c.canPause : c.canPlay)
+          || c.canStop || c.canPrevious || c.canNext
+          || c.canTurnOff || c.volume)) {
+        parts.push(h("p", { class: "muted", text: t.control.noMediaActions }));
       }
       break;
 
@@ -577,7 +594,15 @@ function buildControls(entity, volby = {}) {
       break;
   }
 
-  return parts;
+  const visibleParts = parts.filter(Boolean);
+  if (!entity.available) {
+    for (const part of visibleParts) {
+      for (const control of part?.querySelectorAll?.("button, input, select") || []) {
+        control.disabled = true;
+      }
+    }
+  }
+  return visibleParts;
 }
 
 /* Home Assistant posílá "2026-09-21 18:30:00", "2026-09-21" nebo "18:30:00"
@@ -605,7 +630,7 @@ function climateRow(entity) {
   const c = entity.capability;
   const step = c.step || 0.5;
   const target = entity.attributes?.temperature;
-  const value = typeof target === "number" ? target : (c.minTemp ?? 20);
+  let value = typeof target === "number" ? target : (c.minTemp ?? 20);
 
   const readout = h("span", { class: "stepper__value", text: `${value} °C` });
 
@@ -614,6 +639,8 @@ function climateRow(entity) {
       c.maxTemp ?? 35,
       Math.max(c.minTemp ?? 5, Number((value + delta).toFixed(1))),
     );
+    value = next;
+    readout.textContent = `${next} °C`;
     send(entity, "temperature", next);
   };
 

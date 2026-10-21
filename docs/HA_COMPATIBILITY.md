@@ -77,6 +77,14 @@ Smazání místnosti nemaže zařízení. Zůstanou nezařazená.
 
 Frontend nesmí zavolat libovolnou službu. Povolené dvojice schopnost - akce jsou
 v `capability.py` v tabulce `_ACTIONS` a hodnoty se ověřují na typ i rozsah.
+Od 0.19.14 vychází nabídka přehrávače a žaluzie z HA atributu
+`supported_features` (veřejné stavové atributy; ověřeno podle konstant HA
+core a v CI proti aktuálně instalované verzi HA).
+Média používají služby `media_play`, `media_pause`, `media_stop`,
+`media_previous_track`, `media_next_track`, `turn_on` a `turn_off` přes
+`hass.services.async_call`;
+chybějící bit služby skryje. Při chybě služby zůstává zařízení ovladatelné
+ostatními podporovanými akcemi a frontend ukáže chybovou zprávu.
 
 ---
 

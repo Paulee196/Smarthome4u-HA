@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 10. 2026
-**Aktuální verze v kódu:** 0.19.13
+**Aktuální verze v kódu:** 0.19.14
+
+## Kontrola karet a ovládání 0.19.14
+
+- [x] Audit registru bloků a běžných typů entit proti aktuálním principům
+  Panalume: použitelný náhled, kliknutí, schopnosti zařízení, čitelný text.
+- [x] Přehled místností otevírá konkrétní místnost; karta chybějící entity
+  ukazuje vysvětlení místo prázdné plochy.
+- [x] Velké dlaždice nezobrazují `null`; nedostupné ovladače jsou vypnuté.
+- [x] Přehrávače a žaluzie zobrazují jen podporované akce; teplotní krokování
+  reaguje na každé stisknutí.
+- [x] Přidán DOM smoke test běžných bloků, dlaždic a ovládacích akcí do CI.
+- [ ] Ověřit karty s konkrétními zařízeními v živé instalaci HA.
 
 ## Přesun mezi sekcemi dashboardu 0.19.13
 
