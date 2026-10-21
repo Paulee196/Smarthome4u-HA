@@ -4,7 +4,7 @@
  * úprav se chová jako běžné dlaždice. V úpravách se z každé dlaždice
  * stane místo, se kterým jde něco udělat: vyměnit zařízení, změnit
  * velikost, odebrat. Přetažením se mění pořadí, poslední místo je
- * prázdné a přidá další.
+ * prázdné a přidá další. Knihovna zařízení je samostatně v panelu editoru.
  *
  * Velikost není jen kosmetika. Velká dlaždice ukazuje rovnou ovládání -
  * stmívání, polohu žaluzie, teplotu - bez otevírání detailu.
@@ -50,7 +50,9 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
   for (const entity of zarizeni) {
     mrizka.append(misto(ctx, entity, velikost(entity), seznam, velikosti, styly, uloz));
   }
-  mrizka.append(prazdneMisto(ctx, seznam, uloz));
+  if (blok.type !== "entities" && blok.type !== "room") {
+    mrizka.append(prazdneMisto(ctx, seznam, uloz));
+  }
 
   // Knihovna je použitelná i dotykem; na počítači lze zařízení pustit
   // přímo na vybranou dlaždici nebo na prázdné místo na konci mřížky.
@@ -73,7 +75,12 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
   // Prázdné místo klíč nemá, takže se do pořadí nedostane.
   povolitPretahovani(mrizka, (poradi) => uloz({ entities: poradi }));
 
-  return h("div", { class: "studio" }, [knihovna(ctx, seznam, uloz), mrizka]);
+  return mrizka;
+}
+
+export function knihovnaBloku(ctx, blok, ulozitBlok) {
+  return knihovna(ctx, blok.entities || [], (zmena) =>
+    ulozitBlok({ ...blok, ...zmena }));
 }
 
 /* ------------------------------------------------------------------ */

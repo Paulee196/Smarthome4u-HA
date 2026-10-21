@@ -2,6 +2,16 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.11]
+
+### Opraveno
+
+- Knihovna zařízení už nezabírá prostor uvnitř náhledu karty místnosti
+  nebo vybraných zařízení. Zobrazuje se pod nastavením ve vedlejším panelu,
+  včetně místností automatického Přehledu.
+- Zařízení lze z knihovny přidat klepnutím nebo přetáhnout na kartu.
+  Náhled karty při úpravách ukazuje její vybrané dlaždice.
+
 ## [0.19.10]
 
 ### Opraveno

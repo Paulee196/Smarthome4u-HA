@@ -14,7 +14,7 @@ import { COLORS, ICONS } from "./appearance.js";
 import { t } from "./i18n.js";
 import { card, openControls } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
-import { mrizkaZarizeni } from "./favorites.js";
+import { knihovnaBloku, mrizkaZarizeni } from "./favorites.js";
 import { icon } from "./icons.js";
 import { VOLBY as MOTIVY, nastavitMotiv, zvolenyMotiv } from "./theme.js";
 import {
@@ -266,9 +266,12 @@ export function vykreslitPlochu(root, ctx) {
     }
     const preview = [...plocha.children].find((child) =>
       child.getAttribute(ATRIBUT_KLICE) === id);
-    panel?.replaceChildren(renderBlockPanel(ctx, bloky, sloupce,
-      bloky.find((block) => block.id === id), (next) => ulozit({ blocks: next }),
-      preview, roomId));
+    const block = bloky.find((item) => item.id === id);
+    panel?.replaceChildren(...[
+      renderBlockPanel(ctx, bloky, sloupce, block,
+        (next) => ulozit({ blocks: next }), preview, roomId),
+      knihovnaProPanel(ctx, bloky, block, (next) => ulozit({ blocks: next }), roomId),
+    ].filter(Boolean));
   };
 
   for (const blok of bloky) {
@@ -495,6 +498,7 @@ function resizeFreeCard(event, id, edge, element, stage, positions, select, save
 
 function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements, positions, select) {
   const root = h("div", { class: "dashboard-studio" });
+  const selected = blocks.find((item) => item.id === id);
   const tabs = [["add", t.editor.addTab], ["card", t.editor.properties],
     ["layout", t.editor.layoutTab], ["views", t.editor.viewsTab],
     ["theme", t.settings.theme]];
@@ -515,7 +519,7 @@ function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements
         select(id, roomId, "card");
       },
     }))));
-    const block = blocks.find((item) => item.id === id);
+    const block = selected;
     content.append(renderBlockPanel(ctx, blocks, columns,
       block, save, elements.get(id), roomId, cardSection));
     if (cardSection === "size" && block) {
@@ -603,7 +607,40 @@ function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements
         "button--ghost dashboard-studio__add"));
     }
   }
+  if (tab === "card" || tab === "layout") {
+    const library = knihovnaProPanel(ctx, blocks, selected, save, roomId);
+    if (library) root.append(library);
+  }
   return root;
+}
+
+function knihovnaProPanel(ctx, blocks, block, save, roomId = null) {
+  if (!block) return null;
+  if (block.type === "auto_rooms" && roomId) {
+    const room = (ctx.model.rooms || []).find((item) =>
+      String(item.id || "unassigned") === roomId);
+    if (!room) return null;
+    const saved = block.roomLayouts?.[roomId] || {};
+    const refs = (room.entities || []).map((entity) => ctx.entityRef(entity));
+    const ordered = (saved.entities || []).filter((ref) => refs.includes(ref));
+    const excluded = new Set(saved.excluded || []);
+    const visible = [...ordered, ...refs.filter((ref) =>
+      !ordered.includes(ref) && !excluded.has(ref))];
+    const roomCtx = { ...ctx, model: { ...ctx.model, scenes: [] },
+      allEntities: () => room.entities || [] };
+    return h("div", { class: "dashboard-studio__library" },
+      knihovnaBloku(roomCtx, { entities: visible }, (next) =>
+        save(blocks.map((item) => item.id === block.id ? { ...block,
+          roomLayouts: { ...block.roomLayouts, [roomId]: {
+            ...saved, entities: next.entities,
+            excluded: refs.filter((ref) => !next.entities.includes(ref)),
+          } },
+        } : item))));
+  }
+  if (!["entities", "room"].includes(block.type)) return null;
+  return h("div", { class: "dashboard-studio__library" },
+    knihovnaBloku(ctx, block, (next) => save(blocks.map((item) =>
+      item.id === block.id ? next : item))));
 }
 
 /* Přepínač počtu sloupců. Na telefonu je vždy jeden, tohle platí od
@@ -1413,7 +1450,6 @@ function zarizeni(ctx, blok, ulozitBlok) {
     glyph,
     h("div", { class: "stack" }, [
       ctx.editing && !ids.length && h("p", { class: "muted", text: t.favorites.emptyBlockHint }),
-      ctx.editing && h("p", { class: "muted", text: t.favorites.hint }),
       catalog,
     ]),
   );

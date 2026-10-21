@@ -4,7 +4,16 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.10
+**Aktuální verze v kódu:** 0.19.11
+
+## Knihovna zařízení mimo kartu 0.19.11
+
+- [x] Knihovna pro blok místnosti, vlastní výběr zařízení i místnosti
+  automatického Přehledu je ve vedlejším panelu pod nastavením karty
+  nebo rozložení.
+- [x] Náhled karty už neobsahuje knihovnu ani prázdnou přidávací dlaždici.
+  Přidání klepnutím a přetažením z knihovny zůstává dostupné.
+- [ ] Ověřit živý vzhled editoru a přidávání zařízení na telefonu i počítači.
 
 ## Ovládání přehrávače a texty editoru 0.19.10
 

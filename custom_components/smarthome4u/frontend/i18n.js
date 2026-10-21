@@ -629,7 +629,7 @@ export const t = {
 
   favorites: {
     emptyBlock: "V tomto bloku zatím není žádné zařízení.",
-    emptyBlockHint: "Knihovna je jen nabídka. Zařízení se na ploše ukáže, až ho přidáte kliknutím v knihovně nebo tlačítkem Přidat zařízení.",
+    emptyBlockHint: "V této kartě zatím nejsou zařízení. Vyberte je v knihovně v bočním panelu.",
     unavailableInBlock: "Vybraná zařízení teď nejsou v Home Assistantu dostupná.",
     replace: "Vyměnit zařízení",
     tapToReplace: "Klepnutím vyměníte",
@@ -767,7 +767,7 @@ export const t = {
     chooseBlock: "Vyberte prvek na ploše a upravte ho zde.",
     duplicate: "Zkopírovat prvek",
     snapHint: "Karta se při přesouvání přichytává po 10 pixelech.",
-    contentOnCanvas: "Zařízení v tomto bloku upravíte přímo na pracovní ploše.",
+    contentOnCanvas: "Zařízení přidáte z knihovny níže. Jejich vzhled a pořadí upravíte na pracovní ploše.",
     hint:
       "Kartu přetáhněte po ploše a její velikost změňte pomocí bodů na okraji. " +
       "Klepnutím otevřete nastavení vpravo. Změny se ukládají automaticky.",
