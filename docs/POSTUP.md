@@ -3,8 +3,18 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 20. 10. 2026
-**Aktuální verze v kódu:** 0.19.11
+**Poslední aktualizace:** 21. 10. 2026
+**Aktuální verze v kódu:** 0.19.12
+
+## Mobilní editor 0.19.12
+
+- [x] Na telefonu do 600 px se otevírá telefonní rozložení; náhled má
+  nejvýše 350 px a přizpůsobí se užší obrazovce.
+- [x] Sbalitelný panel nastavení je nad spodní navigací. Dotyk karty ji
+  vybere, samostatný úchyt ji přesune a rohy mají větší dotykové cíle.
+- [x] Dlaždice v režimu úprav už na úzkém telefonu nepřetékají kvůli
+  čtyřem editačním tlačítkům v jedné řadě.
+- [ ] Ověřit reálný vzhled a dotykové chování v HA při šířce 350 px.
 
 ## Knihovna zařízení mimo kartu 0.19.11
 

@@ -2,6 +2,19 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.12]
+
+### Změněno
+
+- Editor na úzkém telefonu otevírá rovnou telefonní rozložení s náhledem
+  širokým nejvýše 350 px.
+- Vlastnosti karty jsou ve sbalitelném panelu nad spodní navigací; náhled
+  zůstává dostupný i při úpravách.
+- Kartu lze dotykem vybrat a stránku běžně posouvat. Přesun má samostatný
+  úchyt, změna velikosti větší dotykové cíle v rozích. Tlačítka dlaždic
+  se na úzké kartě skládají do dvou sloupců. Akce editoru jsou ve dvou
+  řadách; Přidat prvek zůstává v horní liště a v panelu editoru.
+
 ## [0.19.11]
 
 ### Opraveno

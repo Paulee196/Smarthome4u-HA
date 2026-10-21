@@ -34,8 +34,9 @@ export const MAX_SLOUPCU = 4;
 const EDIT_COMMON = ["title", "icon", "color", "height", "cols"];
 let selectedBlock = null;
 let editorTab = "card";
-let editorDevice = "tablet";
+let editorDevice = null;
 let cardSection = "content";
+let mobilePanelOpen = false;
 let saveQueue = Promise.resolve();
 let saveRevision = 0;
 
@@ -210,6 +211,10 @@ export function vychozi(preset, model) {
 /* ------------------------------------------------------------------ */
 
 export function vykreslitPlochu(root, ctx) {
+  if (!ctx.editing) {
+    editorDevice = null;
+    mobilePanelOpen = false;
+  }
   const preset = ctx.model.preset || "overview";
   let sestava = ctx.model.board?.blocks
     ? ctx.model.board
@@ -301,6 +306,9 @@ export function vykreslitPlochu(root, ctx) {
  * uspořádání podle pořadí karet. */
 function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
   const preset = ctx.model.preset || "overview";
+  if (ctx.editing && !editorDevice) {
+    editorDevice = window.innerWidth <= 600 ? "phone" : "tablet";
+  }
   const device = ctx.editing ? editorDevice : window.innerWidth < 700 ? "phone"
     : window.innerWidth >= 1450 ? "desktop" : "tablet";
   const positionKey = device === "phone" ? "positionPhone"
@@ -332,28 +340,45 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
     for (const [key, element] of elements) {
       element.classList.toggle("blok--vybrany", key === id);
     }
-    panel?.replaceChildren(renderStudioPanel(ctx, blocks, columns, id, roomId,
-      editorTab, save, elements, positions, select));
+    if (panel) setEditorPanel(panel,
+      renderStudioPanel(ctx, blocks, columns, id, roomId,
+        editorTab, save, elements, positions, select),
+      blocks.find((block) => block.id === id)?.title
+        || (editorTab === "add" ? t.editor.addBlock : t.editor.properties));
   };
   const openAdd = () => {
+    mobilePanelOpen = true;
     select(null, null, "add");
-    if (window.matchMedia("(max-width: 1100px)").matches) {
+    if (window.matchMedia("(min-width: 601px) and (max-width: 1100px)").matches) {
       panel?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   for (const block of blocks) {
     const element = jedenBlok(ctx, block, blocks, columns, save,
-      () => select(block.id), (roomId) => select(block.id, roomId),
+      () => { mobilePanelOpen = true; select(block.id); },
+      (roomId) => { mobilePanelOpen = true; select(block.id, roomId); },
       selectedBlock?.preset === preset && selectedBlock.id === block.id);
     if (!element) continue;
     element.classList.add("dashboard-stage__card");
     if (ctx.editing) {
       element.addEventListener("pointerdown", (event) => {
         if (event.target.closest("button, input, select, textarea, [data-resize]")) return;
+        if (event.pointerType !== "mouse" && window.innerWidth <= 600) {
+          mobilePanelOpen = true;
+          select(block.id);
+          return;
+        }
         moveFreeCard(event, block.id, element, stage, positions, () => select(block.id),
           () => save(blocks));
       });
+      element.append(h("button", {
+        class: "dashboard-stage__move", type: "button",
+        "aria-label": `${t.editor.drag}: ${block.title || t.blocks[block.type]}`,
+        title: t.editor.drag, text: "⠿",
+        onpointerdown: (event) => moveFreeCard(event, block.id, element,
+          stage, positions, () => select(block.id), () => save(blocks)),
+      }));
       for (const edge of ["nw", "n", "ne", "e", "se", "s", "sw", "w"]) {
         element.append(h("button", { class: `dashboard-stage__handle dashboard-stage__handle--${edge}`,
           type: "button", "data-resize": edge, "aria-label": `${t.editor.size}: ${block.title || t.blocks[block.type]}`,
@@ -612,6 +637,22 @@ function renderStudioPanel(ctx, blocks, columns, id, roomId, tab, save, elements
     if (library) root.append(library);
   }
   return root;
+}
+
+function setEditorPanel(panel, content, label) {
+  const action = h("span");
+  const toggle = h("button", { class: "dashboard-editor__panel-toggle", type: "button" }, [
+    h("span", { class: "dashboard-editor__panel-label", text: label }), action,
+  ]);
+  const sync = () => {
+    panel.classList.toggle("dashboard-editor__panel--collapsed", !mobilePanelOpen);
+    toggle.setAttribute("aria-expanded", String(mobilePanelOpen));
+    action.textContent = mobilePanelOpen ? t.editor.hideSettings : t.editor.showSettings;
+  };
+  toggle.addEventListener("click", () => { mobilePanelOpen = !mobilePanelOpen; sync(); });
+  panel.replaceChildren(toggle,
+    h("div", { class: "dashboard-editor__panel-body" }, content));
+  sync();
 }
 
 function knihovnaProPanel(ctx, blocks, block, save, roomId = null) {

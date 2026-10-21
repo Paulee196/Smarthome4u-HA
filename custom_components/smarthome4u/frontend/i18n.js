@@ -764,13 +764,16 @@ export const t = {
   editor: {
     title: "Úprava plochy",
     properties: "Karta",
+    showSettings: "Otevřít nastavení",
+    hideSettings: "Skrýt nastavení",
     chooseBlock: "Vyberte prvek na ploše a upravte ho zde.",
     duplicate: "Zkopírovat prvek",
     snapHint: "Karta se při přesouvání přichytává po 10 pixelech.",
     contentOnCanvas: "Zařízení přidáte z knihovny níže. Jejich vzhled a pořadí upravíte na pracovní ploše.",
     hint:
-      "Kartu přetáhněte po ploše a její velikost změňte pomocí bodů na okraji. " +
-      "Klepnutím otevřete nastavení vpravo. Změny se ukládají automaticky.",
+      "Kartu vyberte klepnutím. Na telefonu ji přesuňte za ⠿, na počítači " +
+      "myší. Velikost změňte za rohy a vlastnosti otevřete v panelu. " +
+      "Změny se ukládají automaticky.",
     edit: "Upravit plochu",
     undo: "Zpět",
     redo: "Znovu",
@@ -836,7 +839,7 @@ export const t = {
     actionPlayPause: "Přehrát nebo pozastavit",
     actionNone: "Bez akce",
     actionEntityHint: "Akce při klepnutí se nastavuje u karty jedné entity.",
-    freeLayoutHint: "Karty přesuňte tažením a velikost změňte za modré body na okraji. Poloha se přichytává po 10 px. Změny se ukládají automaticky.",
+    freeLayoutHint: "Na telefonu přesuňte vybranou kartu za ⠿. Na počítači ji přetáhněte přímo. Velikost změníte pomocí bodů na okraji. Změny se ukládají automaticky.",
     mobileLayoutHint: "Na telefonu se karty řadí pod sebe, aby zůstaly ovladatelné.",
     deviceTablet: "Tablet",
     devicePhone: "Telefon",
