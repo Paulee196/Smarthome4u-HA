@@ -69,7 +69,7 @@ function listaUprav(root, ctx, preset) {
       h("span", { class: "editbar__hint", text: t.editor.hint }),
     ]),
     h("div", { class: "row editbar__actions" }, [
-      add, undo, redo, button(t.editor.done, () => ctx.stopEditing()),
+      add, undo, redo,
     ]),
   ]);
 }

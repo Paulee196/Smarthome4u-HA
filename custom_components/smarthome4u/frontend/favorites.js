@@ -73,7 +73,14 @@ export function mrizkaZarizeni(ctx, blok, ulozitBlok) {
   });
 
   // Prázdné místo klíč nemá, takže se do pořadí nedostane.
-  povolitPretahovani(mrizka, (poradi) => uloz({ entities: poradi }));
+  const lzePresunout = ctx.moveDashboardEntity
+    && blok.id && (blok.type === "entities" || blok.type === "room");
+  povolitPretahovani(mrizka, (poradi) => uloz({ entities: poradi }),
+    lzePresunout ? {
+      group: "dashboard-entities", id: blok.id,
+      onTransfer: (targetId, ref, index) =>
+        ctx.moveDashboardEntity(blok.id, targetId, ref, index),
+    } : {});
 
   return mrizka;
 }

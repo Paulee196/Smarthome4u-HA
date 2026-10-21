@@ -4,7 +4,19 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 21. 10. 2026
-**Aktuální verze v kódu:** 0.19.12
+**Aktuální verze v kódu:** 0.19.13
+
+## Přesun mezi sekcemi dashboardu 0.19.13
+
+- [x] Odstraněno druhé Hotovo z lišty úprav; zatržítko v hlavičce zůstává.
+- [x] Pointer drag přenáší dlaždice mezi kartami zařízení a místnostmi
+  automatického Přehledu, cíl zvýrazní a u okraje posouvá obsah.
+- [x] Jediná uložená změna zachová pořadí, velikost a vzhled dlaždice.
+  HA oblast zařízení se nemění; automatický Přehled ukládá jen výjimku
+  ve skladbě dashboardu.
+- [x] Kontrola přesunu ověřuje i cizí zařízení v automatické místnosti
+  a neměnnost původní sestavy.
+- [ ] Ověřit přetažení prstem i myší v živé instalaci HA.
 
 ## Mobilní editor 0.19.12
 

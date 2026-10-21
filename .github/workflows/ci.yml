@@ -24,6 +24,8 @@ jobs:
           done
       - name: Dostupnost popisků
         run: node scripts/check_frontend_i18n.mjs
+      - name: Přesun mezi sekcemi
+        run: node scripts/check_dashboard_transfer.mjs
 
   hassfest:
     name: Manifest integrace

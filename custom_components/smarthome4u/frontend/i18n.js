@@ -680,7 +680,7 @@ export const t = {
   studio: {
     layout: "Rozvržení dlaždic",
     library: "Knihovna zařízení",
-    hint: "Klepněte na zařízení nebo ho přetáhněte do mřížky.",
+    hint: "Klepněte na zařízení nebo ho přetáhněte do mřížky. Dlaždice lze přesouvat i mezi kartami a místnostmi.",
     dragHint: "Klepněte pro přidání nebo přetáhněte na plochu",
     search: "Hledat zařízení nebo místnost",
     filter: "Typ zařízení",

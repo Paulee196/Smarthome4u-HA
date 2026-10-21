@@ -2,6 +2,17 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.13]
+
+### Opraveno
+
+- Režim úprav ukončuje jediné tlačítko se zatržítkem v hlavičce.
+- Dlaždice lze přetáhnout mezi kartami zařízení a místnostmi automatického
+  Přehledu, i když má zdrojová sekce více položek. Při tažení se zvýrazní
+  cíl a obsah se u okraje posouvá.
+- Přesun se ukládá jako jedna změna dashboardu včetně pořadí, velikosti
+  a vzhledu dlaždice. Přiřazení zařízení k oblasti v HA se nemění.
+
 ## [0.19.12]
 
 ### Změněno

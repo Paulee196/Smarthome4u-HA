@@ -14,6 +14,7 @@ import { COLORS, ICONS } from "./appearance.js";
 import { t } from "./i18n.js";
 import { card, openControls } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
+import { moveDashboardEntity, visibleRoomRefs } from "./dashboard-transfer.js";
 import { knihovnaBloku, mrizkaZarizeni } from "./favorites.js";
 import { icon } from "./icons.js";
 import { VOLBY as MOTIVY, nastavitMotiv, zvolenyMotiv } from "./theme.js";
@@ -334,6 +335,13 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
       ...block, [positionKey]: positions.get(block.id),
     })) });
   };
+  const editorCtx = ctx.editing ? { ...ctx,
+    moveDashboardEntity: (sourceId, targetId, ref, index) => {
+      const next = moveDashboardEntity(blocks, ctx.model.rooms || [],
+        sourceId, targetId, ref, index, ctx.entityRef);
+      if (next) save(next);
+    },
+  } : ctx;
   const select = (id, roomId = null, tab = "card") => {
     selectedBlock = { preset, id, roomId };
     editorTab = tab;
@@ -355,7 +363,7 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
   };
 
   for (const block of blocks) {
-    const element = jedenBlok(ctx, block, blocks, columns, save,
+    const element = jedenBlok(editorCtx, block, blocks, columns, save,
       () => { mobilePanelOpen = true; select(block.id); },
       (roomId) => { mobilePanelOpen = true; select(block.id, roomId); },
       selectedBlock?.preset === preset && selectedBlock.id === block.id);
@@ -663,10 +671,7 @@ function knihovnaProPanel(ctx, blocks, block, save, roomId = null) {
     if (!room) return null;
     const saved = block.roomLayouts?.[roomId] || {};
     const refs = (room.entities || []).map((entity) => ctx.entityRef(entity));
-    const ordered = (saved.entities || []).filter((ref) => refs.includes(ref));
-    const excluded = new Set(saved.excluded || []);
-    const visible = [...ordered, ...refs.filter((ref) =>
-      !ordered.includes(ref) && !excluded.has(ref))];
+    const visible = visibleRoomRefs(room, saved, ctx.entityRef);
     const roomCtx = { ...ctx, model: { ...ctx.model, scenes: [] },
       allEntities: () => room.entities || [] };
     return h("div", { class: "dashboard-studio__library" },
@@ -1395,10 +1400,7 @@ function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
     const entities = room.entities || [];
     const refs = entities.map((entity) => ctx.entityRef(entity));
     const saved = layouts[key] || {};
-    const ordered = (saved.entities || []).filter((ref) => refs.includes(ref));
-    const excluded = new Set(saved.excluded || []);
-    const visible = [...ordered, ...refs.filter((ref) =>
-      !ordered.includes(ref) && !excluded.has(ref))];
+    const visible = visibleRoomRefs(room, saved, ctx.entityRef);
     const tileBlock = { id: `auto-${key}`, type: "entities", entities: visible,
       sizes: saved.sizes || {}, tileStyles: saved.tileStyles || {} };
     const roomCtx = { ...ctx, model: { ...ctx.model, scenes: [] },
