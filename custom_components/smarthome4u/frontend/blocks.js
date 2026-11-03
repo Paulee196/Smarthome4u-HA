@@ -353,14 +353,6 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
       blocks.find((block) => block.id === id)?.title
         || (editorTab === "add" ? t.editor.addBlock : t.editor.properties));
   };
-  const openAdd = () => {
-    mobilePanelOpen = true;
-    select(null, null, "add");
-    if (window.matchMedia("(min-width: 601px) and (max-width: 1100px)").matches) {
-      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   for (const block of blocks) {
     const element = jedenBlok(editorCtx, block, blocks, columns, save,
       () => { mobilePanelOpen = true; select(block.id); },
@@ -429,9 +421,8 @@ function vykreslitVolnouPlochu(root, ctx, blocks, columns) {
     .map((place) => place.y + place.h + 160))}px`;
 
   if (ctx.editing) {
-    root.addEventListener("sh4u-add-block", openAdd);
-    stage.append(button(`+ ${t.editor.addBlock}`,
-      openAdd, "dashboard-stage__add"));
+    if (!elements.size) stage.append(h("p", { class: "dashboard-stage__empty",
+      text: t.editor.emptyCanvasHint }));
     workspace.append(panel);
     const current = selectedBlock?.preset === preset && elements.has(selectedBlock.id)
       ? selectedBlock : { id: blocks[0]?.id || null, roomId: null };

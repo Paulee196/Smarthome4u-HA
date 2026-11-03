@@ -4,7 +4,17 @@ Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, ab
 dalo navázat z jakéhokoliv počítače.
 
 **Poslední aktualizace:** 3. 11. 2026
-**Aktuální verze v kódu:** 0.19.15
+**Aktuální verze v kódu:** 0.19.16
+
+## Jediné přidání prvku v editoru 0.19.16
+
+- [x] V živé instalaci ověřeno, že obě tlačítka Přidat prvek jen znovu
+  otevírala již aktivní záložku. Kliknutí na typ karty v katalogu vpravo
+  ji vložilo a uložilo; testovací karta byla odstraněna.
+- [x] Dvě nadbytečná tlačítka odstraněna. Prázdné plátno navádí k panelu
+  Přidat; na telefonu je katalog ve spodním rozbalovacím panelu.
+- [x] Nový DOM test v CI prověřuje vložení, uložení a dostupnost katalogu
+  při šířce 350 px.
 
 ## Přehled inspirovaný HomeDeck 0.19.15
 

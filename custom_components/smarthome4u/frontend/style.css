@@ -3045,7 +3045,7 @@ textarea.input {
 /* Samostatné editační plátno. Poloha je nezávislá na původní mřížce. */
 .dashboard-editor--free { grid-template-columns: minmax(0, 1fr) minmax(290px, 340px); }
 .dashboard-stage { position: relative; min-width: 0; min-height: 500px; }
-.dashboard-stage__empty { padding: var(--sh-gap-lg); }
+.dashboard-stage__empty { margin: 0; padding: var(--sh-gap-lg); color: var(--sh-text-muted); }
 .dashboard-editor .dashboard-stage--phone { width: min(100%, 350px); }
 .dashboard-stage--editing {
   border: 1px dashed var(--sh-border);
@@ -3054,22 +3054,6 @@ textarea.input {
   background-image: radial-gradient(var(--sh-border) 1px, transparent 1px);
   background-size: 20px 20px;
 }
-.dashboard-stage__add {
-  position: absolute;
-  z-index: 5;
-  top: var(--sh-gap-md);
-  right: var(--sh-gap-md);
-  padding: var(--sh-gap-sm) var(--sh-gap-md);
-  border: 1px solid var(--sh-accent);
-  border-radius: var(--sh-radius-sm);
-  background: var(--sh-surface-raised);
-  color: var(--sh-accent);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-.dashboard-stage__add:hover,
-.dashboard-stage__add:focus-visible { background: var(--sh-accent-quiet); }
 .dashboard-stage__card { position: absolute; min-width: 0; box-sizing: border-box; }
 .dashboard-stage__card .dashboard-block,
 .dashboard-stage__card.dashboard-block { box-sizing: border-box; height: 100%; overflow: auto; }
@@ -3138,11 +3122,9 @@ textarea.input {
 @media (max-width: 600px) {
   .editbar__hint { display: none; }
   .editbar__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
-  .editbar__add { grid-column: 1 / -1; }
   .editbar__actions .button { min-width: 0; padding-inline: var(--sh-gap-xs); }
   .dashboard-editor--free { padding-bottom: calc(min(54dvh, 440px) + var(--sh-nav-height)); }
   .dashboard-editor .dashboard-stage--phone { margin-inline: auto; }
-  .dashboard-stage__add { display: none; }
   .dashboard-stage--editing .blok { touch-action: pan-y; }
   .dashboard-stage--editing .blok--vybrany .dashboard-stage__move {
     position: absolute; z-index: 4; bottom: 4px; left: calc(50% - 22px);

@@ -2,6 +2,23 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.16]
+
+### Opraveno
+
+- Editor volné plochy používá pro přidávání karet jediný katalog v panelu
+  Přidat. Dvě duplicitní tlačítka, která jen otevírala už vybranou záložku,
+  byla odstraněna.
+- Prázdná plocha ukazuje stručný pokyn, kde vybrat první kartu. Na telefonu
+  je katalog dostupný rozbalením spodního panelu.
+
+### Kontrola
+
+- Ověřeno v živém HA, že výběr karty v katalogu ji uloží na plochu; testovací
+  karta byla následně odstraněna.
+- Automatický DOM test ověřuje jedinou cestu přidání, uložení karty a panel
+  při šířce telefonu 350 px.
+
 ## [0.19.15]
 
 ### Přidáno

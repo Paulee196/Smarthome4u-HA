@@ -782,6 +782,7 @@ export const t = {
     addBlock: "Přidat prvek",
     addTab: "Přidat",
     addBlockHint: "Vyberte, co chcete na plochu přidat. Nový prvek se objeví pod ostatními a můžete ho přesunout i upravit.",
+    emptyCanvasHint: "Prvek vyberte v panelu Přidat.",
     removeBlock: "Odebrat blok",
     blockEmpty: "Tenhle blok teď nemá co ukázat. Až bude, objeví se sám.",
     blockFailed: "Blok se nepodařilo vykreslit.",

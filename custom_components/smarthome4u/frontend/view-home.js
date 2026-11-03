@@ -26,7 +26,7 @@ export async function renderHome(root, ctx) {
   }
 
   if (ctx.editing) {
-    root.append(listaUprav(root, ctx, preset));
+    root.append(listaUprav(ctx, preset));
   }
 
   vykreslitPlochu(root, ctx);
@@ -36,10 +36,7 @@ export async function renderHome(root, ctx) {
 /* Režim úprav                                                         */
 /* ------------------------------------------------------------------ */
 
-function listaUprav(root, ctx, preset) {
-  const add = button(`+ ${t.editor.addBlock}`,
-    () => root.dispatchEvent(new Event("sh4u-add-block")));
-  add.classList.add("editbar__add");
+function listaUprav(ctx, preset) {
   const undo = button(t.editor.undo, () => restore("undo"), "button--ghost");
   const redo = button(t.editor.redo, () => restore("redo"), "button--ghost");
   undo.title = t.editor.undo;
@@ -69,7 +66,7 @@ function listaUprav(root, ctx, preset) {
       h("span", { class: "editbar__hint", text: t.editor.hint }),
     ]),
     h("div", { class: "row editbar__actions" }, [
-      add, undo, redo,
+      undo, redo,
     ]),
   ]);
 }

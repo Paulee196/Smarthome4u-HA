@@ -30,6 +30,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Karty a ovládání
         run: node scripts/check_card_controls.mjs
+      - name: Přidání prvku v editoru
+        run: node scripts/check_editor_add.mjs
 
   hassfest:
     name: Manifest integrace
