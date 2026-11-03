@@ -164,8 +164,10 @@ export const t = {
     level: "Podlaží",
     deviceCount: "zařízení",
     openRoom: "Otevřít místnost",
-    lightsOn: (pocet) => (pocet === 1 ? `Svítí 1 světlo` : `Svítí ${pocet}`),
+    lightsOn: (pocet) => `Svítí ${pocet} ${pocet === 1 ? "světlo" : pocet < 5 ? "světla" : "světel"}`,
     nothingOn: "Nikde nesvítí",
+    roomDark: "Světla zhasnutá",
+    turnOffLights: "Zhasnout světla",
     deviceTotal: (pocet) =>
       pocet === 1 ? `1 zařízení` : `${pocet} zařízení`,
     deleteRoomHint:
@@ -817,6 +819,14 @@ export const t = {
     automaticTilesHint: "Úpravou této dlaždice se blok změní na vlastní výběr zařízení.",
     blockHeight: "Výška bloku",
     roomProperties: "Upravit pokoj",
+    roomView: "Zobrazení místností",
+    roomNavigation: "Přejít do místnosti",
+    roomViews: {
+      grid: "Mřížka místností",
+      sidebar: "Místnosti s postranním seznamem",
+      list: "Kompaktní seznam zařízení",
+      focus: "Jedna místnost na obrazovce",
+    },
     pixelHeight: "Přesná výška bloku",
     fontSize: "Velikost textu",
     chooseEntity: "Vyberte zařízení",

@@ -12,7 +12,7 @@
 import { api } from "./api.js";
 import { COLORS, ICONS } from "./appearance.js";
 import { t } from "./i18n.js";
-import { card, openControls } from "./controls.js";
+import { card, openControls, watch } from "./controls.js";
 import { povolitPretahovani, ATRIBUT_KLICE } from "./dnd.js";
 import { moveDashboardEntity, visibleRoomRefs } from "./dashboard-transfer.js";
 import { knihovnaBloku, mrizkaZarizeni } from "./favorites.js";
@@ -63,7 +63,7 @@ export const BLOKY = {
   lights: { glyf: "lighting", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => rozsvicena(ctx, blok, ulozit) },
   scenes: { glyf: "scenes", fields: EDIT_COMMON, render: (ctx, blok, ulozit) => sceny(ctx, blok, ulozit) },
   rooms: { glyf: "rooms", fields: EDIT_COMMON, render: (ctx) => mistnosti(ctx) },
-  auto_rooms: { glyf: "rooms", fields: EDIT_COMMON,
+  auto_rooms: { glyf: "rooms", fields: [...EDIT_COMMON, "roomView"],
     render: (ctx, blok, ulozit, selectRoom) =>
       automatickeMistnosti(ctx, blok, ulozit, selectRoom) },
   floorplan: { glyf: "home", fields: EDIT_COMMON,
@@ -120,11 +120,9 @@ export function vychozi(preset, model) {
   if (preset === "overview") return {
     columns: 4,
     blocks: [
-      { id: "overview-headline", type: "headline", cols: 4,
-        title: t.dashboardIntro.overview.title,
-        subtitle: t.dashboardIntro.overview.description },
       { id: "overview-status", type: "status", cols: 4 },
-      { id: "auto-rooms", type: "auto_rooms", cols: 4 },
+      { id: "overview-scenes", type: "scenes", cols: 4 },
+      { id: "auto-rooms", type: "auto_rooms", roomView: "grid", cols: 4 },
     ],
   };
   const oblibene = (model.favorites || []).map((e) => e.ref || e.id);
@@ -912,9 +910,15 @@ function renderBlockPanel(ctx, blocks, columns, block, save, preview, roomId,
       }
       return select(choices, block.mediaRef || "", "mediaRef", t.editor.mediaSource);
     },
+    roomView: () => select([
+      { value: "grid", label: t.editor.roomViews.grid },
+      { value: "sidebar", label: t.editor.roomViews.sidebar },
+      { value: "list", label: t.editor.roomViews.list },
+      { value: "focus", label: t.editor.roomViews.focus },
+    ], block.roomView || "grid", "roomView", t.editor.roomView),
   };
   const keys = BLOKY[block.type]?.fields || [];
-  const sections = { content: ["title", "subtitle", "metric", "entityRef", "mediaRef"],
+  const sections = { content: ["title", "subtitle", "metric", "entityRef", "mediaRef", "roomView"],
     style: ["icon", "color"], size: ["height", "cols"] };
   for (const key of keys) {
     if (section === "all" || (sections[section] || []).includes(key)) {
@@ -1217,7 +1221,7 @@ function nadpisPlochy(ctx, blok) {
 function stavDomu(ctx) {
   const souhrn = ctx.model.summary || {};
 
-  return ramec(t.blocks.status, "home", h("div", { class: "stav" }, [
+  const status = h("div", { class: "stav" }, [
     veta(
       "lighting",
       souhrn.lightsOn
@@ -1239,6 +1243,11 @@ function stavDomu(ctx) {
         : t.status.allClosed,
       Boolean(souhrn.openCount),
     ),
+  ]);
+  return ramec(t.blocks.status, "home", h("div", { class: "stack" }, [
+    status,
+    !ctx.editing && souhrn.lightsOn > 0 && button(t.home.allLightsOff,
+      () => zhasnoutVse(rozsvicenaSvetla(ctx)), "button--ghost"),
   ]));
 }
 
@@ -1396,11 +1405,13 @@ function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
   const rooms = ctx.model.rooms || [];
   if (!rooms.length) return ramec(blok.title || t.blocks.auto_rooms,
     "rooms", emptyState(t.rooms.empty));
+  const mode = ["grid", "sidebar", "list", "focus"].includes(blok.roomView)
+    ? blok.roomView : "grid";
   const layouts = blok.roomLayouts || {};
   const orderedRooms = [...rooms].sort((a, b) =>
     (layouts[String(a.id || "unassigned")]?.order ?? rooms.indexOf(a))
     - (layouts[String(b.id || "unassigned")]?.order ?? rooms.indexOf(b)));
-  const grid = h("div", { class: "auto-rooms" }, orderedRooms.map((room) => {
+  const grid = h("div", { class: `auto-rooms auto-rooms--${mode}` }, orderedRooms.map((room) => {
     const key = String(room.id || "unassigned");
     const entities = room.entities || [];
     const refs = entities.map((entity) => ctx.entityRef(entity));
@@ -1426,6 +1437,24 @@ function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
         cards.replaceChildren(mrizkaZarizeni(roomCtx, tileBlock, saveRoom));
         more.remove();
       }, "button--ghost") : null;
+    const lights = entities.filter((entity) => entity.capability?.kind === "light");
+    const roomState = h("span", { class: "auto-rooms__state" });
+    const off = button(t.rooms.turnOffLights, () =>
+      zhasnoutVse(lights.filter((entity) => entity.state === "on")), "button--ghost");
+    off.classList.add("auto-rooms__off");
+    const paintRoom = () => {
+      const count = lights.filter((entity) => entity.state === "on").length;
+      roomState.textContent = lights.length
+        ? count ? t.rooms.lightsOn(count) : t.rooms.roomDark
+        : t.rooms.deviceTotal(entities.length);
+      off.hidden = count === 0;
+    };
+    paintRoom();
+    if (!ctx.editing) for (const light of lights) watch(light.id, (next) => {
+      const index = lights.findIndex((item) => item.id === next.id);
+      if (index >= 0) lights[index] = next;
+      paintRoom();
+    });
     const roomView = h("section", { class: "panel auto-rooms__room"
       + (saved.cols === 2 ? " auto-rooms__room--wide" : "")
       + (saved.fontSize ? " auto-rooms__room--text-custom" : ""),
@@ -1438,8 +1467,11 @@ function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
     }, [
       h("div", { class: "panel__head" }, [
         h("span", { class: "panel__glyph" }, icon("rooms")),
-        h("h2", { class: "panel__title", text: saved.title || room.name || t.rooms.unassigned }),
-        h("span", { class: "muted", text: t.rooms.deviceCount + ": " + entities.length }),
+        h("div", { class: "auto-rooms__heading" }, [
+          h("h2", { class: "panel__title", text: saved.title || room.name || t.rooms.unassigned }),
+          roomState,
+        ]),
+        !ctx.editing && off,
         ctx.editing && h("button", { class: "button button--ghost", type: "button",
           text: t.editor.roomProperties, onclick: () => selectRoom?.(key) }),
         ctx.editing && h("button", { class: "dnd__uchyt", type: "button",
@@ -1457,7 +1489,43 @@ function automatickeMistnosti(ctx, blok, ulozit, selectRoom) {
     roomLayouts: Object.fromEntries(order.map((key, index) => [key, {
       ...(layouts[key] || {}), order: index,
     }])) }));
-  return ramec(blok.title || t.blocks.auto_rooms, "rooms", grid);
+  let content = grid;
+  if (mode === "sidebar" || mode === "focus") {
+    if (mode === "sidebar" && !ctx.editing) {
+      [...grid.children].forEach((room, index) => { room.hidden = index !== 0; });
+    }
+    const tabs = orderedRooms.map((room, index) => {
+      const key = String(room.id || "unassigned");
+      const button = h("button", { class: "auto-rooms__tab", type: "button",
+        text: layouts[key]?.title || room.name || t.rooms.unassigned,
+        "aria-current": index === 0 ? "true" : "false",
+        onclick: () => {
+          const target = [...grid.children].find((item) =>
+            item.getAttribute(ATRIBUT_KLICE) === key);
+          if (mode === "sidebar" && !ctx.editing) {
+            for (const room of grid.children) room.hidden = room !== target;
+          } else {
+            target?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+          }
+          for (const tab of tabs) tab.setAttribute("aria-current", String(tab === button));
+        } });
+      return button;
+    });
+    const navigation = h("nav", { class: "auto-rooms__nav",
+      "aria-label": t.editor.roomNavigation }, tabs);
+    if (mode === "focus") grid.addEventListener("scroll", () => {
+      const left = grid.getBoundingClientRect().left;
+      const sections = [...grid.children];
+      const active = sections.reduce((best, item, index) =>
+        Math.abs(item.getBoundingClientRect().left - left)
+          < Math.abs(sections[best].getBoundingClientRect().left - left)
+          ? index : best, 0);
+      tabs.forEach((tab, index) => tab.setAttribute("aria-current", String(index === active)));
+    });
+    content = h("div", { class: `auto-rooms__shell auto-rooms__shell--${mode}` },
+      [navigation, grid]);
+  }
+  return ramec(blok.title || t.blocks.auto_rooms, "rooms", content);
 }
 
 function vlozenyPlanek(ctx, blok) {

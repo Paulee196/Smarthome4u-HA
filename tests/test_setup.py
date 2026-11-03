@@ -331,6 +331,7 @@ async def test_upravy_automatickych_mistnosti_se_ulozi(
     await hass.async_block_till_done()
     client = await hass_client()
     board = [{"id": "auto-rooms", "type": "auto_rooms", "cols": 2,
+              "roomView": "focus",
               "roomLayouts": {"room-a": {
                   "title": "Obývák", "cols": 2, "fontSize": 24, "order": 0,
                   "entities": ["light.test"], "excluded": [],
@@ -342,6 +343,7 @@ async def test_upravy_automatickych_mistnosti_se_ulozi(
     })
     assert response.status == 200, await response.text()
     model = await (await client.get("/api/smarthome4u/model")).json()
+    assert model["board"]["blocks"][0]["roomView"] == "focus"
     layout = model["board"]["blocks"][0]["roomLayouts"]["room-a"]
     assert layout["entities"] == ["entity:light.test"]
     assert layout["sizes"] == {"entity:light.test": "xl"}

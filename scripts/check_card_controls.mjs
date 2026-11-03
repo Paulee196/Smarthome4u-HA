@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { parseHTML } from "linkedom";
 import { api } from "../custom_components/smarthome4u/frontend/api.js";
-import { BLOKY } from "../custom_components/smarthome4u/frontend/blocks.js";
+import { BLOKY, vychozi } from "../custom_components/smarthome4u/frontend/blocks.js";
 import { card, clearWatchers, openControls, applyStates } from "../custom_components/smarthome4u/frontend/controls.js";
 import { setHost, closeDialog } from "../custom_components/smarthome4u/frontend/ui.js";
 
@@ -14,7 +14,7 @@ Object.defineProperty(Object.getPrototypeOf(document.createElement("select")), "
   get() { return this.getAttribute("data-test-value") || this.querySelector("option")?.getAttribute("value") || ""; },
   set(value) { this.setAttribute("data-test-value", value); },
 });
-setHost(document.body);
+setHost(document);
 const actions = [];
 api.action = async (...args) => { actions.push(args); };
 const click = (element) => {
@@ -132,6 +132,30 @@ click(quickPlay.querySelector(".card__hit"));
 assert.deepEqual(actions.pop(), [player.id, "pause"]);
 assert.ok(BLOKY.entity.render(ctx, { type: "entity", entityRef: "missing.device" })
   .textContent.includes("dostupná"), "missing configured entity must remain visible");
+assert.deepEqual(vychozi("overview", ctx.model).blocks.map((block) => block.type),
+  ["status", "scenes", "auto_rooms"]);
+for (const mode of ["grid", "sidebar", "list", "focus"]) {
+  const view = BLOKY.auto_rooms.render(ctx, { id: "rooms", type: "auto_rooms",
+    roomView: mode }, () => {}, () => {});
+  assert.ok(view.querySelector(`.auto-rooms--${mode}`), `${mode} layout missing`);
+  assert.ok(view.textContent.includes(room.name), `${mode} room name missing`);
+  assert.ok(view.textContent.includes("Svítí 1 světlo"), `${mode} room status missing`);
+  assert.equal(view.querySelectorAll(".auto-rooms__tab").length,
+    ["sidebar", "focus"].includes(mode) ? 1 : 0);
+  click(view.querySelector(".auto-rooms__off"));
+  assert.deepEqual(actions.pop(), [light.id, "turn_off"],
+    `${mode} room lights control must call Home Assistant`);
+}
+const otherRoom = { id: "kitchen", name: "Kuchyň", entities: [] };
+const sidebar = BLOKY.auto_rooms.render({ ...ctx,
+  model: { ...ctx.model, rooms: [room, otherRoom] },
+}, { id: "rooms", type: "auto_rooms", roomView: "sidebar" }, () => {}, () => {});
+const sidebarRooms = [...sidebar.querySelectorAll(".auto-rooms__room")];
+assert.deepEqual(sidebarRooms.map((item) => item.hidden), [false, true]);
+click(sidebar.querySelectorAll(".auto-rooms__tab")[1]);
+assert.deepEqual(sidebarRooms.map((item) => item.hidden), [true, false],
+  "sidebar navigation must switch the visible room");
+assert.equal(sidebar.querySelectorAll(".auto-rooms__tab")[1].getAttribute("aria-current"), "true");
 
 for (const [type, definition] of Object.entries(BLOKY)) {
   if (type === "floorplan" || type === "clock") continue;

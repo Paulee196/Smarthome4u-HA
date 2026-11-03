@@ -2,6 +2,27 @@
 
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/).
 
+## [0.19.15]
+
+### Přidáno
+
+- Nový výchozí Přehled ukazuje stav domácnosti, scény a automaticky naplněné
+  místnosti se zařízeními z Home Assistanta. Vlastní uložené plochy zachovává.
+- Blok automatických místností má v editoru čtyři podoby: mřížku, boční výběr
+  pokoje, kompaktní seznam a zobrazení jedné místnosti s posouváním.
+- Každý pokoj ukazuje aktuální stav světel a dovoluje je jedním tlačítkem
+  zhasnout. Scény ve výchozím Přehledu mají krátké akční karty.
+
+### Opraveno
+
+- Počet rozsvícených světel má správný český tvar. Úzký telefon skládá
+  karty v režimu jedné místnosti do jednoho sloupce.
+
+### Kontrola
+
+- DOM test prověřuje všechny čtyři podoby místností, přepínání pokoje v bočním
+  seznamu a volání akce pro zhasnutí světel přes existující HA API.
+
 ## [0.19.14]
 
 ### Opraveno

@@ -1816,6 +1816,10 @@ class DashboardView(Sh4uView):
                 novy["color"] = blok["color"]
             if blok.get("height") in ("compact", "normal", "large"):
                 novy["height"] = blok["height"]
+            if typ == "auto_rooms" and blok.get("roomView") in (
+                "grid", "sidebar", "list", "focus"
+            ):
+                novy["roomView"] = blok["roomView"]
             if isinstance(blok.get("minHeight"), int) and 120 <= blok["minHeight"] <= 900:
                 novy["minHeight"] = blok["minHeight"]
             if isinstance(blok.get("fontSize"), int) and 12 <= blok["fontSize"] <= 72:

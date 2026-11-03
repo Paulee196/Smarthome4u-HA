@@ -3,8 +3,22 @@
 Zdroj pravdy o stavu projektu. Aktualizuje se po každé dokončené části, aby se
 dalo navázat z jakéhokoliv počítače.
 
-**Poslední aktualizace:** 21. 10. 2026
-**Aktuální verze v kódu:** 0.19.14
+**Poslední aktualizace:** 3. 11. 2026
+**Aktuální verze v kódu:** 0.19.15
+
+## Přehled inspirovaný HomeDeck 0.19.15
+
+- [x] Porovnáno rozvržení HomeDeck: automatické oblasti z HA, mřížka, boční
+  výběr, seznam, soustředění na jeden pokoj a rychlé scény. Převzaty jsou
+  principy ovládání, žádný zdrojový kód ani druhý systém správy zařízení.
+- [x] Výchozí Přehled pro nové instalace tvoří stav domu, scény a pokoje z
+  aktuálního modelu HA. Stávající uložené dashboardy se nepřepisují.
+- [x] Editor bloku místností ukládá volbu čtyř podob do dosavadní sestavy.
+  Boční seznam přepíná pokoj; režim jedné místnosti se posouvá vodorovně.
+- [x] Stav světel pokoje se mění podle živých stavů entit; hromadné zhasnutí
+  používá stávající omezené akce HA. Mobil 350 px má čitelný jeden sloupec.
+- [x] DOM test: vykreslení podob, české popisky, přepnutí pokoje, zhasnutí.
+- [ ] Ověřit vzhled a chování na živé instalaci HA na telefonu i tabletu.
 
 ## Kontrola karet a ovládání 0.19.14
 

@@ -2626,11 +2626,61 @@ textarea.input {
 .plocha--prehled .stav__radek { min-width: 0; }
 
 .auto-rooms { display: grid; gap: var(--sh-gap-md); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.auto-rooms__room { min-width: 0; }
+.auto-rooms__room { min-width: 0; background: var(--sh-surface-raised); }
+.auto-rooms__room .panel__head { align-items: flex-start; flex-wrap: wrap; }
+.auto-rooms__room .panel__glyph { color: var(--sh-accent-ink); background: var(--sh-accent-quiet); }
+.auto-rooms__heading { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.auto-rooms__heading .panel__title { font-size: var(--sh-size-md); }
+.auto-rooms__state { color: var(--sh-text-muted); font-size: var(--sh-size-xs); }
+.auto-rooms__off { min-height: var(--sh-touch-target); white-space: nowrap; }
+.auto-rooms__off[hidden] { display: none; }
+.auto-rooms__nav { display: flex; gap: var(--sh-gap-xs); min-width: 0; overflow-x: auto; padding-bottom: var(--sh-gap-sm); }
+.auto-rooms__tab { flex: none; min-height: var(--sh-touch-target); padding: var(--sh-gap-xs) var(--sh-gap-md);
+  border: 1px solid var(--sh-border); border-radius: var(--sh-radius-pill); background: var(--sh-surface-raised);
+  color: var(--sh-text); font: inherit; cursor: pointer; }
+.auto-rooms__tab[aria-current="true"] { border-color: var(--sh-accent-line);
+  background: var(--sh-accent-quiet); color: var(--sh-accent-ink); }
+.auto-rooms--list { grid-template-columns: 1fr; }
+.auto-rooms--list .auto-rooms__tiles > .cards { grid-template-columns: 1fr; }
+.auto-rooms--list .card:not(.card--l):not(.card--xl) .card__hit {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  min-height: var(--sh-touch-target); gap: var(--sh-gap-sm); padding: var(--sh-gap-sm) var(--sh-gap-md); }
+.auto-rooms--list .card:not(.card--l):not(.card--xl) .card__name { margin: 0; }
+.auto-rooms--list .card:not(.card--l):not(.card--xl) .card__state { text-align: right; }
+.auto-rooms__shell--sidebar { display: grid; grid-template-columns: minmax(150px, 200px) minmax(0, 1fr);
+  align-items: start; gap: var(--sh-gap-md); }
+.auto-rooms__shell--sidebar .auto-rooms__nav { position: sticky; top: var(--sh-gap-sm);
+  flex-direction: column; max-height: 70vh; overflow-y: auto; }
+.auto-rooms__shell--sidebar .auto-rooms__tab { width: 100%; text-align: left; white-space: normal; }
+.auto-rooms--sidebar { grid-template-columns: 1fr; }
+.auto-rooms--sidebar .auto-rooms__room[hidden] { display: none; }
+.auto-rooms--focus { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(100%, 1fr);
+  grid-template-columns: none; overflow-x: auto; scroll-snap-type: x mandatory; }
+.auto-rooms--focus .auto-rooms__room { scroll-snap-align: start; grid-column: auto; }
+.auto-rooms--focus .auto-rooms__tiles > .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-block--type-scenes .cards { display: flex; flex-wrap: wrap; }
+.dashboard-block--type-scenes .card { width: auto; min-width: 130px; }
+.dashboard-block--type-scenes .card__hit { flex-direction: row; align-items: center;
+  min-height: var(--sh-touch-target); gap: var(--sh-gap-sm); padding: var(--sh-gap-sm) var(--sh-gap-md); }
+.dashboard-block--type-scenes .card__name { margin: 0; }
+.dashboard-block--type-scenes .card__state { display: none; }
+.dashboard-block--type-status > .stack > .button { align-self: flex-start; }
 .embedded-floorplan { width: 100%; min-width: 0; }
 .embedded-floorplan .plan { max-width: 100%; }
 .dashboard-manager__item { flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--sh-border); }
-@media (max-width: 700px) { .auto-rooms { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .auto-rooms { grid-template-columns: 1fr; }
+  .auto-rooms__shell--sidebar { grid-template-columns: 1fr; }
+  .auto-rooms__shell--sidebar .auto-rooms__nav { position: static; flex-direction: row;
+    max-height: none; overflow-x: auto; }
+  .auto-rooms__shell--sidebar .auto-rooms__tab { width: auto; white-space: nowrap; }
+  .auto-rooms--focus { grid-auto-columns: minmax(100%, 1fr); grid-template-columns: none; }
+  .auto-rooms--focus .auto-rooms__tiles > .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .auto-rooms__off { width: 100%; }
+}
+@media (max-width: 420px) {
+  .auto-rooms--focus .auto-rooms__tiles > .cards { grid-template-columns: 1fr; }
+}
 .metric-card {
   display: grid;
   align-content: space-between;
